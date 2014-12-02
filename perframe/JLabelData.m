@@ -8765,15 +8765,19 @@ classdef JLabelData < matlab.mixin.Copyable
             else
               assert(isstruct(obj.trainstats{iCls}));
               trainstatfns = fieldnames(trainstats);
-              for fni = 1:numel(trainstatfns)
-                obj.trainstats{iCls}.(trainstatfns{fni})(end+1) = trainstats.(trainstatfns{fni});
+              for fn = trainstatfns(:)',fn=fn{1}; %#ok<FXSET>
+                val = trainstats.(fn);
+                if isempty(val)
+                  val = nan;
+                end
+                obj.trainstats{iCls}.(fn)(end+1) = val;
               end
               obj.trainstats{iCls}.timestamps(end+1) = obj.classifierTS(iCls);
             end
 
             obj.windowdata(iCls).labelidx_old = obj.windowdata(iCls).labelidx_cur;
             obj.windowdata(iCls).labelidx_cur = obj.windowdata(iCls).labelidx_new;
-            obj.windowdata(iCls).scoreNorm = [];
+            obj.windowdata(iCls).scoreNorm = nan;
             
             % To later find out where each example came from.
             
@@ -8802,43 +8806,47 @@ classdef JLabelData < matlab.mixin.Copyable
     % frames. This involves first precomputing the window data for these
     % frames, then applying the classifier. 
      
+      %MERGESTUPDATED
+      
       % TODO: don't store window data just because predicting. 
 
-      assert(false,'ALXXX MINIMAL');      
-
-      if isempty(obj.classifier),
-        return;
-      end
-
-      if isempty(t0) || t0>t1,
+      if isempty(t0) || t0>t1
         return;
       end
             
       % Get the relevant window data in main memory so that we can predict on it
-%       [success,msg] = obj.PreLoadWindowData(expi,flies,t0:t1);
-%       if ~success ,
-%         error('JLabelData:unableToLoadWindowDataForPrediction', ...
-%               msg);
-%       end
-      
-      % apply classifier
-      switch obj.classifiertype,
-      case {'boosting','fancyboosting'},
-        obj.SetStatus('Updating Predictions ...');
-        didpredict = obj.PredictFast(expi,flies,t0,t1); %ALXXX API
-        tic;
-        if didpredict,
-          obj.SetStatus('Predictions updated, applying postprocessing...\n');
-          obj.ApplyPostprocessing(expi,flies);
-          %fprintf('postprocessing takes %f seconds\n',toc);
+      % [success,msg] = obj.PreLoadWindowData(expi,flies,t0:t1);
+      % if ~success ,
+      % error('JLabelData:unableToLoadWindowDataForPrediction',msg);
+      % end
+            
+      didpredict = false(obj.nclassifiers,1);
+      for iCls = 1:obj.nclassifiers
+        if isempty(obj.classifier{iCls})
+          continue;
         end
-        obj.ClearStatus();
+        
+        switch obj.classifiertype{iCls}
+          case {'boosting','fancyboosting'}
+            if obj.nclassifiers==1
+              obj.SetStatus('Updating Predictions ...');
+            else
+              obj.SetStatus('Updating Predictions for %s...',obj.labelnames{iCls});
+            end
+            didpredict(iCls) = obj.PredictFast(expi,flies,t0,t1,iCls);
+            if didpredict(iCls)
+              obj.SetStatus('Predictions updated, applying postprocessing...\n');
+            end
+        end        
       end
-           
-      obj.UpdatePredictedIdx();
       
-    end  % method
-    
+      if any(didpredict)
+        obj.ApplyPostprocessing(expi,flies);
+        obj.UpdatePredictedIdx();
+      end
+      obj.ClearStatus();
+    end
+      
     
     % ---------------------------------------------------------------------
     function allScores = PredictWholeMovie(obj,expi)
@@ -10055,7 +10063,7 @@ classdef JLabelData < matlab.mixin.Copyable
       for iCls = 1:nCls
         cls = obj.classifier{iCls};
         
-        if isempty(obj.windowdata(iCls).scoreNorm) || all(isnan(obj.windowdata(iCls).scoreNorm))
+        if isempty(obj.windowdata(iCls).scoreNorm) || isnan(obj.windowdata(iCls).scoreNorm)
           % Need to initialize scoreNorm
           
           if isempty(obj.windowdata(iCls).X) || isempty(cls)
