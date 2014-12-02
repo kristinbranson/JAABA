@@ -3,6 +3,16 @@ classdef Labels
   % - Methods for the labels data structure (see JLabelData.labels)
   % - Some stuff related to behavior names
   
+  % Label-related datastructures
+  % - labelIdx is a scalar struct containing labels for a single track 
+  % across multiple timelines. Key props are .vals, .imp, .timestamp which 
+  % are numTimelines-by-nsamps.
+  % - labelsShort is a scalar struct containing labels for a single track
+  % across multiple timelines. Key props are .names, .t0s, .t1s, .imp. It
+  % is simlar to the labels structure.
+  % - labels is a struct array indexed by experiment and fly, ie
+  % labels(iExp){iFly}. Key props are .names, .t0s, .t1s.
+  
   methods (Static) % labelidx methods
  
     function labelidx = labelIdx(labelnames,T0,T1)
@@ -13,24 +23,13 @@ classdef Labels
       n = T1-T0+1;
       off = 1 - T0;
       
-      labelidx = struct();
-      
+      labelidx = struct();      
       labelidx.T0 = T0;
       labelidx.T1 = T1;
       labelidx.n = n;
       labelidx.off = off;
-      
-      if nTL==1
-        % 'classic'
-        labelidx.labelnames = labelnames;
-        labelidx.nbeh = numel(labelnames);
-      else
-        % multiple behaviors. Last label is "supernone"       
-        %assert(strcmpi(labelnames{end},'none'));
-        labelidx.labelnames = labelnames;
-        labelidx.nbeh = numel(labelidx.labelnames);
-      end
-      
+      labelidx.labelnames = labelnames;
+      labelidx.nbeh = numel(labelidx.labelnames);            
       labelidx.nTL = nTL;
       labelidx.idxBeh2idxTL = idxBeh2idxTL;
       labelidx.TL2idxBeh = tl2IdxBeh;
@@ -39,38 +38,51 @@ classdef Labels
       labelidx.timestamp = zeros(nTL,n);
     end
     
-    function labelidx = labelIdxInit(labelidx,labels)
-      % label Initialize from labels struct
+    function labelidx = labelIdxInit(labelidx,labelsShort)
+      % Initialize from labelsShort struct
       % initialized props: .vals, .timestamp, .imp
+      
+      tfMultiCls = labelidx.nTL>1;
       
       for iBeh = 1:labelidx.nbeh
         beh = labelidx.labelnames{iBeh};
         iTL = labelidx.idxBeh2idxTL(iBeh);
-        iLbls = find(strcmp(labels.names,beh));
-        assert(isequal(numel(labels.names),numel(labels.t0s),numel(labels.t1s)));
+        iLbls = find(strcmp(labelsShort.names,beh));
+        assert(isequal(numel(labelsShort.names),numel(labelsShort.t0s),numel(labelsShort.t1s)));
         for iLbl = iLbls(:)'
-          t0 = labels.t0s(iLbl);
-          t1 = labels.t1s(iLbl);
-          if t0>labelidx.T1 || t1<labelidx.T0; continue; end
+          t0 = labelsShort.t0s(iLbl);
+          t1 = labelsShort.t1s(iLbl);
+          if t0>labelidx.T1 || t1<labelidx.T0
+            continue;
+          end
           t0 = max(labelidx.T0,t0);
           t1 = min(labelidx.T1+1,t1);
           idx = t0+labelidx.off:t1-1+labelidx.off;
           labelidx.vals(iTL,idx) = iBeh;
-          labelidx.timestamp(iTL,idx) = labels.timestamp(iLbl); 
+          if tfMultiCls
+            labelidx.imp(iTL,idx) = 1; % ALXXX EXTENDED: for multicls, all bouts important
+          end
+          labelidx.timestamp(iTL,idx) = labelsShort.timestamp(iLbl); 
         end
       end
-      assert(numel(labels.imp_t0s)==numel(labels.imp_t1s));
-      for iLbl = 1:numel(labels.imp_t0s)
-        t0 = labels.imp_t0s(iLbl); 
-        t1 = labels.imp_t1s(iLbl);
-        if t0>labelidx.T1 || t1<labelidx.T0; continue; end
-        t0 = max(labelidx.T0,t0);
-        t1 = min(labelidx.T1+1,t1);
-        idx = t0+labelidx.off:t1-1+labelidx.off;
-        
-        iTL = 1:labelidx.nTL;
-        warningNoTrace('Labels:labelidx:imp','labels.imp_t0s, .imp_t1s currently always map to ALL TLs.');
-        labelidx.imp(iTL,idx) = 1;
+      if ~tfMultiCls
+        % ALXXX EXTENDED. Single classifier, leegacy code for writing 
+        % importance 
+        assert(numel(labelsShort.imp_t0s)==numel(labelsShort.imp_t1s));
+        for iLbl = 1:numel(labelsShort.imp_t0s)
+          t0 = labelsShort.imp_t0s(iLbl); 
+          t1 = labelsShort.imp_t1s(iLbl);
+          if t0>labelidx.T1 || t1<labelidx.T0
+            continue; 
+          end
+          t0 = max(labelidx.T0,t0);
+          t1 = min(labelidx.T1+1,t1);
+          idx = t0+labelidx.off:t1-1+labelidx.off;
+
+          % iTL = 1:labelidx.nTL;
+          % warningNoTrace('Labels:labelidx:imp','labels.imp_t0s, .imp_t1s currently always map to ALL TLs.');
+          labelidx.imp(1,idx) = 1;
+        end
       end
     end      
     
@@ -90,6 +102,25 @@ classdef Labels
     % was erased), so in practice the behavior- and No-behavior timestamps
     % may always be the same. Nonetheless I think this would be an
     % improvement here.
+    
+%     ALXXX EXTENDED, defer until working on GT mode, when can confirm
+%     usage of importance info. Until then:
+%     - for single classifiers, importance captured in .imp_t0 and .imp_t1,
+%     as today
+%     - for multi-classiifers, all bouts assumed to be important.
+% 
+%     - do the above note, .timelinetimestamp -> .labeltimestamp
+%     - add a prop, .allNames or similar, that contains all names/labels
+%     that are allowed in .names (set of classifiers)
+%     - add .imp, int vec same size as t0s/t1s giving importance (or whatever) level
+%       of each bout. Only gotcha here might be a bout that has multiple
+%       importance levels, eg first part important second half not; this
+%       would need to get split up into two bouts which maybe isn't
+%       convenient.
+%     - .timestamp still present but not used and essentially deprecated
+%     - .imp_t0s, .imp_t1s still present for legacy labels, but incorporated into .imp, 
+%        and plan to deprecate moving forward. definitely, do not use .imp_t0s or .imp_t1s 
+%        for multiclass.
     
     function labels = labels(nexp)
       % labels constructor

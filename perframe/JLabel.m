@@ -4115,14 +4115,12 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % check that the user has selected features already
-
-%t=tic;
-perFrameFeatureSetIsNonEmpty= ...
+perFrameFeatureSetIsNonEmpty = ...
   ~isempty(handles.data) && ...
-  handles.data.getPerFrameFeatureSetIsNonEmpty();
-if ~perFrameFeatureSetIsNonEmpty,
+  all(handles.data.getPerFrameFeatureSetIsNonEmpty());
+if ~perFrameFeatureSetIsNonEmpty
   uiwait(helpdlg('Select Features before training'));
-  oldPointer=pointerToWatch(hObject);
+  oldPointer = pointerToWatch(hObject);
   SelectFeatures(handles.figure_JLabel);
   restorePointer(hObject,oldPointer);
   return;
@@ -9800,9 +9798,8 @@ function selectFeaturesDone(figureJLabel, ...
 % Called by SelectFeatures after the user clicks on "Done", tells us that
 % the per-frame features may have been changed.
 setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon);
-handles=guidata(figureJLabel);
+handles = guidata(figureJLabel);
 handles.data.setWindowFeaturesParams(windowFeaturesParams);
-% handles.data.needsave=true;  % done in data.setWindowFeaturesParams() now
 UpdateTimelineImages(handles);
 UpdatePlots(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
