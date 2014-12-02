@@ -283,6 +283,8 @@ classdef Macguffin < handle
       % Combines multiple Macguffins into single multi-classifier Macguffin
       % ALTODO: Caveat emptor, unverified functionality
       
+      assert(false,'ALTODO MERGEST update');
+              
       assert(isa(m,'Macguffin'));
       assert(~isempty(m),'Input Macguffin cannot be empty,');
       

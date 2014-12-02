@@ -6,7 +6,7 @@ classdef ClassifierStuff < handle
     type
     params
     timeStamp
-    confThresholds
+    confThresholds % 1x2 vec
     scoreNorm % AL does windowdata.scoreNorm dup .scoreNorm?
     postProcessParams
     trainingParams

@@ -1,7 +1,9 @@
-function [allDataModel outScores, stats] = boostingWrapper(data,labels,obj,binVals,bins,params)
+function [allDataModel,outScores,stats] = boostingWrapper(data,labels,obj,binVals,bins,params)
+% [allDataModel,outScores,stats] = boostingWrapper(data,labels,obj,binVals,bins,params)
+% labels: integer label vec. Currently, labels are either 1 (positive, 
+% behavior present, etc) or any other value (negative)
 
 assert(isvector(labels) && numel(labels)==size(data,1));
-assert(all(ismember(labels,[0 1])));
 
 boostIterations = params.iter;
 % Learn classifier with all the data.
