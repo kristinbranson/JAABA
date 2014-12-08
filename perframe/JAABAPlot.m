@@ -5775,7 +5775,9 @@ while true,
     
     if ischange && isempty(errs),
         
+      if verLessThan('matlab','8.3.0.532'),
         % remove extra computation threads
+        
         if matlabpool('size') > computation_threads,
             set(handles.Status,'string',sprintf('Shrinking matlab pool to %d workers',computation_threads),'foregroundcolor','b');
             set(handles.figure1,'pointer','watch');
@@ -5796,7 +5798,33 @@ while true,
             matlabpool('open',computation_threads);
             pause(1);
         end
+      else
+
+        curpool = gcp('nocreate');
+        % remove extra computation threads
+        if ~isempty(curpool) && curpool.NumWorkers > computation_threads,
+            set(handles.Status,'string',sprintf('Shrinking parallel pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            pause(2);
+            delete(gcp);
+            parpool(computation_threads);
+        end
         
+        % add extra computation threads
+        if isempty(curpool) || curpool.NumWorkers < computation_threads,
+            set(handles.Status,'string',sprintf('Growing parallel pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            drawnow;
+            if isempty(curpool),
+                delete(gcp);
+            end
+            pause(1);
+            parpool(computation_threads);
+            pause(1);
+        end
+        
+        
+      end
         
         handles.computation_threads = computation_threads;
         %     ClearStatus(handles);
