@@ -126,7 +126,7 @@ classdef JLabelGUIData < handle
     % flies_extra_marker = {'o'};
     % flies_extra_linestyle = {'-'};
 
-    scorecolor = [];
+    scorecolor = []; % 63x3x3
     
     correctcolor = [0,.7,0];
     incorrectcolor = [.7,.7,0];
