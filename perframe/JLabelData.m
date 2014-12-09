@@ -8220,9 +8220,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function scores = GetValidatedScores(obj,expi,flies,T0,T1)
-      % ALTODO this and the next 4 methods (Get*Scores) seem very similar
+      % scores: nclassifier-by-(T1-T0+1) array
       
-      %ALXXX UPDATE MINIMAL
+      %MERGESTUPDATED
       
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -8231,25 +8231,25 @@ classdef JLabelData < matlab.mixin.Copyable
       
       n = T1-T0+1;
       off = 1 - T0;
-      scores = zeros(1,n);
-      
-      if ~isempty(obj.windowdata.scores_validated) 
-        idxcurr = obj.FlyNdx(expi,flies) & ...
-          obj.windowdata.t >= T0 & obj.windowdata.t <= T1;
-        scores(obj.windowdata.t(idxcurr)+off) = ...
-          obj.windowdata.scores_validated(idxcurr);
-      end
-      
+      scores = zeros(obj.nclassifiers,n);
+      for iCls = 1:obj.nclassifiers
+        wd = obj.windowdata(iCls);
+        if ~isempty(wd.scores_validated)
+          idxcurr = obj.FlyNdx(expi,flies,iCls) & wd.t>=T0 & wd.t<=T1;
+          scores(iCls,wd.t(idxcurr)+off) = wd.scores_validated(idxcurr);
+        end
+      end      
     end
         
-    
-    % ---------------------------------------------------------------------
-    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)
-      if nargin<4
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end
-      
+  end
+  
+  methods (Access=private)
+    function [scores,predictions] = GetScoresCore(obj,expi,flies,...
+        fld,fldValid,fldPP,T0,T1)
+      % scores: nclassifier-by-(T1-T0+1)
+      % predictions: nclassifier-by-(T1-T0+1). fldPP only needed to compute
+      % predictions.
+          
       n = T1-T0+1;
       off = 1 - T0;
 
@@ -8258,67 +8258,54 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(numel(pdArr)==nTL);
       scores = zeros(nTL,n);
       predictions = zeros(nTL,n);
-      
       for iTL = 1:nTL
         pd = pdArr(iTL);
-        idxcurr = pd.loaded_valid & pd.t>=T0 & pd.t<=T1;
-        scores(iTL,pd.t(idxcurr)+off) = pd.loaded(idxcurr);
-        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.loaded_pp(idxcurr);
+        idxcurr = pd.(fldValid) & pd.t>=T0 & pd.t<=T1;
+        scores(iTL,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
+        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
       end
-      
+    end
+  end
+  
+  methods (Access=public)
+  
+    % ---------------------------------------------------------------------
+    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)      
+      %MERGESTUPDATED      
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end  
+      [scores,predictions] = obj.GetScoresCore(expi,flies,...
+        'loaded','loaded_valid','loaded_pp',T0,T1);
     end
     
     
     % ---------------------------------------------------------------------
     function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1)
+      %MERGESTUPDATED
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
-      
-      n = T1-T0+1;
-      off = 1 - T0;
-      nTL = obj.ntimelines;
-      scores = zeros(nTL,n);
-      predictions = zeros(nTL,n);
-      
-      if obj.HasCurrentScores,
-        for iTL = 1:nTL
-          idxcurr = obj.predictdata{expi}{flies}(iTL).cur_valid & ...
-              obj.predictdata{expi}{flies}(iTL).t>=T0 & ...
-              obj.predictdata{expi}{flies}(iTL).t<=T1;
-          scores(iTL,obj.predictdata{expi}{flies}(iTL).t(idxcurr)+off) = obj.predictdata{expi}{flies}(iTL).cur(idxcurr);
-          predictions(iTL,obj.predictdata{expi}{flies}(iTL).t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}(iTL).cur_pp(idxcurr);
-        end
+            
+      if obj.HasCurrentScores
+        [scores,predictions] = obj.GetScoresCore(expi,flies,...
+          'cur','cur_valid','cur_pp',T0,T1);
       else
-        for iTL = 1:nTL
-          idxcurr = obj.predictdata{expi}{flies}(iTL).loaded_valid & ...
-            obj.predictdata{expi}{flies}(iTL).t>=T0 & ...
-            obj.predictdata{expi}{flies}(iTL).t<=T1;
-          scores(iTL,obj.predictdata{expi}{flies}(iTL).t(idxcurr)+off) = obj.predictdata{expi}{flies}(iTL).loaded(idxcurr);
-          predictions(iTL,obj.predictdata{expi}{flies}(iTL).t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}(iTL).loaded_pp(idxcurr);
-        end
+        [scores,predictions] = obj.GetLoadedScores(expi,flies,T0,T1);
       end      
     end
         
     
     % ---------------------------------------------------------------------
     function scores = GetOldScores(obj,expi,flies)
+      %MERGESTUPDATED
       T0 = max(obj.GetTrxFirstFrame(expi,flies));
       T1 = min(obj.GetTrxEndFrame(expi,flies));
-      
-      n = T1-T0+1;
-      off = 1 - T0;
-      nTL = obj.ntimelines;
-      scores = zeros(nTL,n);
-      
-      for iTL = 1:nTL
-        idxcurr = obj.predictdata{expi}{flies}(iTL).old_valid & ...
-          obj.predictdata{expi}{flies}(iTL).t>=T0 & ...
-          obj.predictdata{expi}{flies}(iTL).t<=T1;
-        scores(iTL,obj.predictdata{expi}{flies}(iTL).t(idxcurr)+off) = ...
-          obj.predictdata{expi}{flies}(iTL).old(idxcurr);
-      end
+      scores = obj.GetScoresCore(expi,flies,'old','old_valid','old_valid',T0,T1);
+      % Using arbitrary/random field old_valid for fldPP; this arg only
+      % used for computing predictions, which we are not using
     end
     
     
