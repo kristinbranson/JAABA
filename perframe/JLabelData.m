@@ -8147,9 +8147,11 @@ classdef JLabelData < matlab.mixin.Copyable
       % structure with two fields: predictedidx and scoresidx, both with
       % nclassifiers rows.
       % - scoresidx holds the raw score output from the classifier.  
-      % - predictedidx holds the index of the predicted behavior, where 1 
-      % means the behavior, 2 means "none", and 1.5 means precisely on the 
-      % fence.
+      % - predictedidx holds the index of the predicted behavior:
+      %    * 1 represents the behavior
+      %    * 2 represents no-behavior
+      %    * 1.5 represents undecided between beh and no-beh
+      %    * 0 indicates no/invalid/out-of-date prediction
       
       if ~isempty(obj.expi) && numel(flies) == numel(obj.flies) && obj.IsCurFly(expi,flies),
         assert(size(obj.predictedidx,1)==obj.ntimelines);
