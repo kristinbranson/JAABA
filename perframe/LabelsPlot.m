@@ -15,6 +15,7 @@ classdef LabelsPlot
       labels_plot.predicted_im = zeros(nTL,n,3); % TODO: multiclass shortcut: just show raw scores, plot gets busy
       labels_plot.suggest_xs = nan;
       labels_plot.error_xs = nan;
+      labels_plot.suggest_gt = nan;
       %labels_plot.suggested_im = zeros([1,n,3]);
       %labels_plot.error_im = zeros([1,n,3]);
       labels_plot.x = nan(2,n,nBeh,nflies);
@@ -80,19 +81,77 @@ classdef LabelsPlot
       labels_plot.im = permute(im,[2 3 1]);
     end
       
-    function labels_plot = labelsPlotInitPredIm(labels_plot,predidx,labelcolors)
-      % labels_plot = labelsPlotInitPredIm(labels_plot,predidx,cmap)
-      % predidx: ntimelines x n logical array, true means behavior is predicted.
-      % labelcolors: nbehx3 color array
+    function labels_plot = labelsPlotSetPredIm(labels_plot,...
+        scores,pred,confThresh,bottomType,bottomDist,...
+        scores_bottom,pred_bottom,labelcolors,scorecolor)
+      % Set labels_plot.predicted_im, single classifier version
+      % - Top: binary prediction
+      % - Middle: raw scores
+      % - Bottom: configureable
+      %
+      % scores: 1 x n double 
+      % pred: 1 x n. 1==beh, 2==no-beh
+      % confThresh: 1x2 array for beh/noBeh resp
+      % bottomType: char enum
+      % bottomDist: n-long vector, only used if bottomType=='Distance'
+      % scores_bottom: 1 x n double
+      % pred_bottom: 1 x n. 1==beh, 2==no-beh
+      % labelcolors: nbeh x 3 (nbeh==2)
+      % scorecolors: 63x3x3
+      
+      %MERGESTUPDATED
+      
+      assert(isequal(size(scores),size(pred),size(scores_bottom),size(pred_bottom)));
+      assert(numel(confThresh)==2);
+      
+      idxBottomScores = ~isnan(scores_bottom);
+      bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
+      
+      im = labels_plot.predicted_im;
+      im(:) = 0;
+      for iBeh = 1:2
+        idxScores = pred==iBeh;
+        idxPredict = idxScores & abs(scores)>confThresh(iBeh);
+        scoreNdx = ceil(scores(idxScores)*31)+32;
+        for channel = 1:3
+          im(1,idxPredict,channel) = labelcolors(iBeh,channel);
+          im(2,idxPredict,channel) = labelcolors(iBeh,channel);
+          im(3,idxScores,channel) = scorecolor(scoreNdx,channel,1);
+          im(4,idxScores,channel) = scorecolor(scoreNdx,channel,1);
+          
+          % Bottom row (configureable)
+          if strcmp(bottomType,'Distance')
+            im(5:6,:,channel) = repmat(1-bottomDist(:)',[2 1 1]);
+            im(5:6,isnan(bottomDist(:)'),channel) = 0;
+          else
+            im(5,idxBottomScores,channel) = scorecolor(bottomScoreNdx,channel,1);
+            im(6,pred_bottom==iBeh,channel) = labelcolors(iBeh,channel);
+          end
+        end        
+      end
+      
+      labels_plot.predicted_im = im;      
+    end
+    
+    function labels_plot = labelsPlotSetPredImMultiCls(labels_plot,predTF,labelcolors)
+      % Set labels_plot.predicted_im, multiclass version
+      % At the moment, we just show the predicted (binary) bouts, as the 
+      % regular tripartite timeline is likely too cluttered for multiple
+      % classifiers.
+      %
+      % predTF: ntimelines x n logical array, true means behavior is predicted.
+      % labelcolors: nbehaviors x 3 color array
+      
+      %MERGESTUPDATED
       
       nTL = size(labels_plot.predicted_im,1);
       assert(isequal(size(labels_plot.predicted_im),[nTL labels_plot.n 3]));
-      assert(isequal(size(predidx),[nTL labels_plot.n]));
+      assert(isequal(size(predTF),[nTL labels_plot.n]));
       
       im = labels_plot.predicted_im;
       im(:) = 0;
       for iTL = 1:nTL
-        tf = predidx(iTL,:);
+        tf = predTF(iTL,:);
         % rows of labelcolors are indexed by behaviors, not timelines,
         % but currently the first nTL behaviors correspond to the
         % timelines.
@@ -105,8 +164,7 @@ classdef LabelsPlot
       labels_plot.predicted_im = im;
     end
     
-    % JLabel/SetLabelPlot does direct access
-    
+    % JLabel/SetLabelPlot does direct access    
   end  
   
 end
