@@ -35,7 +35,7 @@ classdef JLabelData < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   properties (SetAccess=private, GetAccess=public)
-    expi  % currently selected  experiment
+    expi  % currently selected experiment
     flies  % currently selected flies
   end  % properties which are read-only to outsiders
   
@@ -200,6 +200,7 @@ classdef JLabelData < matlab.mixin.Copyable
   properties (Dependent)
     nrealbehaviors % number of behaviors, not include None or No_<behavior>
     nclassifiers
+    classifiernames 
   end
   
   properties    
@@ -285,12 +286,13 @@ classdef JLabelData < matlab.mixin.Copyable
     % last-used path for loading experiments
     expdefaultpath
 
-    % parameters of window features, represented as a struct
+    % struct from curperframefns->[structs containing window feature parameters]
     % Each field holds the parameters for a single per-frame feature in the
     % feature vocabulary, with the field name being the per-frame feature
     % name. Score features are included in the feature vocabulary.
     windowfeaturesparams
     
+    % struct from curperframefns->[cell array of window feature parameters]
     % parameters of window features, represented as a cell array of
     % parameter name, parameter value, so that it can be input to
     % ComputeWindowFeatures
@@ -474,6 +476,9 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     function v = get.nclassifiers(self)
       v = self.ntimelines;
+    end
+    function v = get.classifiernames(self)
+      v = self.labelnames(1:self.nclassifiers);
     end
     
     function expnames=get.expnames(self)
@@ -3250,41 +3255,39 @@ classdef JLabelData < matlab.mixin.Copyable
 %     
     
     % ---------------------------------------------------------------------
-    function SaveScores(self,allScores,expi,sfn)  %#ok
-    % Save prediction scores for the whole experiment.
-    % The scores are stored as a cell array.
-      if nargin< 4
-        assert(false,'ALTODO: Unsupported codepath (unsupported GetFile signature');
-        sfn = self.GetFile('scores',expi,true); 
-      end
-      %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
-
-      %didbak = false;
-
-      assert(false,'ALXXX MINIMAL'); 
+    function SaveScores(self,allScoresCell,sfn)
+      % Save prediction scores for a whole experiment.
+      % 
+      % allScoresCell: cell array, nclassifiers elements, each el is an
+      %  allScore (see ScoreFile)
+      % sfn: cellstr, full filenames to be saved
       
-      if exist(sfn,'file'),
-        if exist([sfn '~'],'file')
-            delete([sfn '~']);
-        end
-          
-        [didbak,msg] = copyfile(sfn,[sfn,'~']);
-        if ~didbak,
-          error('JLabelData.unableToBackupScores', ...
-                'Could not create backup of %s: %s.  Aborting.',sfn,msg);  %#ok
-        end
+      % MERGESTUPDATED
+      
+      nCls = self.nclassifiers;
+      assert(iscell(allScoresCell) && numel(allScoresCell)==nCls);
+      assert(iscellstr(sfn) && numel(sfn)==nCls);
+
+      if ~self.userHasSpecifiedEverythingFileName
+        error('JLabelData:noJabFileNameSpecified', ...
+          'A .jab file name must be specified before scores can be saved.');
       end
-      timestamp = self.classifierTS;  %#ok
-      version = self.version;  %#ok
-      if self.userHasSpecifiedEverythingFileName, 
-        jabFileNameAbs=self.everythingFileNameAbs;  %#ok
-      else
-        error('JLabelData.noJabFileNameSpecified', ...
-              'User must specify a .jab file name before scores can be saved.');  %#ok
+      
+      sf = ScoreFile;
+      sf.jabFileNameAbs = self.everythingFileNameAbs;
+      sf.version = self.version;
+      timestamp = self.classifierTS;
+      behnames = self.classifiernames;
+      assert(isequal(nCls,numel(timestamp),numel(behnames)));
+      
+      for iCls = 1:nCls
+        sf.allScores = allScoresCell{iCls};
+        sf.behaviorName = behnames{iCls};
+        sf.timestamp = timestamp(iCls);
+        save(sf,sfn{iCls});
       end
-      save(sfn,'allScores','timestamp','version','jabFileNameAbs');
-      %obj.data.ClearStatus();
-    end  % method    
+    end
+    
   end  % private methods
 
   
@@ -3323,59 +3326,56 @@ classdef JLabelData < matlab.mixin.Copyable
     end      
 
     function [X,feature_names] = ...
-        ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
+      ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,...
+        flies,windowfeaturescellparams,t0,t1)
+      % Computes a chunk of windowdata between frames t0 and t1 for flies
+      % flies. Loop through all the per-frame features, and call
+      % ComputeWindowFeatures to compute all the window data for that
+      % per-frame feature.
+      %
+      % X: nframes x nfeatures window data
+      % feature_names: 1 x nfeatures cell array labeling columns of X
       
-    %function [X,feature_names] = ...
-    %    ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturecellparams,t0,t1)
-    %
-    % Computes a chunk of windowdata between frames t0 and t1 for flies
-    % flies. 
-    %
-    % X is the nframes x nfeatures window data, feature_names is a cell array
-    % of length nfeatures containing the names of each feature. 
-    %
-    % It then loops through all the per-frame features, and calls
-    % ComputeWindowFeatures to compute all the window data for that
-    % per-frame feature.
-    
-    X = [];
-%     feature_names = {};
-    feature_names=cell(1,numel(curperframefns));
-    
-    for j = 1:numel(curperframefns),
-      fn = curperframefns{j};
-      ndx = find(strcmp(fn,allperframefns));
-
-      perframedata = load(perframefile{ndx});  %#ok
-      perframedata = perframedata.data{flies(1)};
+      %MERGESTUPDATED
       
-      t11 = min(t1,numel(perframedata));
-      [x_curr,feature_names_curr] = ...
-        ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',t0,'t1',t11);
+      assert(numel(allperframefns)==numel(perframefile));
+      assert(isequal(fieldnames(windowfeaturescellparams),curperframefns));
       
-      if t11 < t1,
-        x_curr(:,end+1:end+t1-t11) = nan;
+      X = [];
+      feature_names = cell(1,numel(curperframefns));
+      for j = 1:numel(curperframefns)
+        fn = curperframefns{j};
+        ndx = find(strcmp(fn,allperframefns));
+        
+        perframedata = load(perframefile{ndx}); %#ok
+        perframedata = perframedata.data{flies(1)};
+        
+        t11 = min(t1,numel(perframedata));
+        [x_curr,feature_names_curr] = ...
+          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',t0,'t1',t11);
+        
+        if t11 < t1,
+          x_curr(:,end+1:end+t1-t11) = nan;
+        end
+        
+        % add the window data for this per-frame feature to X
+        nold = size(X,1);
+        nnew = size(x_curr,2);
+        if nold > nnew,
+          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          x_curr(:,end+1:end+nold-nnew) = nan;
+        elseif nnew > nold && ~isempty(X),
+          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          X(end+1:end+nnew-nold,:) = nan;
+        end
+        X = [X,x_curr']; %#ok<AGROW>
+        % add the feature names
+        if nargout>1
+          feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); 
+        end
       end
-      
-      % add the window data for this per-frame feature to X
-      nold = size(X,1);
-      nnew = size(x_curr,2);
-      if nold > nnew,
-        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  
-        x_curr(:,end+1:end+nold-nnew) = nan;
-      elseif nnew > nold && ~isempty(X),
-        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  
-        X(end+1:end+nnew-nold,:) = nan;
-      end
-      X = [X,x_curr']; %#ok<AGROW>
-      % add the feature names
-      if nargout>1
-        feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); %#ok<AGROW>
-      end
-    end
-    X = single(X);
-    feature_names=[feature_names{:}];
-    
+      X = single(X);
+      feature_names = [feature_names{:}];
     end
     
     function params = convertTransTypes2Cell(params)
@@ -3782,7 +3782,7 @@ classdef JLabelData < matlab.mixin.Copyable
           else
             % if fileType is anything besides 'perframedir'
             % check for existence of current file(s)
-            [fn,fTS] = obj.GetFile(fileType,expi);
+            [fn,fTS] = obj.GetFile(fileType,expi); %ALXXX MINIMAL
             %[fn,fileTimeStamps(i,j)] = obj.GetFile(fileType,expi);
             fileTimeStamps(i,j) = min(fTS);
             if iscell(fn),
@@ -5206,7 +5206,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %           obj.classifier_params = loadeddata.classifier_params;
 %           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
 %           obj.confThresholds = loadeddata.confThresholds;
-%           obj.classifierfilename = classifierfilename;
+%           obj.classifierfilename = filename;
 %           paramFields = fieldnames(loadeddata.classifier_params);
 %           for ndx = 1:numel(paramFields)
 %             obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
@@ -5353,149 +5353,160 @@ classdef JLabelData < matlab.mixin.Copyable
 
 
     % ---------------------------------------------------------------------
-    function allScores = PredictSaveMovie(self,expi,sfn)
+    function allScoresCell = PredictSaveMovie(self,expi,sfn)
     % Predicts for the whole movie and saves the scores.
+    % 
+    % expi: scalar, index of movie to predict
+    % sfn: Either cellstr of length self.nclassifiers containing score
+    %   filenames, or 0, in which case scores are not saved (but are returned)
+    %
+    % allScoresCell: cell array of lenght self.nclassifiers containing
+    % scores for each classifier
     
-      assert(false,'ALXXX MINIMAL');
-      
+    % MERGESTUPDATED
+          
       if nargin < 3
         sfn = self.GetFile('scores',expi);
       end
+      assert(isequal(sfn,0) || iscellstr(sfn) && numel(sfn)==self.nclassifiers);
+      tfSaveScores = iscellstr(sfn);
 
-      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-        'postprocessed',{{}},'postprocessedparams',[]);
-      scores_valid = true;
+      pdExp = self.predictdata{expi};
+      nFly = self.nflies_per_exp(expi);
+      firstFrms = self.firstframes_per_exp{expi};
+      endFrms = self.endframes_per_exp{expi};
+      assert(iscell(pdExp) && numel(pdExp)==nFly);
+      assert(isequal(nFly,numel(firstFrms),numel(endFrms)));
       
-      % See if the current scores are valid.
-      for fly = 1:self.nflies_per_exp(expi)
-        
-        curt = self.predictdata{expi}{fly}.t;
-        if any(curt(2:end)-curt(1:end-1) ~= 1)
-          %uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
-          error('JLabelData.scoresOutOfOrder', ...
-            'Scores are out of order. This shouldn''t happen.  Not saving them');  %#ok
-        end
-        
-        if ~all(self.predictdata{expi}{fly}.cur_valid),
-          scores_valid = false;
-          break;
-        end
-        
-        tStart = self.firstframes_per_exp{expi}(fly);
-        tEnd = self.endframes_per_exp{expi}(fly);
-        
-        allScores.scores{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur;
-        allScores.tStart(fly) = tStart;
-        allScores.tEnd(fly) = tEnd;
-        allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
-      end
-      
-      if scores_valid
+      tf = JLabelData.AllPredictedScoresValid(pdExp,self.nclassifiers);
+      if ~all(tf)
+        allScoresCell = self.PredictWholeMovie(expi);
+      else        
         self.SetStatus(sprintf('Exporting existing scores for movie %d:%s...',expi,self.expnames{expi}));
-        allScores.postprocessparams = self.postprocessparams;
-        for flies = 1:self.nflies_per_exp(expi)
-          [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
-          allScores.t0s{flies} = i0s;
-          allScores.t1s{flies} = i1s;
+                
+        % compile allScores from prediction data
+        allScoresCell = cell(self.nclassifiers,1);
+        for iCls = 1:self.nclassifiers
+          allScores = ScoreFile.allScrs(nFly);
+          allScores = ScoreFile.AllScrsInitFromPredData(allScores,pdExp,iCls,firstFrms,endFrms);
+          allScores.postprocessparams = self.postprocessparams{iCls};
+          allScores.scoreNorm = self.windowdata(iCls).scoreNorm;
+          allScoresCell{iCls} = allScores;
         end
-        allScores.scoreNorm = self.windowdata.scoreNorm;
-
-      % Need to compute scores.
-      else 
-        allScores = self.PredictWholeMovie(expi);
       end
       
-      if ischar(sfn),
+      if tfSaveScores
         try
-          self.SaveScores(allScores,expi,sfn);
-        catch ME,
-          if nargout > 0,
-            warning('Could not save scores to file %s: %s',sfn,getReport(ME));
+          self.SaveScores(allScoresCell,sfn);
+        catch ME
+          if nargout > 0
+            warning('Could not save scores for experiment %s: %s',self.expnames{expi},getReport(ME));
           else
             error(getReport(ME));
           end
         end
       end
-      self.AddScores(expi,allScores,now(),'',true);
+      self.AddScores(expi,allScoresCell,true);
       
-      if self.predictdata{expi}{1}.loaded_valid(1),
+      if self.predictdata{expi}{1}(1).loaded_valid(1) % AL: not sure what intent is here
         self.LoadScores(expi,sfn);
       end
-    end  % method
+    end
     
+% AL 20141210 appears unused, and see below for a commented (identical?) method  
+%     % ---------------------------------------------------------------------
+%     function SaveCurScores(self,expi,sfn)
+%     % Saves the current scores to a file.
+%         
+%       if nargin < 3
+%         sfn = self.GetFile('scores',expi);
+%       end
+%     
+%       if ~self.HasCurrentScores(),
+%         %uiwait(warndlg('No scores to save'));
+%         return
+%       end
+%       
+%       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+%                          'postprocessed',{{}},'postprocessparams',[]);
+%       scores_valid = true;
+%       pdExp = self.predictdata{expi};
+%       nFly = self.nflies_per_exp(expi);
+%       firstFrms = self.firstframes_per_exp{expi};
+%       endFrms = self.endframes_epr_exp{expi};      
+%       assert(iscell(pdExp) && numel(pdExp)==nFly);
+%       assert(isequal(nFly,numel(firstFrms),numel(endFrms)));
+%       
+%       for fly = 1:nFly
+%         
+%       
+%       end
+%       
+%       if ~scores_valid,
+%         % uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
+%         %  '%s. Cannot save the scores.'],self.expnames{expi}));
+%         % return;
+%         error('JLabelData.scoresHaveNotBeenComputed', ...
+%               ['Scores have not been computed for all the frames of experiment ' ...
+%                '%s. Cannot save the scores.'],self.expnames{expi});  %#ok
+%       end
+%       allScores.postprocessedparams = self.postprocessparams;
+%       allScores.scoreNorm = self.windowdata.scoreNorm;
+%       self.SaveScores(allScores,sfn);      
+%     end  % method
+    
+  end
+  
+  methods (Static)
+    function tf = AllPredictedScoresValid(predDataExp,nclassifier)
+      % predDataExp: JLD.predictdata for one experiment, eg
+      % obj.predictdata{expi}
+      % tf: nclassifier x 1 logical. tf(i) is true if entire timeline for
+      % all flies is predicted/valid for classifier i
+      
+      %MERGESTUPDATED
+      
+      nfly = numel(predDataExp);
+      tf = true(nclassifier,1);
+      for iCls = 1:nclassifier
+        for fly = 1:nfly
+          pd = predDataExp{fly};
+          assert(numel(pd)==nclassifier);
+          if ~all(pd(iCls).cur_valid)
+            tf(iCls) = false;
+            break;
+          end
+        end
+      end
+    end    
+  end
+  
+  methods (Access=public)
     
     % ---------------------------------------------------------------------
-    function SaveCurScores(self,expi,sfn)
-    % Saves the current scores to a file.
-    
-      assert(false,'ALXXX MINIMAL');
-    
-      if nargin < 3
-        sfn = self.GetFile('scores',expi);
-      end
-    
-      if ~self.HasCurrentScores(),
-        %uiwait(warndlg('No scores to save'));
-        return
-      end
-      
-      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-                         'postprocessed',{{}},'postprocessparams',[]);
-      scores_valid = true;
-      for fly = 1:self.nflies_per_exp(expi)
-        
-        curt = self.predictdata{expi}{fly}.t;
-        if any(curt(2:end)-curt(1:end-1) ~= 1)
-          %uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
-          error('JLabelData.scoresOutOfOrder', ...
-                'Scores are out of order. This shouldn''t happen.  Not saving them');  %#ok
-        end
-        
-        if ~all(self.predictdata{expi}{fly}.cur_valid), 
-          scores_valid = false; 
-          break; 
-        end
-        
-        tStart = self.firstframes_per_exp{expi}(fly);
-        tEnd = self.endframes_per_exp{expi}(fly);
-        
-        allScores.scores{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur;
-        allScores.tStart(fly) = tStart;
-        allScores.tEnd(fly) = tEnd;
-        allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
-      end
-      
-      if ~scores_valid,
-        % uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
-        %  '%s. Cannot save the scores.'],self.expnames{expi}));
-        % return;
-        error('JLabelData.scoresHaveNotBeenComputed', ...
-              ['Scores have not been computed for all the frames of experiment ' ...
-               '%s. Cannot save the scores.'],self.expnames{expi});  %#ok
-      end
-      allScores.postprocessedparams = self.postprocessparams;
-      allScores.scoreNorm = self.windowdata.scoreNorm;
-      self.SaveScores(allScores,expi,sfn);      
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function AddScores(obj,expi,allScores,timestamp,classifierfilename,updateCurrent) 
+    function AddScores(obj,expi,allScoresCell,updateCurrent) 
+      % Set .predictdata from allScores
+      % allScoresCell: cell array of length nclassifiers
+      % 
       % This sure seems like it should be a private method, but it's called
       % by JLabelGUIData.  -- ALT, Apr 18, 2013
       
-      if isscalar(allScores)&&isstruct(allScores)
-        allScores = {allScores};
+      % MERGESTUPDATED
+      
+      if isscalar(allScoresCell) && isstruct(allScoresCell)
+        allScoresCell = {allScoresCell};
       end
-      assert(iscell(allScores) && numel(allScores)==obj.ntimelines);
+      assert(iscell(allScoresCell) && numel(allScoresCell)==obj.ntimelines);
       
       obj.SetStatus('Updating Predictions ...');
         
       for ibeh = 1:obj.ntimelines
-        for ndx = 1:numel(allScores{ibeh}.scores)
-          tStart = allScores{ibeh}.tStart(ndx);
-          tEnd = allScores{ibeh}.tEnd(ndx);
-          curScores = allScores{ibeh}.scores{ndx}(tStart:tEnd);
+        nFly = numel(allScoresCell{ibeh}.scores);
+        assert(nFly==numel(obj.predictdata{expi}));
+        for ndx = 1:nFly
+          tStart = allScoresCell{ibeh}.tStart(ndx);
+          tEnd = allScoresCell{ibeh}.tEnd(ndx);
+          curScores = allScoresCell{ibeh}.scores{ndx}(tStart:tEnd);
           Nscore = tEnd-tStart+1;
           Npredict = numel(obj.predictdata{expi}{ndx}(ibeh).loaded_valid);
           if Npredict < Nscore
@@ -5509,7 +5520,7 @@ classdef JLabelData < matlab.mixin.Copyable
               expi,ibeh,ndx,Nscore,Npredict);
             curScores(end+1:Npredict) = nan;
           end
-          if updateCurrent,
+          if updateCurrent
             obj.predictdata{expi}{ndx}(ibeh).cur(:) = curScores;
             obj.predictdata{expi}{ndx}(ibeh).cur_valid(:) = true;
           else
@@ -5517,22 +5528,22 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.predictdata{expi}{ndx}(ibeh).loaded_valid(:) = true;
           end
         end
-      end      
+      end
 
-      if ~isempty(obj.postprocessparams),
+      if ~isempty(obj.postprocessparams)
         [success,msg] = obj.ApplyPostprocessing();
-        if ~success,
+        if ~success
           uiwait(warndlg(['Couldn''t apply postprocessing to the scores: ' msg]));
         end
       elseif ~updateCurrent,
+        assert(false,'Deprecated codepath');
         for ibeh = 1:obj.ntimelines 
-          assert(false,'ALXXX MINIMAL');
-          for ndx = 1:numel(allScores{ibeh}.loaded) % Out of date fieldname
-            tStart = allScores{ibeh}.tStart(ndx);
-            tEnd = allScores{ibeh}.tEnd(ndx);
-            if isfield(allScores{ibeh},'postprocessedscores'); % Out of date fieldname
-              obj.postprocessparams = allScores{ibeh}.postprocessparams;
-              curpostprocessedscores = allScores{ibeh}.postprocessedscores{ndx}(tStart:tEnd);
+          for ndx = 1:numel(allScoresCell{ibeh}.loaded) % Out of date fieldname
+            tStart = allScoresCell{ibeh}.tStart(ndx);
+            tEnd = allScoresCell{ibeh}.tEnd(ndx);
+            if isfield(allScoresCell{ibeh},'postprocessedscores'); % Out of date fieldname
+              obj.postprocessparams = allScoresCell{ibeh}.postprocessparams;
+              curpostprocessedscores = allScoresCell{ibeh}.postprocessedscores{ndx}(tStart:tEnd);
               obj.predictdata{expi}{ndx}(ibeh).loaded_pp(:) = curpostprocessedscores;
           else
               obj.predictdata{expi}{ndx}(ibeh).loaded_pp(:) = 0;
@@ -5543,61 +5554,13 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.UpdatePredictedIdx();
       obj.ClearStatus();
-
     end
-    
-    
-%     % ---------------------------------------------------------------------
-%     function SaveCurScores(obj,expi,sfn)
-%     % Saves the current scores to a file.
-%       if nargin < 3
-%         sfn = obj.GetFile('scores',expi,true);
-%       end
-%     
-%       if ~obj.HasCurrentScores(),
-%         uiwait(warndlg('No scores to save'));
-%         return;
-%       end
-%       
-%       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-%         'postprocessed',{{}},'postprocessedparams',[]);
-%       scores_valid = true;
-%       for fly = 1:obj.nflies_per_exp(expi)
-%         
-%         curt = obj.predictdata{expi}{fly}.t;
-%         if any(curt(2:end)-curt(1:end-1) ~= 1)
-%           uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
-%           return;
-%         end
-%         
-%         if ~all(obj.predictdata{expi}{fly}.cur_valid), 
-%           scores_valid = false; 
-%           break; 
-%         end
-%         
-%         tStart = obj.firstframes_per_exp{expi}(fly);
-%         tEnd = obj.endframes_per_exp{expi}(fly);
-%         
-%         allScores.scores{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur;
-%         allScores.tStart(fly) = tStart;
-%         allScores.tEnd(fly) = tEnd;
-%         allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur_pp;
-%       end
-%       
-%       if ~scores_valid,
-%         uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
-%          '%s. Cannot save the scores.'],obj.expnames{expi}));
-%         return;
-%       end
-%       allScores.postprocessedparams = obj.postprocessparams;
-%       allScores.scoreNorm = obj.windowdata.scoreNorm;
-%       obj.SaveScores(allScores,expi,sfn);
-%       
-%     end
 
     
     % ---------------------------------------------------------------------
     function LoadScores(obj,expi,scorefns)
+      
+      %MERGESTUPDATED 
       
       assert(iscellstr(scorefns));
       Nscore = numel(scorefns);
@@ -5605,10 +5568,10 @@ classdef JLabelData < matlab.mixin.Copyable
       
       for i = 1:Nscore
         sfn = scorefns{i};
-      if ~exist(sfn,'file')
-        warndlg('Score file %s does not exist. Not loading scores',sfn);
-        return;
-      end
+        if ~exist(sfn,'file')
+          warndlg('Score file %s does not exist. Not loading scores',sfn);
+          return;
+        end
       end
       
       scorefnstr = civilizedStringFromCellArrayOfStrings(scorefns);
@@ -5616,20 +5579,20 @@ classdef JLabelData < matlab.mixin.Copyable
       
       behNames = Labels.verifyBehaviorNames(obj.labelnames);
       assert(numel(behNames)==Nscore);
-      allScores = cell(1,Nscore);
+      allScoresCell = cell(1,Nscore);
 
-      winDataScoreNorm = obj.windowdata.scoreNorm;
-      % Windowdata.scoreNorm will be updated from scorefiles as appropriate
-      if numel(winDataScoreNorm)>Nscore
-        warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too many elements. Truncating, then loading from scorefile(s).');
-        obj.windowdata.scoreNorm = winDataScoreNorm(1:Nscore);        
-      elseif numel(winDataScoreNorm<Nscore)
-        %warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too few elements. Padding with nans, then loading from scorefile(s).');
-        obj.windowdata.scoreNorm(end+1:Nscore) = nan;
-      end        
+%       winDataScoreNorm = obj.windowdata.scoreNorm;
+%       % Windowdata.scoreNorm will be updated from scorefiles as appropriate
+%       if numel(winDataScoreNorm)>Nscore
+%         warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too many elements. Truncating, then loading from scorefile(s).');
+%         obj.windowdata.scoreNorm = winDataScoreNorm(1:Nscore);
+%       elseif numel(winDataScoreNorm<Nscore)
+%         %warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too few elements. Padding with nans, then loading from scorefile(s).');
+%         obj.windowdata.scoreNorm(end+1:Nscore) = nan;
+%       end        
       for i = 1:Nscore
         sfn = scorefns{i};
-        S = load(sfn);
+        S = load(sfn); % Could use ScoreFile.load here
         
         % check the behavior name
         if isfield(S,'behaviorName')
@@ -5639,25 +5602,27 @@ classdef JLabelData < matlab.mixin.Copyable
           end
         end
         
-        if ~isempty(obj.classifierTS) && obj.classifierTS(i)>0,
+        if ~isempty(obj.classifierTS) && obj.classifierTS(i)>0
           if S.timestamp~=obj.classifierTS(i)
-          uiwait(warndlg(sprintf(['Scores were computed using a classifier trained on %s'...
+            uiwait(warndlg(sprintf(['Scores were computed using a classifier trained on %s'...
               ' while the current classifier was trained on %s'],datestr(S.timestamp),...
               datestr(obj.classifierTS(i))))),
+          end
         end
-      end
+        % AL 20141211: classifierfilename appears to be deprecated field
         if isfield(S,'classifierfilename') %~isempty(whos('-file',sfn,'classifierfilename'))
-        classifierfilename = S.classifierfilename;
-      else
-        classifierfilename = '';
-      end
-      
-        % set windowdata.scoreNorm if necessary        
+          classifierfilename = S.classifierfilename;
+        else
+          classifierfilename = '';
+        end
+        
+        % Set windowdata.scoreNorm if necessary
         %if isempty(winDataScoreNorm) || all(isnan(winDataScoreNorm)) || all(winDataScoreNorm==0),
-        if isnan(obj.windowdata.scoreNorm(i)) || obj.windowdata.scoreNorm(i)==0
-          if isfield(S.allScores,'scoreNorm'),
+        if isnan(obj.windowdata(i).scoreNorm) || obj.windowdata(i).scoreNorm==0
+          if isfield(S.allScores,'scoreNorm')
             scoreNorm = S.allScores.scoreNorm;
           elseif isa(classifierfilename,'Macguffin')
+            % AL 20141211: should be deprecated codepath
             scoreNorm = classifierfilename.classifierStuff.windowdata.scoreNorm;
           elseif exist(classifierfilename,'file') && ~isempty(whos('-file',classifierfilename,'scoreNorm'))
             scoreNorm = load(classifierfilename,'scoreNorm');
@@ -5667,13 +5632,13 @@ classdef JLabelData < matlab.mixin.Copyable
           end
           
           assert(isscalar(scoreNorm),'Expected scalar scoreNorm.');
-          obj.windowdata.scoreNorm(i) = scoreNorm;
+          obj.windowdata(i).scoreNorm = scoreNorm;
         end
         
-        allScores{i} = S.allScores;
+        allScoresCell{i} = S.allScores;
       end
       
-      obj.AddScores(expi,allScores,[],[],false);
+      obj.AddScores(expi,allScoresCell,false);
       
       obj.ClearStatus();
     end
@@ -5681,7 +5646,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function LoadScoresDefault(obj,expi)
-      scorefns = obj.GetFile('scores',expi);
+      % ALXXX MINIMAL
+      scorefns = obj.GetFile('scores',expi); % ALXXX API
       assert(iscell(scorefns));
       for i = 1:numel(scorefns)        
         sfn = scorefns{i};
@@ -6854,7 +6820,9 @@ classdef JLabelData < matlab.mixin.Copyable
 %       if nargin < 4,
 %         dowrite = false;
 %       end
-      
+
+    %MERGEST LOOKSOK kindof
+    
       % base name
       fileNameLocal = obj.GetFileName(fileType);
       
@@ -6889,14 +6857,17 @@ classdef JLabelData < matlab.mixin.Copyable
   
   methods (Static)
     function [tffound,filename,timestamp] = GetFileRaw(fileType,dirsToTry,fileNameLocal)
-      % Look for a filename in a list of directories.
+      % Look for a filename in a list of directories. (edit: SCALAR
+      % directory)
       % fileType: The fileType enum used here in JLabelData. This is used
       % only for a quirk regarding .lnk/.seq files
       % fileNameLocal: char, single short filename.
       %
       % tffound: scalar logical.       
       %   - If true, filename is the full filename and timestamp is the filesystem timestamp. 
-      %   - If false, filename=[]; and timestamp=-inf.
+      %   - If false, filename is the file-that-was-tried; and timestamp=-inf.
+      
+      assert(isscalar(dirsToTry),'TODO: rename the variable');
       
       for j = 1:numel(dirsToTry),
         ddir = dirsToTry{j};
@@ -6927,8 +6898,9 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       tffound = false;
-      filename = [];
-      timestamp = -inf;      
+      % since dirsToTry is guaranteed to be a scalar, filename is the
+      % file-that-was-tried
+      timestamp = -inf;
     end
   end
   
@@ -8838,56 +8810,63 @@ classdef JLabelData < matlab.mixin.Copyable
       
     
     % ---------------------------------------------------------------------
-    function allScores = PredictWholeMovie(obj,expi)
+    function allScoresCell = PredictWholeMovie(obj,expi)
+      % Predict entire movie: all classifiers, all files
+      %
+      % allScoresCell: cell array of length nclassifiers
       
-      assert(false,'ALXXX MINIMAL');
+      % MERGESTUPDATED
       
-      if isempty(obj.classifier),
+      if isempty(obj.classifier)
         return;
       end
            
       numFlies = obj.GetNumFlies(expi);
-      scoresA = cell(1,numFlies); 
-      postprocessedscoresA = cell(1,numFlies);
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
       perframefile = obj.GetPerframeFiles(expi);
-      windowfeaturescellparams = obj.fastPredict.windowfeaturescellparams;
-      curperframefns = obj.fastPredict.pffs;
       allperframefns = obj.allperframefns;
-      classifier = obj.fastPredict.classifier;
+      clsNames = obj.classifiernames;
+      allScoresCell = cell(obj.nclassifiers,1);
+
+      for iCls = 1:obj.nclassifiers
       
-      obj.SetStatus(sprintf('Classifying movie %d:%s...',expi,obj.expnames{expi}));
-      
-      if ~obj.fastPredict.wfidx_valid,
-        [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-          allperframefns,perframefile,1,windowfeaturescellparams,...
-          1,1);
-        obj.FindWfidx(feature_names); % ALXXX API change call Predict.fast directly
-      end
-      wfidx = obj.fastPredict.wfidx;
-      
-%       tfile = tempname();
-%       wbar = waitbar(0,'Predicting..');
-%       pause(0.01);
-      parfor flies = 1:numFlies
-        blockSize = 5000*2;
-        tStart = tStartAll(flies);
-        tEnd = tEndAll(flies);
+        obj.SetStatus(sprintf('Classifying movie %d:%s, %s...',expi,...
+          obj.expnames{expi},clsNames{iCls}));
+
+        windowfeaturescellparams = obj.fastPredict(iCls).windowfeaturescellparams;
+        curperframefns = obj.fastPredict(iCls).pffs;
+        classifier = obj.fastPredict(iCls).classifier;
+        if ~obj.fastPredict(iCls).wfidx_valid
+          [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+            allperframefns,perframefile,1,windowfeaturescellparams,1,1);
+          obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(...
+            obj.fastPredict(iCls),feature_names);
+        end
+        wfidx = obj.fastPredict(iCls).wfidx;
         
-        scores = nan(1,tEnd);
-        
-        if tEnd-tStart < 3,
+        %       tfile = tempname();
+        %       wbar = waitbar(0,'Predicting..');
+        %       pause(0.01);
+        scoresA = cell(1,numFlies);
+        postprocessedscoresA = cell(1,numFlies);
+        parfor flies = 1:numFlies
+          blockSize = 5000*2;
+          tStart = tStartAll(flies);
+          tEnd = tEndAll(flies);
+          
+          scores = nan(1,tEnd);
+          
+          if tEnd-tStart < 3,
             scores(tStart:tEnd) = -1;
             fprintf('Not predicting for %d fly, Trajectory is too short\n',flies);
-        else
-            
+          else            
             for curt0 = tStart:blockSize:tEnd
-                curt1 = min(curt0+blockSize-1,tEnd);
-                X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-                    allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
-                
-                scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
+              curt1 = min(curt0+blockSize-1,tEnd);
+              X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+                allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
+              
+              scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
             end
             %         fid = fopen(tfile,'a');
             %         fprintf(fid,'.');
@@ -8897,39 +8876,41 @@ classdef JLabelData < matlab.mixin.Copyable
             %         fclose(fid);
             %         numdone = numel(xx);
             %         waitbar(numdone/numFlies,wbar);
-            fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
+            fprintf('Prediction done for %s: %d fly, total number of flies:%d\n',clsNames{iCls},flies,numFlies);
+          end
+          scoresA{flies} = scores;
+        end        
+        for flies = 1:numFlies
+          % AL: not sure why this isn't in the parfor
+          postprocessedscoresA{flies} = nan(1,tEndAll(flies));
+          postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
+            PostProcessor.PostProcess(scoresA{flies}(tStartAll(flies):tEndAll(flies)),...
+            obj.postprocessparams{iCls},obj.windowdata(iCls).scoreNorm);
         end
-        scoresA{flies} = scores;
+        
+        allScores = struct;
+        allScores.scores = scoresA;
+        allScores.tStart = tStartAll;
+        allScores.tEnd = tEndAll;
+        allScores.postprocessed = postprocessedscoresA;
+        allScores.postprocessparams = obj.postprocessparams{iCls};
+        for flies = 1:numFlies
+          [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
+          allScores.t0s{flies} = i0s;
+          allScores.t1s{flies} = i1s;
+        end
+        allScores.scoreNorm = obj.windowdata(iCls).scoreNorm;
+        
+        allScoresCell{iCls} = allScores;
       end
-      
-      allScores = struct;
-      for flies = 1:numFlies
-        postprocessedscoresA{flies} = nan(1,tEndAll(flies));
-        postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
-          obj.Postprocess(scoresA{flies}(tStartAll(flies):tEndAll(flies)));
-      end
-      allScores.scores = scoresA;
-      allScores.tStart = tStartAll;
-      allScores.tEnd = tEndAll;
-      allScores.postprocessed = postprocessedscoresA;
-      allScores.postprocessparams = obj.postprocessparams;
-      
-      for flies = 1:numFlies
-        [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
-        allScores.t0s{flies} = i0s;
-        allScores.t1s{flies} = i1s;
-      end
-      allScores.scoreNorm = obj.windowdata.scoreNorm;
       
       obj.ClearStatus();
-      
     end
-    
     
     % ---------------------------------------------------------------------
     function PredictWholeMovieNoSave(obj,expi)
       allScores = obj.PredictWholeMovie(expi);
-      obj.AddScores(expi,allScores,now(),'',true);
+      obj.AddScores(expi,allScores,true);
     end
     
     
@@ -10282,17 +10263,21 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function has = HasCurrentScores(obj)
+      % has: scalar logical. If true, at least one
+      % experiment/fly/classifier has a valid predicted score (for at least
+      % one frame)
+      
       has = false;
-      for expi = 1:obj.nexps,
+      for expi = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(expi)
           for ibeh = 1:obj.ntimelines
-            if any(obj.predictdata{expi}{flies}(ibeh).cur_valid),
-              has = true; 
-	      return;
+            if any(obj.predictdata{expi}{flies}(ibeh).cur_valid)
+              has = true;
+              return;
             end
           end
         end
-      end      
+      end
     end
     
     % ---------------------------------------------------------------------
@@ -10422,7 +10407,7 @@ classdef JLabelData < matlab.mixin.Copyable
       %if ~success;return; end
       
       
-      if obj.HasCurrentScores()
+      if obj.HasCurrentScores() % consider API, does this make sense if there is a single frame of a single classifier predicted etc?
         
         % For predicted scores.
         for endx = 1:obj.nexps
