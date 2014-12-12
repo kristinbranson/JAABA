@@ -2005,8 +2005,12 @@ classdef JLabelData < matlab.mixin.Copyable
         end
 %         end
 
+        feature_names = [feature_names{:}];
+        if isempty(feature_names)
+          feature_names = cell(1,0);
+        end
         obj.windowdata(iCls) = WindowData.windowdataSetFeaturenames(...
-          obj.windowdata(iCls),{[feature_names{:}]});
+          obj.windowdata(iCls),{feature_names});
       end
         
       obj.ClearStatus();
@@ -2036,7 +2040,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % forces the function to recalculate all the features even though they
     % were calculated before.
       
-    %ALXXX MINIMAL. very similar to preloadwindowdata? 
+    %ALXXX EXTENDED. Called only by SimilarFrames, Bagging
     
       success = false; msg = '';  %#ok
       
@@ -3339,7 +3343,7 @@ classdef JLabelData < matlab.mixin.Copyable
       %MERGESTUPDATED
       
       assert(numel(allperframefns)==numel(perframefile));
-      assert(isequal(fieldnames(windowfeaturescellparams),curperframefns));
+      assert(isequal(fieldnames(windowfeaturescellparams),curperframefns(:)));
       
       X = [];
       feature_names = cell(1,numel(curperframefns));
@@ -5646,17 +5650,15 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function LoadScoresDefault(obj,expi)
-      % ALXXX MINIMAL
-      scorefns = obj.GetFile('scores',expi); % ALXXX API
-      assert(iscell(scorefns));
-      for i = 1:numel(scorefns)        
-        sfn = scorefns{i};
-        if isempty(sfn)
-          warndlg(sprintf('Missing scorefile(s) for experiment index %d',expi));
-        return;
+      % MERGESTUPDATED
+      
+      [scorefns,tffound] = obj.GetFile('scores',expi);
+      assert(iscellstr(scorefns));
+      if any(~tffound)
+        warndlg(sprintf('Missing scorefile(s) for experiment %d:%s',expi,obj.expdirs{expi}));
+      else
+        obj.LoadScores(expi,scorefns);
       end
-    end
-      obj.LoadScores(expi,scorefns);
     end
     
     %----------------------------------------------------------------------
@@ -6804,7 +6806,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------    
-    function [filename,timestamp] = GetFile(obj,fileType,expi)
+    function [filename,timestamp,tffound] = GetFile(obj,fileType,expi)
         % [filename,timestamp] = GetFile(obj,file,expi)
     %
     % filename: full filename(s)
@@ -6817,10 +6819,6 @@ classdef JLabelData < matlab.mixin.Copyable
     % multiple classifiers); in this case filename is a cell array and
     % timestamp is an array (with matching sizes).
   
-%       if nargin < 4,
-%         dowrite = false;
-%       end
-
     %MERGEST LOOKSOK kindof
     
       % base name
@@ -6840,37 +6838,38 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % non-char or empty filename signals its absence
       if ~ischar(fileNameLocal) && ~iscellstr(fileNameLocal) || isempty(fileNameLocal)
-        filename=fileNameLocal;
+        filename = fileNameLocal;
         timestamp = -inf;
+        tffound = false;
         return
       end
       
       if ischar(fileNameLocal)
-        [~,filename,timestamp] = JLabelData.GetFileRaw(fileType,expdirs_try,fileNameLocal);
+        [tffound,filename,timestamp] = JLabelData.GetFileRaw(fileType,expdirs_try,fileNameLocal);
       elseif iscellstr(fileNameLocal)
-        [~,filename,timestamp] = cellfun(@(x)JLabelData.GetFileRaw(fileType,expdirs_try,x),fileNameLocal,'uni',0);
+        [tffound,filename,timestamp] = cellfun(@(x)JLabelData.GetFileRaw(fileType,expdirs_try,x),fileNameLocal,'uni',0);
         timestamp = cell2mat(timestamp);
+        tffound = cell2mat(tffound);
       end
     end
     
   end
   
   methods (Static)
-    function [tffound,filename,timestamp] = GetFileRaw(fileType,dirsToTry,fileNameLocal)
-      % Look for a filename in a list of directories. (edit: SCALAR
-      % directory)
+    function [tffound,filename,timestamp] = GetFileRaw(fileType,parentDir,fileNameLocal)
+      % Look for a filename in a parent dir.
       % fileType: The fileType enum used here in JLabelData. This is used
       % only for a quirk regarding .lnk/.seq files
       % fileNameLocal: char, single short filename.
       %
-      % tffound: scalar logical.       
+      % tffound: scalar logical.
       %   - If true, filename is the full filename and timestamp is the filesystem timestamp. 
       %   - If false, filename is the file-that-was-tried; and timestamp=-inf.
       
-      assert(isscalar(dirsToTry),'TODO: rename the variable');
+      assert(isscalar(parentDir));
       
-      for j = 1:numel(dirsToTry),
-        ddir = dirsToTry{j};
+      for j = 1:numel(parentDir),
+        ddir = parentDir{j};
         
         filename = fullfile(ddir,fileNameLocal);
         if exist(filename,'file'),
@@ -6898,8 +6897,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       tffound = false;
-      % since dirsToTry is guaranteed to be a scalar, filename is the
-      % file-that-was-tried
+      % filename is the file-that-was-tried
       timestamp = -inf;
     end
   end
