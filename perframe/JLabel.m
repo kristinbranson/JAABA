@@ -7276,7 +7276,7 @@ assert(false,'Appears unused');
 tstring = sprintf('Root dir to load scores for current experiment');
 fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = handles.data.GetFile('scores',handles.data.expi);
+scoreFileName = handles.data.GetFile('scores',handles.data.expi); % XXX GetFile('scores') API
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
 sfn = fullfile(fname,handles.data.expnames{handles.data.expi},[scoreFileName ext]);
 if ~exist(sfn,'file')
@@ -7340,7 +7340,7 @@ assert(false,'Appears unused');
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = handles.data.GetFile('scores',handles.data.expi);
+scoreFileName = handles.data.GetFile('scores',handles.data.expi); % XXX GetFile('scores') API
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
 scoreFileName = [scoreFileName ext];
 
@@ -8121,70 +8121,73 @@ function menu_file_export_scores_Callback(hObject, eventdata, handles)
 return
 
 
-% --------------------------------------------------------------------
-function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_scores_curr_exp_default_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-try
-  handles.data.SaveCurScores(handles.data.expi);
-catch excp
-  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
-end  % try/catch
-return
+% AL 20141210 appears to be unused (deprecated JLabel menu)
+% % --------------------------------------------------------------------
+% function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_export_scores_curr_exp_default_loc (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% try
+%   handles.data.SaveCurScores(handles.data.expi);
+% catch excp
+%   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+% end  % try/catch
+% return
 
 
-% --------------------------------------------------------------------
-function menu_file_export_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_scores_curr_exp_diff_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-expi = handles.data.expi;
-fspec = fullfile(handles.data.expdirs{expi},'*.mat'); 
-[fname,pname] = uiputfile(fspec);
-if fname==0,
-  return;
-end
-try
-  handles.data.SaveCurScores(handles.data.expi,fullfile(pname,fname));
-catch excp
-  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
-end  % try/catch
-return
+% AL 20141210 appears to be unused (deprecated JLabel menu)
+% % --------------------------------------------------------------------
+% function menu_file_export_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_export_scores_curr_exp_diff_loc (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% expi = handles.data.expi;
+% fspec = fullfile(handles.data.expdirs{expi},'*.mat'); 
+% [fname,pname] = uiputfile(fspec);
+% if fname==0,
+%   return;
+% end
+% try
+%   handles.data.SaveCurScores(handles.data.expi,fullfile(pname,fname));
+% catch excp
+%   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+% end  % try/catch
+% return
 
 
-% --------------------------------------------------------------------
-function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_scores_all_exp_default_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-try
-  for ndx = 1:handles.data.nexps
-    handles.data.SaveCurScores(ndx);
-  end
-catch excp
-  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
-end  % try/catch
-return
+% AL 20141210 appears to be unused (deprecated JLabel menu)
+% % --------------------------------------------------------------------
+% function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_export_scores_all_exp_default_loc (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% try
+%   for ndx = 1:handles.data.nexps
+%     handles.data.SaveCurScores(ndx);
+%   end
+% catch excp
+%   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+% end  % try/catch
+% return
 
-
-% --------------------------------------------------------------------
-function menu_file_export_scores_all_exp_diff_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_scores_all_exp_diff_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-fname = inputdlg('Save the scores in the experiment directory to file.. ' );
-if isempty(fname),
-  return;
-end
-try
-  for ndx = 1:handles.data.nexps
-    handles.data.SaveCurScores(ndx,fullfile(handles.data.expdirs{ndx},fname));
-  end
-catch excp
-  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
-end  % try/catch
-return
+% AL 20141210 appears to be unused (deprecated JLabel menu)
+% % --------------------------------------------------------------------
+% function menu_file_export_scores_all_exp_diff_loc_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_export_scores_all_exp_diff_loc (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% fname = inputdlg('Save the scores in the experiment directory to file.. ' );
+% if isempty(fname),
+%   return;
+% end
+% try
+%   for ndx = 1:handles.data.nexps
+%     handles.data.SaveCurScores(ndx,fullfile(handles.data.expdirs{ndx},fname));
+%   end
+% catch excp
+%   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+% end  % try/catch
+% return
 
 
 % --------------------------------------------------------------------
