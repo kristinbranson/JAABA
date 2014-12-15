@@ -451,7 +451,8 @@ classdef JLabelData < matlab.mixin.Copyable
               % iLbl/iCls reference .labelnames/.classifiernames resp.
     iCls2iLbl % nclassifiers-by-1 cell array, each el is 1-by-2 array.
               % [iLblPos iLblNeg] = iCls2iLbl{iCls} where iLblPos, iLblNeg 
-              % index .labelnames.              
+              % index .labelnames.
+    iCls2LblNames % nclassifiers-by-1 cell array, each el is 1-by-2 cellstr
   end
 
   
@@ -488,6 +489,11 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     function v = get.iCls2iLbl(self)
       v = self.labelidx.TL2idxBeh;      
+    end
+    function v = get.iCls2LblNames(self)
+      lblnames = self.labelnames;
+      iCls2iLbl = self.iCls2iLbl;
+      v = cellfun(@(x)lblnames(x),iCls2iLbl,'uni',0);
     end
     
     function expnames=get.expnames(self)
