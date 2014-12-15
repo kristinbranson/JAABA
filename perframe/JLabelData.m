@@ -1872,8 +1872,10 @@ classdef JLabelData < matlab.mixin.Copyable
     function InitPredictionData(obj,expi)
       % Dimensions the predictions for experiment expi.
 
+      % MERGESTOK
+      
       % Create the cell array for this exeriment
-      nTargets=obj.nflies_per_exp(expi);
+      nTargets = obj.nflies_per_exp(expi);
       obj.predictdata{expi} = cell(1,nTargets);
       
       % Don't need to pre-allocate the fields in a structure array.
@@ -1905,8 +1907,8 @@ classdef JLabelData < matlab.mixin.Copyable
         firstframe = obj.firstframes_per_exp{expi}(iTarget);
         endframe = obj.endframes_per_exp{expi}(iTarget);
         nframes = endframe-firstframe+1;
-        nanArray=nan(1,nframes);
-        falseArray=false(1,nframes);
+        nanArray = nan(1,nframes);
+        falseArray = false(1,nframes);
         
         for i = 1:nTL
           obj.predictdata{expi}{iTarget}(i).t = (firstframe:endframe);
@@ -5852,6 +5854,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % Add a new experiment to the GUI.  This does not change self.expi,
       % and does not not do any preloading.
       
+      %MERGESTOK
+      
       % Set default return values
       success = false; msg = '';
       
@@ -6052,7 +6056,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       end
       
       % Initialize the labels for the current labeling mode
-      iExp=obj.nexps;
+      iExp = obj.nexps;
       obj.labels(iExp) = Labels.labels(1);
 %       obj.labels(iExp).t0s = {};
 %       obj.labels(iExp).t1s = {};
@@ -6079,7 +6083,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus('Successfully added experiment %s...',expDirName);
       
       % Declare victory
-      obj.needsave=true;
+      obj.needsave = true;
       success = true;
     end
     
@@ -6670,13 +6674,13 @@ classdef JLabelData < matlab.mixin.Copyable
       % in order to roll-back the partially-completed addition of an
       % experiment.
 
-      % ALXXX MINIMAL
+      %MERGESTUPDATED
       
       success = false;
       msg = '';
       
       if ~exist('needSaveIfSuccessful','var') || isempty(needSaveIfSuccessful)
-        needSaveIfSuccessful=true;
+        needSaveIfSuccessful = true;
       end
       
       if any(obj.nexps < expi) || any(expi < 1),
@@ -6696,6 +6700,9 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~(numel(obj.expdirs)<expi)
         obj.expdirs(expi) = [];   
       end
+      
+      assert(nnz(newExpNumbers>0)==numel(obj.expdirs));
+      
       % if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
       %if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
       if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
@@ -6712,7 +6719,9 @@ classdef JLabelData < matlab.mixin.Copyable
 
       % Clean window data
       for iCls = 1:numel(obj.windowdata)
-        obj.windowdata(iCls).exp = newExpNumbers(obj.windowdata(iCls).exp);
+        assert(iscolumn(obj.windowdata(iCls).exp));
+        newExp = newExpNumbers(obj.windowdata(iCls).exp);
+        obj.windowdata(iCls).exp = newExp(:);
       end
       % removed exps now have obj.windowdata.exp==0
       obj.windowdata = WindowData.windowdataTrim(obj.windowdata,@(x)x.exp==0);
@@ -6721,36 +6730,40 @@ classdef JLabelData < matlab.mixin.Copyable
       % - Code implied that many fields (eg labelidx_cur) did not have to 
       % size consistent with windowdata.X, eg size of labelidx_cur implied
       % to be different than labelidx_new
-      WindowData.windowdataVerify(obj.windowdata);
-      
+      WindowData.windowdataVerify(obj.windowdata);      
 
-      for curex = sort(expi(:)','descend'), %#ok<UDIM>
-        if numel(obj.predictdata)>=curex,
+      for curex = sort(expi(:)','descend') %#ok<UDIM>
+        if numel(obj.predictdata)>=curex
           obj.predictdata(curex) = [];
         end
       end
       
-      if ~isempty(obj.predictblocks.expi)
-        idxcurr = ismember(obj.predictblocks.expi,expi);
-        fnames = fieldnames(obj.predictblocks);
-        for fndx = 1:numel(fnames)
-          obj.predictblocks.(fnames{fndx})(idxcurr) = [];
+      nCls = obj.nclassifiers;
+      pbfnames = fieldnames(obj.predictblocks);
+      for iCls = 1:nCls
+        if ~isempty(obj.predictblocks(iCls).expi)
+          idxcurr = ismember(obj.predictblocks(iCls).expi,expi);
+          for fndx = 1:numel(pbfnames)
+            obj.predictblocks(iCls).(pbfnames{fndx})(idxcurr) = [];
+            % all fields of predictblocks are currently row vecs
+          end
+          tmp = newExpNumbers(obj.predictblocks(iCls).expi);
+          obj.predictblocks(iCls).expi = tmp(:)';
         end
-        obj.predictblocks.expi = newExpNumbers(obj.predictblocks.expi);
       end
       
-      if ~isempty(obj.randomGTSuggestions)
+      if ~isempty(obj.randomGTSuggestions) % ALXXX EXTENDED
         obj.randomGTSuggestions(expi) = [];
       end
       
-      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi
+      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi % ALXXX EXTENDED
         obj.loadedGTSuggestions(expi) = [];
       end
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 
         if ismember(obj.expi,expi), % The current experiment was removed.
-          newexpi = find( newExpNumbers(obj.expi+1:end),1);
+          newexpi = find(newExpNumbers(obj.expi+1:end),1);
           if isempty(newexpi), % No next experiment.
             newexpi = find(newExpNumbers(1:obj.expi-1),1,'last');
             if isempty(newexpi), % No previous experiment either.
@@ -6772,8 +6785,8 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       % Set needsave, if called for
-      if needSaveIfSuccessful ,
-        obj.needsave=true;
+      if needSaveIfSuccessful
+        obj.needsave = true;
       end
       
       % Declare victory
