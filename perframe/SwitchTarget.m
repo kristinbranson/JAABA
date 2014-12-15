@@ -113,6 +113,8 @@ function [exp,target] = PageRow2LocalTarget(handles,page,row)
 function handles = updateTable(handles)
 % Initialize the table
 
+%MERGESTUPDATED
+
 set(handles.pushbutton_update,'enable','off');
 handles.curExp = handles.JLDObj.GetExp();
 handles.curFly = handles.JLDObj.GetFlies();
@@ -154,35 +156,56 @@ end
 set(handles.popupmenu_Page,'String',handles.pagestrs,'Value',handles.page_number);
 
 fieldList = {};
-if ~handles.JLDObj.IsGTMode(),
-  fieldList(end+1,:) = {  'trajLength','Trajectory| Length'};
-  fieldList(end+1,:) = {  'firstframe','Start frame'};
-  fieldList(end+1,:) = {  'nbouts','Bouts|labeled'};
-  fieldList(end+1,:) = {  'totalframes','Frames|labeled'};
-  fieldList(end+1,:) = {  'posframes',sprintf('Frames|labeled|%s',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'negframes',sprintf('Frames|labeled|%s',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'sexfrac','Sex|(% male)'};
-  fieldList(end+1,:) = {  'nscorepos',  sprintf('%s| predicted | (current)',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'nscoreneg',  sprintf('%s| predicted | (current)',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'nscoreframes',  'total|predicted | frames | (current)'};
-  fieldList(end+1,:) = {  'nscorepos_loaded',  sprintf('%s| predicted | (loaded)',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'nscoreneg_loaded',  sprintf('%s| predicted | (loaded)',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'nscoreframes_loaded',  'total|predicted | frames | (loaded)'};
-  fieldList(end+1,:) = {  'errorsPos',  sprintf('%s|errors',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'errorsNeg',  sprintf('%s|errors',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'validatedErrorsPos',  sprintf('%s|validation|errors',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'validatedErrorsNeg',  sprintf('%s|validation|errors',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'one2two',  sprintf('%s|switched to|%s',handles.JLDObj.labelnames{1},handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'two2one',  sprintf('%s|switched to|%s',handles.JLDObj.labelnames{2},handles.JLDObj.labelnames{1})};
+nCls = handles.JLDObj.nclassifiers;
+iCls2LblNames = handles.JLDObj.iCls2LblNames;
+if ~handles.JLDObj.IsGTMode()
+  fieldList(end+1,:) = { @(gs,cs)gs.trajLength  'Trajectory| Length'};
+  fieldList(end+1,:) = { @(gs,cs)gs.firstframe  'Start frame'};
+  fieldList(end+1,:) = { @(gs,cs)gs.nbouts      'Bouts|labeled'};
+  fieldList(end+1,:) = { @(gs,cs)gs.totalframes 'Frames|labeled'};
+  fieldList(end+1,:) = { @(gs,cs)gs.posframes   'Frames|labeled|pos'};
+  fieldList(end+1,:) = { @(gs,cs)gs.negframes   'Frames|labeled|neg'};
+  fieldList(end+1,:) = { @(gs,cs)gs.sexfrac     'Sex|(% male)'};
+  
+  if nCls>1
+    for iCls = 1:nCls      
+      fieldList(end+1,:) = { @(gs,cs)cs(iCls).posframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{1})};
+      fieldList(end+1,:) = { @(gs,cs)cs(iCls).negframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{2})};
+    end
+  end
+  for iCls = 1:nCls
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscorepos sprintf('%s| predicted | (current)',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreneg sprintf('%s| predicted | (current)',iCls2LblNames{iCls}{2})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreframes sprintf('%s|predicted | total | (current)',iCls2LblNames{iCls}{1})};
+  end
+  for iCls = 1:nCls
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscorepos_loaded sprintf('%s| predicted | (loaded)',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreneg_loaded sprintf('%s| predicted | (loaded)',iCls2LblNames{iCls}{2})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreframes_loaded sprintf('%s|predicted | total | (loaded)',iCls2LblNames{iCls}{1})};
+  end
+  for iCls = 1:nCls
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).errorsPos sprintf('%s|errors',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).errorsNeg sprintf('%s|errors',iCls2LblNames{iCls}{2})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).validatedErrorsPos sprintf('%s|validation|errors',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).validatedErrorsNeg sprintf('%s|validation|errors',iCls2LblNames{iCls}{2})};
+  end
+  for iCls = 1:nCls
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).one2two sprintf('%s|switched to|%s',iCls2LblNames{iCls}{1},iCls2LblNames{iCls}{2})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).two2one sprintf('%s|switched to|%s',iCls2LblNames{iCls}{2},iCls2LblNames{iCls}{1})};
+  end
 else
-  fieldList(end+1,:) = {  'trajLength','Trajectory| Length'};
-  fieldList(end+1,:) = {  'firstframe','Start frame'};
-  fieldList(end+1,:) = {  'sexfrac','Sex|(% male)'};
-  fieldList(end+1,:) = {  'gt_nbouts','Ground Truthing|Bouts|labeled'};
-  fieldList(end+1,:) = {  'gt_totalframes','Ground Truthing|Frames|labeled'};
-  fieldList(end+1,:) = {  'gt_posframes',sprintf('Ground Truthing|Frames|labeled|%s',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'gt_negframes',sprintf('Ground Truthing|Frames|labeled|%s',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'gt_suggestion_frames','Ground Truthing|Frames|Suggested'};
+  fieldList(end+1,:) = { @(gs,cs)gs.trajLength,'Trajectory| Length'};
+  fieldList(end+1,:) = { @(gs,cs)gs.firstframe,'Start frame'};
+  fieldList(end+1,:) = { @(gs,cs)gs.sexfrac,'Sex|(% male)'};
+  fieldList(end+1,:) = { @(gs,cs)gs.gt_nbouts,'Ground Truthing|Bouts|labeled'};
+  fieldList(end+1,:) = { @(gs,cs)gs.gt_totalframes,'Ground Truthing|Frames|labeled|total'};
+  fieldList(end+1,:) = { @(gs,cs)gs.gt_posframes,'Ground Truthing|Frames|labeled|pos' };
+  fieldList(end+1,:) = { @(gs,cs)gs.gt_negframes,'Ground Truthing|Frames|labeled|neg' };
+  for iCls = 1:nCls
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_posframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_negframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{2})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_suggestion_frames,sprintf('Ground Truthing|Frames|Suggested|%s',iCls2LblNames{iCls}{1})};
+  end
 end  
 
 colFormat{1} = 'char';
@@ -245,11 +268,12 @@ for selExp = exp_start:exp_end,
     endcurr = min(endcurr,target_end);
   end
   for flyNum = startcurr:endcurr,
-    flyStats = handles.JLDObj.GetFlyStats(selExp,flyNum);
+    [genStats,clsStats] = handles.JLDObj.GetFlyStats(selExp,flyNum);
     tableData{count,1} = handles.JLDObj.expnames{selExp};
     tableData{count,2} = flyNum;
     for ndx = 1:size(fieldList,1)
-      tableData{count,2+ndx} = flyStats.(fieldList{ndx,1});
+      fcn = fieldList{ndx,1};
+      tableData{count,2+ndx} = fcn(genStats,clsStats);
     end
     tableExpi(count) = selExp;
     tableTarget(count) = flyNum;
@@ -265,9 +289,9 @@ handles.cachedTableData(start_target:end_target,:) = tableData;
 handles.cachedDataExpi(start_target:end_target) = tableExpi;
 handles.cachedDataTarget(start_target:end_target) = tableTarget;
 
-set(handles.table,'Data',...
-  tableData);
-set(handles.table,'ColumnName',{}); drawnow();
+set(handles.table,'Data',tableData);
+set(handles.table,'ColumnName',{}); 
+drawnow();
 set(handles.table,'ColumnName',...
   {'Experiment Name','Target|Number',fieldList{:,2}});
 handles.fieldList = fieldList;
