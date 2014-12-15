@@ -4569,27 +4569,27 @@ return
 % handles.data.SaveGTLabels();
 
 
-% --------------------------------------------------------------------
-function menu_edit_clear_all_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_clear_all_labels (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-s = {};
-s{end+1} = 'Experiments with labels: ';
-for i = 1:numel(handles.data.labelstats),
-  if handles.data.labelstats(i).nbouts_labeled > 0,
-    s{end+1} = sprintf('%s: %d bouts',handles.data.expnames{i},handles.data.labelstats(i).nbouts_labeled); %#ok<AGROW>
-  end
-end
-
-res = questdlg(s,'Really delete all labels?','Yes','No','Cancel','Cancel');
-if strcmpi(res,'Yes'),
-  handles.data.ClearLabels();
-  handles = UpdateTimelineImages(handles);
-  UpdatePlots(handles);
-end
-return
+% % --------------------------------------------------------------------
+% function menu_edit_clear_all_labels_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_edit_clear_all_labels (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% s = {};
+% s{end+1} = 'Experiments with labels: ';
+% for i = 1:numel(handles.data.labelstats),
+%   if handles.data.labelstats(i).nbouts_labeled > 0,
+%     s{end+1} = sprintf('%s: %d bouts',handles.data.expnames{i},handles.data.labelstats(i).nbouts_labeled); %#ok<AGROW>
+%   end
+% end
+% 
+% res = questdlg(s,'Really delete all labels?','Yes','No','Cancel','Cancel');
+% if strcmpi(res,'Yes'),
+%   handles.data.ClearLabels();
+%   handles = UpdateTimelineImages(handles);
+%   UpdatePlots(handles);
+% end
+% return
 
 
 % -------------------------------------------------------------------------
