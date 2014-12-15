@@ -112,6 +112,5 @@ classdef Predict
     end
     
   end
-  
-  
+    
 end
