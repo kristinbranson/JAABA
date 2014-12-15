@@ -3401,7 +3401,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     function params = convertTransTypes2Cell(params)
       % Convert the trans_types field into cell type
-      if ~isstruct(params),  return; end
+      if ~isstruct(params), return; end
       fnames = fieldnames(params);
       for ndx = 1:numel(fnames)
         if isstruct(params.(fnames{ndx}))
@@ -3409,9 +3409,9 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       if isfield(params,'trans_types')
-          if ~iscell(params.trans_types)
-              params.trans_types = {params.trans_types};
-          end
+        if ~iscell(params.trans_types)
+          params.trans_types = {params.trans_types};
+        end
         x = cellfun(@isempty,params.trans_types);
         params.trans_types(x)=[];
       end
@@ -6934,37 +6934,40 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function RemoveArenaPFs(obj)
-      %ALXXX MINIMAL
+      %Update .allperframefns, .curperframefns, .windowfeaturesparams,
+      %.windowfeaturescellparams
       
-      %settings = ReadXMLParams(obj.featureConfigFile);
+      %MERGESTUPDATED
       
-      
+      % Determine which PFFs to remove
       settings = obj.featureLexicon;
-      toRemove = [];
-      for i = 1:numel(obj.allperframefns)
-        curpf = obj.allperframefns{i};
-        if any(strcmp(curpf,{obj.scoreFeatures(:).scorefilename})), continue; end
-        curtypes = settings.perframe.(curpf).type;
-        if any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'))
-          toRemove(end+1) = i;  %#ok
-          if isfield(obj.windowfeaturesparams,curpf)
-            obj.windowfeaturesparams = rmfield(obj.windowfeaturesparams,curpf);
-          end
-          curndx = strcmp(obj.curperframefns,curpf);
-          obj.curperframefns(curndx) = [];
+      apff = obj.allperframefns;      
+      Napff = numel(apff);
+      tfRm = false(Napff,1);
+      for i = 1:Napff
+        curpf = apff{i};
+        if any(strcmp(curpf,{obj.scoreFeatures(:).scorefilename}))
+          continue;
         end
-        
+        curtypes = settings.perframe.(curpf).type;
+        tfRm(i) = any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'));
       end
-      obj.allperframefns(toRemove) = [];
       
-      
-%       newparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
-%       newcellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
-%       obj.setWindowFeaturesParams(newparams,newcellparams,obj.basicFeatureTable,obj.featureWindowSize);
-      
-      obj.windowfeaturesparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
-      obj.windowfeaturescellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
-
+      % Remove
+      apffRm = apff(tfRm);
+      obj.allperframefns(tfRm,:) = [];
+      nCls = obj.nclassifiers;
+      for iCls = 1:nCls
+        fldsRm = intersect(fieldnames(obj.windowfeaturesparams{iCls}),apffRm);
+        obj.windowfeaturesparams{iCls} = rmfield(obj.windowfeaturesparams{iCls},fldsRm);
+        % AL 20141215: next line is legacy, don't understand why it is 
+        % necessary given we are just removing fields
+        obj.windowfeaturesparams{iCls} = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams{iCls});
+        obj.windowfeaturescellparams{iCls} = JLabelData.convertParams2CellParams(obj.windowfeaturesparams{iCls});
+        
+        tf = ismember(obj.curperframefns{iCls},apffRm);
+        obj.curperframefns{iCls}(tf,:) = [];
+      end      
     end
     
     
