@@ -8345,89 +8345,88 @@ classdef JLabelData < matlab.mixin.Copyable
 %         end
 
     
-    % ---------------------------------------------------------------------
-    function ClearLabels(obj,expi,flies)
-      
-      %ALXXX MINIMAL
-      
-      if obj.nexps == 0,
-        return;
-      end
-      
-%       if obj.IsGTMode()
-%         labelsToUse = 'gt_labels';
-%         labelstatsToUse = 'gt_labelstats';
-%       else
-%         labelsToUse = 'labels';
-%         labelstatsToUse = 'labelstats';
+%     % ---------------------------------------------------------------------
+%     function ClearLabels(obj,expi,flies)
+%       
+%       
+%       if obj.nexps == 0,
+%         return;
 %       end
-      
-      %timestamp = now;
-      
-      % use all experiments by default
-      if nargin < 2,
-        expi = 1:obj.nexps;
-      end
-      
-      % delete all flies by default
-      if nargin < 3,
-        for i = expi(:)',
-          obj.labels(expi).t0s = {};
-          obj.labels(expi).t1s = {};
-          obj.labels(expi).names = {};
-          obj.labels(expi).flies = [];
-          obj.labels(expi).off = [];
-          obj.labels(expi).timestamp = {};
-          obj.labelstats(expi).nflies_labeled = 0;
-          obj.labelstats(expi).nbouts_labeled = 0;
-          obj.labels(expi).imp_t0s = {};
-          obj.labels(expi).imp_t1s = {};
-        end
-      else
-        if numel(expi) > 1,
-          error('If flies input to ClearLabels, expi must be a single experiment');
-        end
-        % no labels
-        if numel(obj.labels) < expi,
-          return;
-        end
-        % which index of labels
-        [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
-        for flyi = flyis(:)',
-          % keep track of number of bouts so that we can update stats
-          ncurr = numel(obj.labels(expi).t0s{flyi});
-          obj.labels(expi).t0s{flyi} = [];
-          obj.labels(expi).t1s{flyi} = [];
-          obj.labels(expi).names{flyi} = {};
-          obj.labels(expi).timestamp{flyi} = [];
-          obj.labels(expi).imp_t0s{flyi} = [];
-          obj.labels(expi).imp_t1s{flyi} = [];
-          % update stats
-          obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
-          obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
-        end
-      end
-      
-      % clear labelidx if nec
-      if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
-        obj.labelidx.vals(:) = 0;
-        obj.labelidx.imp(:) = 0;
-        obj.labelidx.timestamp(:) = 0;
-      end
-      
-      % clear windowdata labelidx_new
-      for i = expi(:)',
-        if nargin < 3,
-          idx = obj.windowdata.exp == i;
-        else
-          idx = obj.windowdata.exp == i & ismember(obj.windowdata.flies,flies,'rows');
-        end
-        obj.windowdata.labelidx_new(idx) = 0;
-        obj.windowdata.labelidx_imp(idx) = 0;
-        obj.UpdateErrorIdx();
-      end
-      
-    end
+%       
+% %       if obj.IsGTMode()
+% %         labelsToUse = 'gt_labels';
+% %         labelstatsToUse = 'gt_labelstats';
+% %       else
+% %         labelsToUse = 'labels';
+% %         labelstatsToUse = 'labelstats';
+% %       end
+%       
+%       %timestamp = now;
+%       
+%       % use all experiments by default
+%       if nargin < 2,
+%         expi = 1:obj.nexps;
+%       end
+%       
+%       % delete all flies by default
+%       if nargin < 3,
+%         for i = expi(:)',
+%           obj.labels(expi).t0s = {};
+%           obj.labels(expi).t1s = {};
+%           obj.labels(expi).names = {};
+%           obj.labels(expi).flies = [];
+%           obj.labels(expi).off = [];
+%           obj.labels(expi).timestamp = {};
+%           obj.labelstats(expi).nflies_labeled = 0;
+%           obj.labelstats(expi).nbouts_labeled = 0;
+%           obj.labels(expi).imp_t0s = {};
+%           obj.labels(expi).imp_t1s = {};
+%         end
+%       else
+%         if numel(expi) > 1,
+%           error('If flies input to ClearLabels, expi must be a single experiment');
+%         end
+%         % no labels
+%         if numel(obj.labels) < expi,
+%           return;
+%         end
+%         % which index of labels
+%         [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
+%         for flyi = flyis(:)',
+%           % keep track of number of bouts so that we can update stats
+%           ncurr = numel(obj.labels(expi).t0s{flyi});
+%           obj.labels(expi).t0s{flyi} = [];
+%           obj.labels(expi).t1s{flyi} = [];
+%           obj.labels(expi).names{flyi} = {};
+%           obj.labels(expi).timestamp{flyi} = [];
+%           obj.labels(expi).imp_t0s{flyi} = [];
+%           obj.labels(expi).imp_t1s{flyi} = [];
+%           % update stats
+%           obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
+%           obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
+%         end
+%       end
+%       
+%       % clear labelidx if nec
+%       if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
+%         obj.labelidx.vals(:) = 0;
+%         obj.labelidx.imp(:) = 0;
+%         obj.labelidx.timestamp(:) = 0;
+%       end
+%       
+%       % clear windowdata labelidx_new
+%       for i = expi(:)',
+%         if nargin < 3,
+%           idx = obj.windowdata.exp == i;
+%         else
+%           idx = obj.windowdata.exp == i & ismember(obj.windowdata.flies,flies,'rows');
+%         end
+%         obj.windowdata.labelidx_new(idx) = 0;
+%         obj.windowdata.labelidx_imp(idx) = 0;
+%         obj.UpdateErrorIdx();
+%       end
+%       
+%     end
 
     
     % ---------------------------------------------------------------------
