@@ -195,15 +195,9 @@ classdef JLabelData < matlab.mixin.Copyable
         
     % number of behaviors, including 'none'
     nbehaviors
-  end
+  end  
   
-  properties (Dependent)
-    nrealbehaviors % number of behaviors, not include None or No_<behavior>
-    nclassifiers
-    classifiernames 
-  end
-  
-  properties    
+  properties
     ntimelines
     lblIdx2timelineIdx
 
@@ -443,13 +437,21 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
 
-  
+ 
   % -----------------------------------------------------------------------
   properties (GetAccess=public,SetAccess=immutable,Dependent=true)
     expnames
     nexps
     nTargetsInCurrentExp
     ismovie    % true iff the movie file name is nonempty.  If movie file name is empty, it means we don't try to open movies.
+    nclassifiers
+    classifiernames % 1-by-nclassifiers cellstr
+    nobehaviornames % 1-by-nclassifiers cellstr
+    iLbl2iCls % 2*nclassifiers-by-1 array. iCls = iLbl2iCls(iLbl) where 
+              % iLbl/iCls reference .labelnames/.classifiernames resp.
+    iCls2iLbl % nclassifiers-by-1 cell array, each el is 1-by-2 array.
+              % [iLblPos iLblNeg] = iCls2iLbl{iCls} where iLblPos, iLblNeg 
+              % index .labelnames.              
   end
 
   
@@ -471,14 +473,21 @@ classdef JLabelData < matlab.mixin.Copyable
 %       end        
 %     end
 
-    function v = get.nrealbehaviors(self)
-      v = self.ntimelines;
-    end
+    
     function v = get.nclassifiers(self)
       v = self.ntimelines;
     end
     function v = get.classifiernames(self)
       v = self.labelnames(1:self.nclassifiers);
+    end
+    function v = get.nobehaviornames(self)
+      v = self.labelnames(self.nclassifiers+1:end);
+    end
+    function v = get.iLbl2iCls(self)
+      v = self.labelidx.idxBeh2idxTL;      
+    end
+    function v = get.iCls2iLbl(self)
+      v = self.labelidx.TL2idxBeh;      
     end
     
     function expnames=get.expnames(self)
@@ -3954,9 +3963,25 @@ classdef JLabelData < matlab.mixin.Copyable
         
         
     % ---------------------------------------------------------------------
-    function behaviorName=getBehaviorName(obj)
+    function behaviorName = getBehaviorName(obj)
       % Get the behavior name, a string
-      behaviorName=obj.labelnames{1};
+      % ALXXX EXTENDED
+      behaviorName = obj.labelnames{1};
+    end
+    
+    function tf = isBehaviorName(obj,name)
+      % as opposed to no-behavior name
+      tf = any(strcmp(name,obj.classifiernames));
+    end
+    
+    function tf = isNoBehaviorName(obj,name)
+      tf = any(strcmp(name,obj.nobehaviornames));      
+    end
+    
+    function iCls = classifierIndexForName(obj,name)
+      tf = strcmp(name,obj.labelnames);
+      assert(nnz(tf)==1);
+      iCls = obj.labelidx.idxBeh2idxTL(tf);
     end
         
     % ---------------------------------------------------------------------
@@ -5087,11 +5112,11 @@ classdef JLabelData < matlab.mixin.Copyable
                              'dir',{}, ....
                              'tr',{}, ...
                              'alpha',{});  % 0x1 struct array
-      nrealbeh = self.nrealbehaviors;
-      self.classifier = repmat({self.classifier},1,nrealbeh); % ALTODO scattered classifier initialization: JLD, ProjectSetup
+      nCls = self.nclassifiers;
+      self.classifier = repmat({self.classifier},1,nCls); % ALTODO scattered classifier initialization: JLD, ProjectSetup
       self.classifier_old = self.classifier;
-      self.classifierTS = zeros(1,nrealbeh); 
-      for iCls = 1:nrealbeh
+      self.classifierTS = zeros(1,nCls); 
+      for iCls = 1:nCls
         self.windowdata(iCls).scoreNorm = 0;
       end
       self.invalidatePredictions();
@@ -5461,30 +5486,6 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods (Static)
-    function tf = AllPredictedScoresValid(predDataExp,nclassifier)
-      % predDataExp: JLD.predictdata for one experiment, eg
-      % obj.predictdata{expi}
-      % tf: nclassifier x 1 logical. tf(i) is true if entire timeline for
-      % all flies is predicted/valid for classifier i
-      
-      %MERGESTUPDATED
-      
-      nfly = numel(predDataExp);
-      tf = true(nclassifier,1);
-      for iCls = 1:nclassifier
-        for fly = 1:nfly
-          pd = predDataExp{fly};
-          assert(numel(pd)==nclassifier);
-          if ~all(pd(iCls).cur_valid)
-            tf(iCls) = false;
-            break;
-          end
-        end
-      end
-    end    
-  end
-  
   methods (Access=public)
     
     % ---------------------------------------------------------------------
@@ -5568,7 +5569,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       assert(iscellstr(scorefns));
       Nscore = numel(scorefns);
-      assert(Nscore==obj.nrealbehaviors); % must be one scorefile per classifier
+      assert(Nscore==obj.nclassifiers); % must be one scorefile per classifier
       
       for i = 1:Nscore
         sfn = scorefns{i};
@@ -6851,58 +6852,8 @@ classdef JLabelData < matlab.mixin.Copyable
         timestamp = cell2mat(timestamp);
         tffound = cell2mat(tffound);
       end
-    end
-    
-  end
+    end    
   
-  methods (Static)
-    function [tffound,filename,timestamp] = GetFileRaw(fileType,parentDir,fileNameLocal)
-      % Look for a filename in a parent dir.
-      % fileType: The fileType enum used here in JLabelData. This is used
-      % only for a quirk regarding .lnk/.seq files
-      % fileNameLocal: char, single short filename.
-      %
-      % tffound: scalar logical.
-      %   - If true, filename is the full filename and timestamp is the filesystem timestamp. 
-      %   - If false, filename is the file-that-was-tried; and timestamp=-inf.
-      
-      assert(isscalar(parentDir));
-      
-      for j = 1:numel(parentDir),
-        ddir = parentDir{j};
-        
-        filename = fullfile(ddir,fileNameLocal);
-        if exist(filename,'file'),
-          tmp = dir(filename);
-          timestamp = tmp.datenum;
-          tffound = true;
-          return;
-        end
-        % check for lnk files
-        if ispc && exist([filename,'.lnk'],'file'),
-          isseq = ~isempty(regexp(fileNameLocal,'\.seq$','once'));
-          % for seq file, just keep the soft link, get_readframe_fcn will
-          % deal with it
-          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
-          if didfind,
-            tmp = dir(actualfilename);
-            timestamp = tmp.datenum;
-            if ~isseq || ~strcmpi(fileType,'movie'),
-              filename = actualfilename;
-            end
-            tffound = true;
-            return;
-          end
-        end
-      end
-      
-      tffound = false;
-      % filename is the file-that-was-tried
-      timestamp = -inf;
-    end
-  end
-  
-  methods (Access=public)
     
     % ---------------------------------------------------------------------
     function SetGenerateMissingFiles(obj)
@@ -8212,34 +8163,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end      
     end
-        
-  end
-  
-  methods (Access=private)
-    function [scores,predictions] = GetScoresCore(obj,expi,flies,...
-        fld,fldValid,fldPP,T0,T1)
-      % scores: nclassifier-by-(T1-T0+1)
-      % predictions: nclassifier-by-(T1-T0+1). fldPP only needed to compute
-      % predictions.
-          
-      n = T1-T0+1;
-      off = 1 - T0;
-
-      pdArr = obj.predictdata{expi}{flies};
-      nTL = obj.ntimelines;
-      assert(numel(pdArr)==nTL);
-      scores = zeros(nTL,n);
-      predictions = zeros(nTL,n);
-      for iTL = 1:nTL
-        pd = pdArr(iTL);
-        idxcurr = pd.(fldValid) & pd.t>=T0 & pd.t<=T1;
-        scores(iTL,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
-        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
-      end
-    end
-  end
-  
-  methods (Access=public)
+ 
   
     % ---------------------------------------------------------------------
     function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)      
@@ -8630,7 +8554,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %         islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
 %       end
 
-      cls2IdxBeh = obj.labelidx.TL2idxBeh;
+      cls2IdxBeh = obj.iCls2iLbl;
       assert(numel(cls2IdxBeh)==obj.nclassifiers);
       assert(iscell(obj.trainstats) && numel(obj.trainstats)==obj.nclassifiers);
       for iCls = 1:obj.nclassifiers
@@ -9819,191 +9743,204 @@ classdef JLabelData < matlab.mixin.Copyable
     
 % Fly and exp statistics    
     
-    % ---------------------------------------------------------------------
-    function expStats = GetExpStats(obj,expi)
-      % Calculates statistics such as number of labeled bouts, predicted bouts
-      % and change in scores.
-      
-      expStats.name = obj.expnames{expi};
-      expStats.nflies = obj.nflies_per_exp(expi);
-      expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
-      expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
-      
-      
-      if ~isempty(obj.predictdata.exp==expi)
-        expid = obj.predictdata.exp==expi;
-        expStats.nscoreframes = nnz(expid);
-        expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
-%         if ~isempty(obj.predictdata.classifierfilenames) && ...
-%             numel(obj.predictdata.classifierfilenames)>=expi
-%           expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
-%         else
-%           expStats.classifierfilename = '';
-%         end
-      else
-        expStats.nscoreframes = [];
-        expStats.nscorefrac = [];
-        expStats.classifierfilename = '';
-      end
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function expStats = GetExpStats(obj,expi)
+%       % Calculates statistics such as number of labeled bouts, predicted bouts
+%       % and change in scores.
+%       
+%       expStats.name = obj.expnames{expi};
+%       expStats.nflies = obj.nflies_per_exp(expi);
+%       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
+%       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
+%       
+%       
+%       if ~isempty(obj.predictdata.exp==expi)
+%         expid = obj.predictdata.exp==expi;
+%         expStats.nscoreframes = nnz(expid);
+%         expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
+% %         if ~isempty(obj.predictdata.classifierfilenames) && ...
+% %             numel(obj.predictdata.classifierfilenames)>=expi
+% %           expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
+% %         else
+% %           expStats.classifierfilename = '';
+% %         end
+%       else
+%         expStats.nscoreframes = [];
+%         expStats.nscorefrac = [];
+%         expStats.classifierfilename = '';
+%       end
+%       
+%     end
 
     
     % ---------------------------------------------------------------------
-    function flyStats = GetFlyStats(obj,expi,flyNum)
+    function [stats,flyStats] = GetFlyStats(obj,expi,flyNum)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
-      
-      assert(false,'ALXXX MINIMAL');
+      %
+      % stats: scalar struct, overall stats for exp/fly 
+      % flyStats: nclassifier-by-1 struct array classifier-specific stats
+            
+      % MERGESTUPDATED
       
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
-            
-      obj.StoreLabelsAndPreLoadWindowData();
-      if isempty(obj.labels(expi).flies),
-        ism = false;
-      else
-        [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
-      end
-      curlabels = zeros(1,0);
-      curts = zeros(1,0);
-      if ism,
-        nbouts = numel(obj.labels(expi).t0s{j});  %#ok
-        posframes = 0; negframes = 0;
-        for ndx = 1:numel(obj.labels(expi).t0s{j})
-          numFrames = obj.labels(expi).t1s{j}(ndx)-obj.labels(expi).t0s{j}(ndx);
-          if strcmp(obj.labels(expi).names{j}{ndx},obj.labelnames{1}) 
-            posframes = posframes + numFrames;
-            curlabels(1,end+1:end+numFrames) = 1;
-          else
-            negframes = negframes + numFrames;
-            curlabels(1,end+1:end+numFrames) = 2;
-          end
-          curts(1,end+1:end+numFrames) = obj.labels(expi).t0s{j}(ndx):(obj.labels(expi).t1s{j}(ndx)-1);
-        end
-        posframes = posframes;  %#ok
-        negframes = negframes;  %#ok
-        totalframes = posframes + negframes;  %#ok
-      else
-        nbouts = 0;  %#ok
-        posframes = 0;  %#ok
-        negframes = 0;  %#ok
-        totalframes = 0;  %#ok
-      end
       
-      % stuff into flyStats, with appropriate field names
-      varNames={'nbouts','posframes','negframes','totalframes'};
-      prefix=fif(obj.gtMode,'gt_','');
-      for i=1:length(varNames)
-        varName=varNames{i};
-        fieldName=varName;
-        eval(sprintf('flyStats.%s%s=%s;',prefix,fieldName,varName));
-      end
-            
-      flyStats.endframe = obj.endframes_per_exp{expi}(flyNum);
-      flyStats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
-      flyStats.trajLength = flyStats.endframe-flyStats.firstframe+1;
+      stats = struct();
+      flyStats = cell2struct(cell(0,obj.nclassifiers),{});
       
-      if obj.hassex,
-        if obj.hasperframesex,
+      % General stats
+      stats.endframe = obj.endframes_per_exp{expi}(flyNum);
+      stats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
+      stats.trajLength = stats.endframe-stats.firstframe+1;      
+      if obj.hassex
+        if obj.hasperframesex
           sexfrac = obj.GetSexFrac(expi,flyNum);
-          flyStats.sexfrac = round(100*sexfrac.M);
+          stats.sexfrac = round(100*sexfrac.M);
         else
-          flyStats.sexfrac = 100*strcmpi(obj.GetSex(expi,flyNum),'M');
+          stats.sexfrac = 100*strcmpi(obj.GetSex(expi,flyNum),'M');
         end
       else
-        flyStats.sexfrac = [];
-      end
-
-      if obj.predictdata{expi}{flyNum}.loaded_valid(1)
-        idxcurr = obj.predictdata{expi}{flyNum}.loaded_valid;
-        flyStats.nscoreframes_loaded = nnz(idxcurr);
-        flyStats.nscorepos_loaded = nnz(obj.predictdata{expi}{flyNum}.loaded(idxcurr)>0);
-        flyStats.nscoreneg_loaded = nnz(obj.predictdata{expi}{flyNum}.loaded(idxcurr)<0);
-%         if ~isempty(obj.predictdata.classifierfilenames)
-%           flyStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
-%         else
-%           flyStats.classifierfilename = '';
-%         end
-      else
-        flyStats.nscoreframes_loaded = [];
-        flyStats.nscorepos_loaded = [];
-        flyStats.nscoreneg_loaded = [];        
-%         flyStats.classifierfilename = '';
+        stats.sexfrac = [];
       end
       
-      curNdx = obj.predictdata{expi}{flyNum}.cur_valid;
-      
-      if any(curNdx) && ~isempty(obj.classifier)
-        
-        % Ignore labels that don't have predicted scores.
-        missingScores = curNdx(curts - obj.GetFirstFrames(expi,flyNum)+1);
-        curts(~missingScores) = [];
-        curlabels(~missingScores) = [];
-        
-        curScores = obj.predictdata{expi}{flyNum}.cur(curNdx);
+      % Compile frames/labels for this fly
+      obj.StoreLabelsAndPreLoadWindowData();
 
-        if ~isempty(curlabels)
-            curWScores = obj.predictdata{expi}{flyNum}.cur(curts - obj.GetFirstFrames(expi,flyNum)+1);
-            curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
-            curNegMistakes = nnz( curWScores>0 & curlabels >1 );
+      lblIdx2ClsIdx = obj.iLbl2iCls;
+      clsIdx2LblIdx = obj.iCls2iLbl;      
+      curbouts = zeros(1,0); % bout counter, one element per bout, values are CLASSIFIER indices (in 1:nclassifier)
+      curts = zeros(1,0); % all labeled frame indices for this fly (may contain repeats)
+      curlabels = zeros(1,0); % label vector for curts; values are LABEL indices (in 1:2*nclassifier)
+      lblsExp = obj.labels(expi);
+      [tf,iFly] = ismember(flyNum,lblsExp.flies,'rows');
+      if tf
+        nBouts = numel(lblsExp.t0s{iFly});
+        for iBout = 1:nBouts
+          t0 = lblsExp.t0s{iFly}(iBout);
+          t1 = lblsExp.t1s{iFly}(iBout);
+          name = lblsExp.names{iFly}{iBout};
+          lblIdx = find(strcmp(name,obj.labelnames));
+          assert(isscalar(lblIdx));
+          numFrames = t1-t0;
+          
+          curts(1,end+1:end+numFrames) = t0:(t1-1);
+          curlabels(1,end+1:end+numFrames) = lblIdx;
+          curbouts(1,end+1) = lblIdx2ClsIdx(lblIdx); %#ok<AGROW>
+        end
+      end
+      
+      % General label stats
+      nCls = obj.nclassifiers;
+      stats.nbouts = numel(curbouts);
+      stats.posframes = nnz(curlabels<=nCls);
+      stats.negframes = nnz(curlabels>nCls); 
+      stats.totalframes = numel(curts); % with multiple classifiers, this could exceed number of frames in track 
+      
+      for iCls = 1:nCls
+        % label stats
+        tmp = clsIdx2LblIdx{iCls};
+        posLblIdx = tmp(1);
+        negLblIdx = tmp(2);
+
+        tmp = struct();
+        tmp.nBouts = nnz(curbouts==iCls);        
+        tmp.posframes = nnz(curlabels==posLblIdx);
+        tmp.negframes = nnz(curlabels==negLblIdx);
+        tmp.totalframes = tmp.posframes + tmp.negframes;        
+        prefix = fif(obj.gtMode,'gt_','');
+        flds = fieldnames(tmp);
+        for f = flds(:)', f=f{1}; %#ok<FXSET>
+          flyStats(iCls).([prefix f]) = tmp.(f);
+        end
+        
+        pd = obj.predictdata{expi}{flyNum}(iCls);
+        
+        if pd.loaded_valid(1)
+          idxcurr = pd.loaded_valid;
+          flyStats(iCls).nscoreframes_loaded = nnz(idxcurr);
+          flyStats(iCls).nscorepos_loaded = nnz(pd.loaded(idxcurr)>0);
+          flyStats(iCls).nscoreneg_loaded = nnz(pd.loaded(idxcurr)<0);
         else
+          flyStats(iCls).nscoreframes_loaded = [];
+          flyStats(iCls).nscorepos_loaded = [];
+          flyStats(iCls).nscoreneg_loaded = [];
+        end
+        
+        tfCls = curlabels==posLblIdx | curlabels==negLblIdx;
+        curtsCls = curts(tfCls);
+        curlabelsCls = curlabels(tfCls);
+        assert(numel(unique(curtsCls))==numel(curtsCls),...
+          'For a given classifier each frame may be labeled at most once.');
+        curNdx = pd.cur_valid;
+        if any(curNdx) && ~isempty(obj.classifier)
+          
+          % Ignore labels that don't have predicted scores.
+          haveScores = curNdx(curtsCls - obj.GetFirstFrames(expi,flyNum)+1); 
+          curtsCls(~haveScores) = [];
+          curlabelsCls(~haveScores) = [];
+          
+          if ~isempty(curlabelsCls)
+            curWScores = pd.cur(curtsCls - obj.GetFirstFrames(expi,flyNum)+1);
+            curPosMistakes = nnz( curWScores<0 & curlabelsCls==posLblIdx );
+            curNegMistakes = nnz( curWScores>0 & curlabelsCls==negLblIdx );
+          else
             curPosMistakes = [];
             curNegMistakes = [];
+          end
+          
+          curScores = pd.cur(curNdx);          
+          flyStats(iCls).nscoreframes = nnz(curNdx);
+          flyStats(iCls).nscorepos = nnz(curScores>0);
+          flyStats(iCls).nscoreneg = nnz(curScores<0);
+          flyStats(iCls).errorsPos = curPosMistakes;
+          flyStats(iCls).errorsNeg = curNegMistakes;
+        else
+          flyStats(iCls).nscoreframes = [];
+          flyStats(iCls).nscorepos = [];
+          flyStats(iCls).nscoreneg = [];
+          flyStats(iCls).errorsPos = [];
+          flyStats(iCls).errorsNeg = [];
         end
         
-
-        flyStats.nscoreframes = nnz(curNdx);
-        flyStats.nscorepos = nnz(curScores>0);
-        flyStats.nscoreneg = nnz(curScores<0);
-        flyStats.errorsPos = curPosMistakes;
-        flyStats.errorsNeg = curNegMistakes;
-      else
-        flyStats.nscoreframes = [];
-        flyStats.nscorepos = [];
-        flyStats.nscoreneg = [];
-        flyStats.errorsPos = [];
-        flyStats.errorsNeg = [];
-      end
-      
-      flyStats.one2two = [];
-      flyStats.two2one = [];
-      if ~isempty(obj.classifier_old),
-        curNdx = obj.predictdata{expi}{flyNum}.old_valid;
-        if nnz(curNdx);
-          flyStats.one2two = nnz(obj.predictdata{expi}{flyNum}.cur(curNdx)<0 ...
-            & obj.predictdata{expi}{flyNum}.old(curNdx)>0);
-          flyStats.two2one = nnz(obj.predictdata{expi}{flyNum}.cur(curNdx)>0 ...
-            & obj.predictdata{expi}{flyNum}.old(curNdx)<0);
+        flyStats(iCls).one2two = [];
+        flyStats(iCls).two2one = [];
+        if ~isempty(obj.classifier_old{iCls})
+          curNdx = pd.old_valid;
+          if nnz(curNdx)
+            flyStats(iCls).one2two = nnz(pd.cur(curNdx)<0 & pd.old(curNdx)>0);
+            flyStats(iCls).two2one = nnz(pd.cur(curNdx)>0 & pd.old(curNdx)<0);
+          end
         end
-      end
-      
-      flyStats.validatedErrorsPos = [];
-      flyStats.validatedErrorsNeg = [];
-      if ~isempty(obj.windowdata.scores_validated),
-        curNdx = obj.FlyNdx(expi,flyNum);
-        if nnz(curNdx);
-          curScores = obj.windowdata.scores_validated(curNdx);
-          curLabels = obj.windowdata.labelidx_new(curNdx);
-          
-          curPosMistakes = nnz( curScores(:)<0 & curLabels(:) ==1 );
-          curNegMistakes = nnz( curScores(:)>0 & curLabels(:) >1 );
-          
-          flyStats.validatedErrorsPos = curPosMistakes;
-          flyStats.validatedErrorsNeg = curNegMistakes;
+        
+        flyStats(iCls).validatedErrorsPos = [];
+        flyStats(iCls).validatedErrorsNeg = [];
+        if ~isempty(obj.windowdata(iCls).scores_validated)
+          curNdx = obj.FlyNdx(expi,flyNum,iCls);
+          if nnz(curNdx)
+            curScores = obj.windowdata(iCls).scores_validated(curNdx);
+            curLabels = obj.windowdata(iCls).labelidx_new(curNdx);
+            assert(all(curLabels==posLblIdx | curLabels==negLblIdx));
+            
+            curPosMistakes = nnz( curScores(:)<0 & curLabels(:)==posLblIdx );
+            curNegMistakes = nnz( curScores(:)>0 & curLabels(:)==negLblIdx );
+            
+            flyStats(iCls).validatedErrorsPos = curPosMistakes;
+            flyStats(iCls).validatedErrorsNeg = curNegMistakes;
+          end
         end
+        
+        flyStats(iCls).gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
+        
+        %       if ~isempty(obj.windowdata.X)
+        %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
+        %         flyStats.npredictframes = nnz(idxcurr);
+        %         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
+        %
+        %       else
+        %         flyStats.npredictframes = [];
+        %         flyStats.npredictfrac = [];
+        %       end
       end
-      
-      flyStats.gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
-      
-      %       if ~isempty(obj.windowdata.X)
-      %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
-      %         flyStats.npredictframes = nnz(idxcurr);
-      %         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
-      %
-      %       else
-      %         flyStats.npredictframes = [];
-      %         flyStats.npredictfrac = [];
-      %       end
       
       obj.ClearStatus();
     end
@@ -11239,8 +11176,6 @@ classdef JLabelData < matlab.mixin.Copyable
       self.savewindowdata(:) = value;
       self.needsave = true;      
     end
-    
-    
 
 
 % Deprecated
@@ -11258,7 +11193,102 @@ classdef JLabelData < matlab.mixin.Copyable
       self.StoreLabelsAndPreLoadWindowData();
     end  % method
     
-end  % End methods block
+  end  % End methods block
+
+  methods (Access=private)
+    function [scores,predictions] = GetScoresCore(obj,expi,flies,...
+        fld,fldValid,fldPP,T0,T1)
+      % scores: nclassifier-by-(T1-T0+1)
+      % predictions: nclassifier-by-(T1-T0+1). fldPP only needed to compute
+      % predictions.
+
+      n = T1-T0+1;
+      off = 1 - T0;
+
+      pdArr = obj.predictdata{expi}{flies};
+      nTL = obj.ntimelines;
+      assert(numel(pdArr)==nTL);
+      scores = zeros(nTL,n);
+      predictions = zeros(nTL,n);
+      for iTL = 1:nTL
+        pd = pdArr(iTL);
+        idxcurr = pd.(fldValid) & pd.t>=T0 & pd.t<=T1;
+        scores(iTL,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
+        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
+      end
+    end
+  end
   
+  methods (Static,Access=private)
+    
+    function [tffound,filename,timestamp] = GetFileRaw(fileType,parentDir,fileNameLocal)
+      % Look for a filename in a parent dir.
+      % fileType: The fileType enum used here in JLabelData. This is used
+      % only for a quirk regarding .lnk/.seq files
+      % fileNameLocal: char, single short filename.
+      %
+      % tffound: scalar logical.
+      %   - If true, filename is the full filename and timestamp is the filesystem timestamp.
+      %   - If false, filename is the file-that-was-tried; and timestamp=-inf.
+      
+      assert(isscalar(parentDir));
+      
+      for j = 1:numel(parentDir),
+        ddir = parentDir{j};
+        
+        filename = fullfile(ddir,fileNameLocal);
+        if exist(filename,'file'),
+          tmp = dir(filename);
+          timestamp = tmp.datenum;
+          tffound = true;
+          return;
+        end
+        % check for lnk files
+        if ispc && exist([filename,'.lnk'],'file'),
+          isseq = ~isempty(regexp(fileNameLocal,'\.seq$','once'));
+          % for seq file, just keep the soft link, get_readframe_fcn will
+          % deal with it
+          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+          if didfind,
+            tmp = dir(actualfilename);
+            timestamp = tmp.datenum;
+            if ~isseq || ~strcmpi(fileType,'movie'),
+              filename = actualfilename;
+            end
+            tffound = true;
+            return;
+          end
+        end
+      end
+      
+      tffound = false;
+      % filename is the file-that-was-tried
+      timestamp = -inf;
+    end
+
+    function tf = AllPredictedScoresValid(predDataExp,nclassifier)
+      % predDataExp: JLD.predictdata for one experiment, eg
+      % obj.predictdata{expi}
+      % tf: nclassifier x 1 logical. tf(i) is true if entire timeline for
+      % all flies is predicted/valid for classifier i
+      
+      %MERGESTUPDATED
+      
+      nfly = numel(predDataExp);
+      tf = true(nclassifier,1);
+      for iCls = 1:nclassifier
+        for fly = 1:nfly
+          pd = predDataExp{fly};
+          assert(numel(pd)==nclassifier);
+          if ~all(pd(iCls).cur_valid)
+            tf(iCls) = false;
+            break;
+          end
+        end
+      end
+    end
+    
+  end
+
 end % End class
 

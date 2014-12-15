@@ -3545,8 +3545,9 @@ if behaviori<=0
     idxTL = 1:handles.data.labelidx.nTL;
     idxBeh = 1:handles.data.labelidx.nbeh;
   else
+    iCls2iLbl = handles.data.iCls2iLbl;
     idxTL = -behaviori;
-    idxBeh = handles.data.labelidx.TL2idxBeh{idxTL};
+    idxBeh = iCls2iLbl{idxTL};
   end
   handles.guidata.labels_plot.x(:,idx,idxBeh,:) = nan; % ALTODO Why is this clearing/initting for all flies?
   handles.guidata.labels_plot.y(:,idx,idxBeh,:) = nan; % ALTODO Why is this clearing/initting for all flies?  
@@ -3559,7 +3560,8 @@ else
   handles.guidata.labels_plot.y(:,idx,behaviori,:) = nan; % ALTODO Why is this clearing/initting for all flies?
   % handles.data.labelidx(t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off) = 0;
   
-  iTL = handles.data.labelidx.idxBeh2idxTL(behaviori);
+  iLbl2iCls = handles.data.iLbl2iCls;
+  iTL = iLbl2iCls(behaviori);
   for channel = 1:3,
     handles.guidata.labels_plot.im(iTL,idx,channel) = handles.guidata.labelunknowncolor(channel);
   end
