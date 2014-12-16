@@ -215,7 +215,11 @@ switch showType,
     set(handles.axes_Video,'CLim',[0,255]);
   case 'Background Difference',
     if handles.FMFNameIsInput,
-      im = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+      im = handles.readframe_raw(handles.f);
+      if size(im,3) > 1,
+        im = rgb2gray(im);
+      end
+      im = cast(im,handles.headerinfo.dataclass);
     else
       im = handles.im;
     end
@@ -224,25 +228,47 @@ switch showType,
     set(handles.axes_Video,'CLim',[0,max(1,max(diff(:)))]);
   case 'Is Foreground',
     if handles.FMFNameIsInput,
-      im = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+      im = handles.readframe_raw(handles.f);
+      if size(im,3) > 1,
+        im = rgb2gray(im);
+      end
+      im = cast(im,handles.headerinfo.dataclass);
     else
       im = handles.im;
+    end
+    if size(im,3) > 1,
+      im = rgb2gray(im);
     end
     diff = max(im - handles.mu,handles.mu - im);
     isfore = diff >= handles.BackSubThresh;
     set(handles.himage,'CData',isfore);
     set(handles.axes_Video,'CLim',[0,1]);    
   case 'Raw Frame',
-     handles.rawim = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
-     set(handles.himage,'CData',handles.rawim);
-     set(handles.axes_Video,'CLim',[0,255]);
+    im = handles.readframe_raw(handles.f);
+    if size(im,3) > 1,
+      im = rgb2gray(im);
+    end
+    im = cast(im,handles.headerinfo.dataclass);
+    handles.rawim = im;
+    set(handles.himage,'CData',handles.rawim);
+    set(handles.axes_Video,'CLim',[0,255]);
   case 'Compression Error',
-    handles.rawim = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+    im = handles.readframe_raw(handles.f);
+    if size(im,3) > 1,
+      im = rgb2gray(im);
+    end
+    im = cast(im,handles.headerinfo.dataclass);
+    handles.rawim = im;
     diff = max(handles.im - handles.rawim,handles.rawim - handles.im);
     set(handles.himage,'CData',diff);
     set(handles.axes_Video,'CLim',[0,max(1,max(diff(:)))]);
   case 'Thresholded Compression Error',
-    handles.rawim = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+    im = handles.readframe_raw(handles.f);
+    if size(im,3) > 1,
+      im = rgb2gray(im);
+    end
+    im = cast(im,handles.headerinfo.dataclass);
+    handles.rawim = im;
     diff = max(handles.im - handles.rawim,handles.rawim - handles.im);
     isfore = diff >= handles.BackSubThresh;
     set(handles.himage,'CData',isfore);
