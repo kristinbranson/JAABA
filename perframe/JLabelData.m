@@ -8854,9 +8854,9 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.AddScores(expi,allScores,true);
     end
     
-    
-% Evaluating performance
-    
+  end
+  
+  methods % Evaluating performance
 
     % ---------------------------------------------------------------------
     function [success,msg,crossError,tlabels] = CrossValidate(obj,varargin)
@@ -9165,26 +9165,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
       curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
     end
-    
-    
-%     % ---------------------------------------------------------------------
-%     function ROCCurve(obj,JLabelHandle)
-%     % This now shows histogram, apt naming be damned.
-%     
-%       if isempty(obj.classifier),
-%           uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
-%           return;
-%       end
-%       curNdx = obj.windowdata.labelidx_new~=0;
-%       curLabels = obj.windowdata.labelidx_new(curNdx);
-%       modLabels = ((curLabels==1)-0.5)*2;
-% 
-%       curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
-%       
-%       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
-%       
-%     end
-    
+        
     
     % ---------------------------------------------------------------------
     function newError = TestOnNewLabels(obj)
@@ -9256,8 +9237,28 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
     
+%     % ---------------------------------------------------------------------
+%     function ROCCurve(obj,JLabelHandle)
+%     % This now shows histogram, apt naming be damned.
+%     
+%       if isempty(obj.classifier),
+%           uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
+%           return;
+%       end
+%       curNdx = obj.windowdata.labelidx_new~=0;
+%       curLabels = obj.windowdata.labelidx_new(curNdx);
+%       modLabels = ((curLabels==1)-0.5)*2;
+% 
+%       curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
+%       
+%       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
+%       
+%     end
     
-% Show similar frames
+  end
+  
+  methods % Show similar frames
+    
     % ---------------------------------------------------------------------
     function DoFastBagging(obj)
       
@@ -9759,38 +9760,9 @@ classdef JLabelData < matlab.mixin.Copyable
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end  % method
     
-    
-% Fly and exp statistics    
-    
-%     % ---------------------------------------------------------------------
-%     function expStats = GetExpStats(obj,expi)
-%       % Calculates statistics such as number of labeled bouts, predicted bouts
-%       % and change in scores.
-%       
-%       expStats.name = obj.expnames{expi};
-%       expStats.nflies = obj.nflies_per_exp(expi);
-%       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
-%       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
-%       
-%       
-%       if ~isempty(obj.predictdata.exp==expi)
-%         expid = obj.predictdata.exp==expi;
-%         expStats.nscoreframes = nnz(expid);
-%         expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
-% %         if ~isempty(obj.predictdata.classifierfilenames) && ...
-% %             numel(obj.predictdata.classifierfilenames)>=expi
-% %           expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
-% %         else
-% %           expStats.classifierfilename = '';
-% %         end
-%       else
-%         expStats.nscoreframes = [];
-%         expStats.nscorefrac = [];
-%         expStats.classifierfilename = '';
-%       end
-%       
-%     end
-
+  end
+  
+  methods % Fly and exp statistics
     
     % ---------------------------------------------------------------------
     function [stats,flyStats] = GetFlyStats(obj,expi,flyNum)
@@ -10017,22 +9989,39 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
     
     
-% Status display
-    
+    %     % ---------------------------------------------------------------------
+%     function expStats = GetExpStats(obj,expi)
+%       % Calculates statistics such as number of labeled bouts, predicted bouts
+%       % and change in scores.
+%       
+%       expStats.name = obj.expnames{expi};
+%       expStats.nflies = obj.nflies_per_exp(expi);
+%       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
+%       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
+%       
+%       
+%       if ~isempty(obj.predictdata.exp==expi)
+%         expid = obj.predictdata.exp==expi;
+%         expStats.nscoreframes = nnz(expid);
+%         expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
+% %         if ~isempty(obj.predictdata.classifierfilenames) && ...
+% %             numel(obj.predictdata.classifierfilenames)>=expi
+% %           expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
+% %         else
+% %           expStats.classifierfilename = '';
+% %         end
+%       else
+%         expStats.nscoreframes = [];
+%         expStats.nscorefrac = [];
+%         expStats.classifierfilename = '';
+%       end
+%       
+%     end
 
-    % ---------------------------------------------------------------------
-    function SetStatusFn(obj,statusfn)
-      obj.setstatusfn = statusfn;
-    end
-
     
-    % ---------------------------------------------------------------------
-    function SetClearStatusFn(obj,clearfn)
-      obj.clearstatusfn = clearfn;
-    end
-
-    
-% Ground truthing functions.    
+  end
+  
+  methods % Ground truthing.
 
     % ---------------------------------------------------------------------
     function [success,msg] = setGTSuggestionMode(obj,modeString,varargin)
@@ -10140,6 +10129,7 @@ classdef JLabelData < matlab.mixin.Copyable
           
       end
       fclose(fid);
+
     end
 
     
@@ -10323,17 +10313,30 @@ classdef JLabelData < matlab.mixin.Copyable
       end
 
       crossError = obj.createConfMat(gt_scores,gt_labels);
-      
-    
     end  % method
-
-    
-% Mode functions
     
     % ---------------------------------------------------------------------
     function gtMode =  IsGTMode(obj)
       gtMode = obj.gtMode;
     end
+    
+  end
+    
+  methods
+    
+% Status display
+    
+
+    % ---------------------------------------------------------------------
+    function SetStatusFn(obj,statusfn)
+      obj.setstatusfn = statusfn;
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function SetClearStatusFn(obj,clearfn)
+      obj.clearstatusfn = clearfn;
+    end   
     
 
 % Post Processing functions
