@@ -5,7 +5,14 @@ classdef WindowData
     function wd = windowdata(nCls)
       % Windowdata constructor
       % nCls: number of classifiers
-      % wd: struct array
+      % wd: struct array, indexed by classifier
+      %
+      % 
+      % .labelidx_cur
+      % .labelidx_new
+      % .labelidx_old: These three arrays take the same values as
+      % Labels.labelidx.vals. A 0 value indicates 'unlabeled'; Otherwise
+      % the values are label indices 1:nlabels.      
       
       % ALTODO see below, NUA='not used anymore', 
       % ALTODO: correct-sized empties (pass windowdataVerify)
