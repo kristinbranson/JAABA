@@ -184,7 +184,11 @@ else
     headerinfo.type = 'avi';
     headerinfo.nr = headerinfo.Height;
     headerinfo.nc = headerinfo.Width;
-    headerinfo.nframes = headerinfo.NumberOfFrames;
+    if isfield(headerinfo,'NumberOfFrames'),
+      headerinfo.nframes = headerinfo.NumberOfFrames;
+    elseif isfield(headerinfo,'Duration') && isfield(headerinfo,'FrameRate'),
+      headerinfo.nframes = headerinfo.Duration*headerinfo.FrameRate;
+    end
     readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
   end
 end
@@ -202,7 +206,13 @@ end
 
 function [im,timestamp] = avi_read_frame(readerobj,headerinfo,f)
 
-im = read(readerobj,f);
+try
+  im = read(readerobj,f);
+catch ME,
+  warning('Error reading the first try: %s',getReport(ME));
+  pause(.01);
+  im = read(readerobj,f);
+end
 timestamp = (f-1)/headerinfo.FrameRate;
 
 
