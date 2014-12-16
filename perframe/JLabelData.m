@@ -8227,42 +8227,40 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-    % ---------------------------------------------------------------------
-    function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
-    % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
-    % Returns whether the behavior is labeled as behaviori for experiment
-    % expi, flies from frames T0 to T1. If T0 and T1 are not input, then
-    % firstframe to endframe are used. 
-
-    assert(size(obj.labelidx.vals,1)==1,'ALXXX MINIMAL');
-
-          
-      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
-        if nargin < 4,
-          idx = obj.labelidx.vals == behaviori;
-          T0 = obj.t0_curr;
-          T1 = obj.t1_curr;
-        else
-          idx = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
-        end
-        return;
-      end
-      
-      if nargin < 4,
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end
-      n = T1-T0+1;
-      off = 1 - T0;
-      labels_curr = obj.GetLabels(expi,flies);
-      idx = false(1,n);
-      for j = find(strcmp(labels_curr.names,obj.labelnames{behaviori})),
-        t0 = labels_curr.t0s(j);
-        t1 = labels_curr.t1s(j);
-        idx(t0+off:t1-1+off) = true;
-      end
-      
-    end
+%     ---------------------------------------------------------------------
+%     function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
+%     [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
+%     Returns whether the behavior is labeled as behaviori for experiment
+%     expi, flies from frames T0 to T1. If T0 and T1 are not input, then
+%     firstframe to endframe are used. 
+% 
+%           
+%       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+%         if nargin < 4,
+%           idx = obj.labelidx.vals == behaviori;
+%           T0 = obj.t0_curr;
+%           T1 = obj.t1_curr;
+%         else
+%           idx = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
+%         end
+%         return;
+%       end
+%       
+%       if nargin < 4,
+%         T0 = max(obj.GetTrxFirstFrame(expi,flies));
+%         T1 = min(obj.GetTrxEndFrame(expi,flies));
+%       end
+%       n = T1-T0+1;
+%       off = 1 - T0;
+%       labels_curr = obj.GetLabels(expi,flies);
+%       idx = false(1,n);
+%       for j = find(strcmp(labels_curr.names,obj.labelnames{behaviori})),
+%         t0 = labels_curr.t0s(j);
+%         t1 = labels_curr.t1s(j);
+%         idx(t0+off:t1-1+off) = true;
+%       end
+%       
+%     end
 
     
     % ---------------------------------------------------------------------
@@ -10348,92 +10346,100 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = SetPostprocessingParams(obj,params)
+      assert(iscell(params) && numel(params)==obj.nclassifiers);
       obj.postprocessparams = params;
       [success,msg] = obj.ApplyPostprocessing();
     end
     
     
     % ---------------------------------------------------------------------
-    function blen = GetPostprocessedBoutLengths(obj)
+    function blen = GetPostprocessedBoutLengths(obj,iCls)
+      % blen: row vector, bout length for classifier iCls over all
+      % exps/flies
       
-      assert(false,'ALXXX MINIMAL');
+      %MERGESTUPDATED
       
-      %[success,msg] = obj.ApplyPostprocessing();  %#ok
-      blen = [];
-      %if ~success;return; end
-      
-      
-      if obj.HasCurrentScores() % consider API, does this make sense if there is a single frame of a single classifier predicted etc?
-        
+      blen = zeros(1,0);
+           
+      if obj.HasCurrentScores()
         % For predicted scores.
         for endx = 1:obj.nexps
           for flies = 1:obj.nflies_per_exp(endx)
-            idx = obj.predictdata{endx}{flies}.cur_valid;
-            ts = obj.predictdata{endx}{flies}.t(idx);
-            [sortedts, idxorder] = sort(ts);
-            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1);
+            pd = obj.predictdata{endx}{flies}(iCls);
+            idx = find(pd.cur_valid); % AL20141215 
+            ts = pd.t(idx);            
+            [sortedts,idxorder] = sort(ts);
+            % AL 20141215: added +1 to next line, cf ApplyPostProcessing
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1; 
             gaps = [1;gaps';numel(ts)+1];
             for ndx = 1:numel(gaps)-1
-              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
-              posts = obj.predictdata{endx}{flies}.cur_pp(curidx);
+              % loop over 'contiguous' segments of time
+              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1)); % indices into pd.t, pd.cur_valid, pd.cur_pp for current time segment
+              assert(isequal(size(pd.t),size(pd.cur_valid),size(pd.cur_pp)));
+              posts = pd.cur_pp(curidx); 
               labeled = bwlabel(posts);
               aa = regionprops(labeled,'Area');  %#ok
               blen = [blen [aa.Area]];  %#ok
-              
-              
             end
           end
-        end
-        
-      else
-        
+        end        
+      else        
         % For loaded scores.
         for endx = 1:obj.nexps
           for flies = 1:obj.nflies_per_exp(endx)
-            curidx = obj.predictdata{endx}{flies}.loaded_valid;
-            curt = obj.predictdata{endx}{flies}.t(curidx);
+            pd = obj.predictdata{endx}{flies}(iCls);
+            curidx = pd.loaded_valid;
+            curt = pd.t(curidx);
             if any(curt(2:end)-curt(1:end-1) ~= 1)
-              msg = 'Scores are not in order';  %#ok
-              success = false;  %#ok
+              warning('JLabelData:bouts','Scores are not in order');
               return;
             end
-            posts = obj.predictdata{endx}{flies}.loaded_pp(curidx);
+            posts = pd.loaded_pp(curidx);
             labeled = bwlabel(posts);
             aa = regionprops(labeled,'Area');  %#ok
             blen = [blen [aa.Area]];  %#ok
           end
-        end
-        
+        end        
       end
-    end  % method
+    end
 
-
-% Random stuff
-
+    
     % ---------------------------------------------------------------------
-    function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj)
+    function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj,iCls)
+      % labels: current labels for classifier iCls, row vector of -1/1 for no-beh/beh resp
+      % labeledscores: row vector same size as labels
+      % allScores: row vector, predicted scores for iCls over all exps/flies
+      % scoreNorm: scalar
       
-      assert(false,'ALXXX MINIMAL');
+      %MERGESTUPDATED
       
-      if isempty(obj.windowdata.exp)
-        labels = []; labeledscores = []; 
+      wd = obj.windowdata(iCls);      
+      if isempty(wd.exp)
+        labels = zeros(1,0);
+        labeledscores = zeros(1,0);
       else
-        curNdx = obj.windowdata.labelidx_cur~=0;
-        labeledscores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
-        origlabels = obj.windowdata.labelidx_cur(curNdx);
-        labels = ((origlabels==1)-0.5)*2;
+        curNdx = wd.labelidx_cur~=0;
+        origlabels = wd.labelidx_cur(curNdx);
+        
+        lblPosNeg = obj.iCls2iLbl{iCls};
+        assert(all(origlabels==lblPosNeg(1) | origlabels==lblPosNeg(2)));
+        labels = ((origlabels==lblPosNeg(1))-0.5)*2;
+        labeledscores = myBoostClassify(wd.X(curNdx,:),obj.classifier{iCls});
       end
       
-      allScores = [];
+      allScores = zeros(1,0);
       for expi = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(expi)
-          curidx = obj.predictdata{expi}{flies}.cur_valid;
-          allScores = [allScores obj.predictdata{expi}{flies}.cur(curidx)]; %#ok<AGROW>
+          pd = obj.predictdata{expi}{flies}(iCls);
+          curidx = pd.cur_valid;
+          allScores = [allScores pd.cur(curidx)]; %#ok<AGROW>
         end
       end
-      scoreNorm = obj.windowdata.scoreNorm;
+      scoreNorm = wd.scoreNorm;
     end
     
+  % Random stuff
+
     
     % ---------------------------------------------------------------------
     % function specifyEverythingFileNameFromUser(self,fileNameAbs)
