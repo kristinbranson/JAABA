@@ -7,7 +7,11 @@ if nargin < 4,
   doresize = true;
 end
 
-GRAYBORDER = 204;
+if isfield(gfdata,'grayborder'),
+  GRAYBORDER = gfdata.grayborder;
+else
+  GRAYBORDER = 204;
+end
 
 hfig = gfdata.hfig;
 
