@@ -35,7 +35,11 @@ try
       end
     end
   end
-  nthreads = SetUpMatlabPool;
+  if verLessThan('matlab','8.3.0.532'),
+    nthreads = SetUpMatlabPool;
+  else
+    nthreads = SetUpParPool;
+  end
 catch ME,
   uiwait(warndlg(sprintf('Error starting parallel computing: %s',getReport(ME))));
   nthreads = struct;

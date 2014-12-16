@@ -19,7 +19,7 @@ switch lower(arenatype),
     end
 end
 
-if exist('roi2','var'),
+if exist('roi2','var') && ~isempty(roi2),
   for i = 1:numel(trx),
     trx(i).roi2=roi2;
   end

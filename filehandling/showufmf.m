@@ -10,10 +10,10 @@ function varargout = showufmf(varargin)
 
 % Edit the above text to modify the response to help showufmf
 
-% Last Modified by GUIDE v2.5 29-Aug-2011 17:59:48
+% Last Modified by GUIDE v2.5 18-Jul-2014 11:42:42
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @showufmf_OpeningFcn, ...
