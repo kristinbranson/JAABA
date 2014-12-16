@@ -1,22 +1,28 @@
 classdef Labels 
-  % - Methods for the labelidx data structure (see JLabelData.labelIdx)
-  % - Methods for the labels data structure (see JLabelData.labels)
-  % - Some stuff related to behavior names
-  
   % Label-related datastructures
-  % - labelIdx is a scalar struct containing labels for a single track 
-  % across multiple timelines. Key props are .vals, .imp, .timestamp which 
-  % are numTimelines-by-nsamps.
-  % - labelsShort is a scalar struct containing labels for a single track
-  % across multiple timelines. Key props are .names, .t0s, .t1s, .imp. It
-  % is simlar to the labels structure.
-  % - labels is a struct array indexed by experiment and fly, ie
-  % labels(iExp){iFly}. Key props are .names, .t0s, .t1s.
+  %
+  % labelIdx 
+  % A scalar struct containing labels for a single track across multiple 
+  % timelines/classifiers. Key props are .vals, .imp, .timestamp which 
+  % are numTimelines-by-nsamps. 
+  % 
+  % labelsShort
+  % A scalar struct containing labels for a single track across multiple 
+  % timelines. Key props are .names, .t0s, .t1s, .imp. labelsShort is 
+  % simlar to the labels structure and is in "bout" format.
+  % 
+  % labels
+  % A struct array indexed by experiment and fly, ie labels(iExp){iFly}. 
+  % Key props are .names, .t0s, .t1s. Labels are stored by bout.
   
   methods (Static) % labelidx methods
  
     function labelidx = labelIdx(labelnames,T0,T1)
       % labelIdx 'Constructor' 
+      %
+      % labelidx.vals - nTL-by-nFrm. A value of 0 indicates 'unlabeled'. 
+      % Otherwise, the allowed values are the label indices, ie the values
+      % 1:labelidx.nbeh.
       
       [nTL,idxBeh2idxTL,tl2IdxBeh] = Labels.determineNumTimelines(labelnames);
       
@@ -88,7 +94,7 @@ classdef Labels
     
   end
   
-  methods (Static) % labels methods
+  methods (Static) % labels/labelShort methods
     
     % See JLabelData, 'labels' property, for description
     
@@ -407,6 +413,39 @@ classdef Labels
         'Labels to be merged contain duplicate behavior names.');
       
       labelsComb = Labels.initTimelineTimestamps(labelsComb,realbehnames);
+    end
+    
+    function labelsShort = labelsShort()
+      % labelsShort constructor
+      labelsShort = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],...
+        'off',0,'imp_t0s',[],'imp_t1s',[]);      
+    end
+      
+    function [labelsShort,tffly] = labelsShortInit(labelsShort,labels,fly)
+      % Init labelShort from SCALAR labels and fly specification
+      %
+      % labels: SCALAR labels, for experiment of interest
+      % fly: scalar fly id
+      %
+      % labelShort: scalar labelsShort structure, for given experiment/fly
+      % tffly: true if fly is present in labels and initialization is
+      % nontrivial; false otherwise
+      
+      assert(isscalar(labels));
+      assert(isscalar(fly));
+          
+      [tffly,ifly] = ismember(fly,labels.flies,'rows');
+      if tffly
+        labelsShort.t0s = labels.t0s{ifly};
+        labelsShort.t1s = labels.t1s{ifly};
+        labelsShort.names = labels.names{ifly};
+        labelsShort.off = labels.off(ifly);
+        if isfield(labels,'imp_t0s')
+          labelsShort.imp_t0s = labels.imp_t0s{ifly};
+          labelsShort.imp_t1s = labels.imp_t1s{ifly};
+        end
+        labelsShort.timestamp = labels.timestamp{ifly};
+      end
     end
       
   end

@@ -1816,9 +1816,9 @@ classdef JLabelData < matlab.mixin.Copyable
     function bouts = getLabeledBouts(obj)
     % Find the bouts from window data.
     
-    % ALXXX MINIMAL
-
-    bouts = struct('ndx',[],'label',[],'timestamp',[]);
+      % ALXXX MINIMAL
+    
+      bouts = struct('ndx',[],'label',[],'timestamp',[]);
       for expNdx = 1:obj.nexps
         for flyNdx = 1:obj.nflies_per_exp(expNdx)
           curLabels = obj.GetLabels(expNdx,flyNdx);
@@ -1839,7 +1839,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-    end  % method
+    end 
 
     
     % ---------------------------------------------------------------------
@@ -7972,19 +7972,18 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % -----------------------------------------------------------
     function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
-    % [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
     % Returns the labelidx for the input experiment and flies read from
     % labels. 
     
-    % Access labelidx cache
-
-      if ~isempty(obj.expi) && numel(flies) == numel(obj.flies) && obj.IsCurFly(expi,flies),
-        if nargin < 4,
+      % Access labelidx cache if appropriate
+      if ~isempty(obj.expi) && numel(flies)==numel(obj.flies) && obj.IsCurFly(expi,flies)
+        if nargin < 4
           labelidx = obj.labelidx;
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
           idx = T0+obj.labelidx_off:T1+obj.labelidx_off;
+          labelidx = struct();
           labelidx.vals = obj.labelidx.vals(:,idx);
           labelidx.imp = obj.labelidx.imp(:,idx);
           labelidx.timestamp = obj.labelidx.timestamp(:,idx);
@@ -7992,16 +7991,15 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
       
-      if nargin < 4,
+      if nargin < 4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
       
-      labels_curr = obj.GetLabels(expi,flies);
-      
+      labelsShort = obj.GetLabels(expi,flies);
       assert(obj.nbehaviors==numel(obj.labelnames));
       labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
-      labelidx = Labels.labelIdxInit(labelidx,labels_curr);
+      labelidx = Labels.labelIdxInit(labelidx,labelsShort);
     end
 
     
@@ -8268,48 +8266,37 @@ classdef JLabelData < matlab.mixin.Copyable
       % Returns the labels for the given experiment index, fly(s) index.
       % This takes into account the current GT mode (normal/GT), and
       % returns the appropriate labels.
+      %
+      % labels_curr: a 'labelsShort', see Labels.m
 
-      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],'off',0,'imp_t0s',[],'imp_t1s',[]);
+      % MERGESTUPDATED
       
-      if nargin < 2 || isempty(expi),
+      labels_curr = Labels.labelsShort();
+              
+      if nargin < 2 || isempty(expi)
         expi = obj.expi;
       end
+      if expi < 1
+        % AL: questionable legacy codepath
+        return;
+      end
       
-      if expi < 1, return; end
-      
-      if nargin < 3 || isempty(flies),
+      if nargin < 3 || isempty(flies)
         flies = obj.flies;
       end
 
       % cache these labels if current experiment and flies selected
-      if expi == obj.expi && all(flies == obj.flies),
+      if expi == obj.expi && all(flies == obj.flies)
         %obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
         obj.StoreLabelsForCurrentAnimal();
       end
       
-      if ~isempty(obj.labels(expi).flies),	
-        [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
-      else
-        ism = false;
-      end
-      if ism,
-        labels_curr.t0s = obj.labels(expi).t0s{fliesi};
-        labels_curr.t1s = obj.labels(expi).t1s{fliesi};
-        labels_curr.names = obj.labels(expi).names{fliesi};
-        labels_curr.off = obj.labels(expi).off(fliesi);
-        if isfield(obj.labels(expi),'imp_t0s')
-          labels_curr.imp_t0s = obj.labels(expi).imp_t0s{fliesi};
-          labels_curr.imp_t1s = obj.labels(expi).imp_t1s{fliesi};
-        end
-        labels_curr.timestamp = obj.labels(expi).timestamp{fliesi};
-      else
-%         if expi ~= obj.expi,
-%           error('This should never happen -- only should get new labels for current experiment');
-%         end
+      [labels_curr,tffly] = Labels.labelsShortInit(labels_curr,obj.labels(expi),flies);
+      if ~tffly
         t0_curr = max(obj.GetTrxFirstFrame(expi,flies));
         labels_curr.off = 1-t0_curr;
       end
-    end  % method
+    end
     
     
     % ---------------------------------------------------------------------
@@ -8592,13 +8579,16 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
               % form label vec that has 1 for 'behavior present'
-              labels01 = obj.windowdata(iCls).labelidx_new(islabeled);
+              labelidxnew = obj.windowdata(iCls).labelidx_new(islabeled);
               assert(numel(cls2IdxBeh{iCls})==2);
-              lblValueBeh = cls2IdxBeh{iCls}(1);
-              labels01(labels01==lblValueBeh) = 1;
+              valBeh = cls2IdxBeh{iCls}(1);
+              valNoBeh = cls2IdxBeh{iCls}(2);
+              assert(all(labelidxnew==valBeh | labelidxnew==valNoBeh));
+              labels12 = 2*ones(size(labelidxnew));
+              labels12(labelidxnew==valBeh) = 1;
               % check for presence of both positive and negative labels
-              npos = nnz(labels01==1);
-              nneg = nnz(labels01~=1);
+              npos = nnz(labels12==1);
+              nneg = nnz(labels12~=1);
               if npos < 1 || nneg < 1
                 warnstr = sprintf('Classifier %s: Only behavior or nones have been labeled. Not training classifier.',...
                   obj.labelnames{iCls});
@@ -8620,14 +8610,14 @@ classdef JLabelData < matlab.mixin.Copyable
              if strcmp(obj.classifiertype,'boosting'),
                 [obj.classifier{iCls},~,trainstats] =...
                   boostingWrapper(obj.windowdata(iCls).X(islabeled,:), ...
-                                  labels01,obj,...
+                                  labels12,obj,...
                                   obj.windowdata(iCls).binVals,...
                                   bins, ...
                                   obj.classifier_params{iCls});
               else
                 [obj.classifier{iCls}] = ...
                   fastBag(obj.windowdata(iCls).X(islabeled,:),...
-                          labels01,...
+                          labels12,...
                           obj.windowdata(iCls).binVals,...
                           bins, ...
                           obj.classifier_params{iCls});
@@ -8862,12 +8852,10 @@ classdef JLabelData < matlab.mixin.Copyable
     function [success,msg,crossError,tlabels] = CrossValidate(obj,varargin)
     % Cross validate on bouts.
       
-      % Store the current labels
       obj.StoreLabelsAndPreLoadWindowData();
       
-      
       [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success, 
+      if ~success
         return;
       end
       
@@ -8899,7 +8887,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       % Don't use unimportant labels
-      labels = obj.windowdata.labelidx_new;
+      labels = obj.windowdata.labelidx_new; %LABELIDX
       labels(~obj.windowdata.labelidx_imp) = 0;
       
       [success,msg,crossScores,tlabels] = ...
@@ -8929,7 +8917,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.windowdata.scores_validated = zeros(numel(islabeled),1);
       obj.windowdata.scores_validated(islabeled) = crossScores(1,:);
 
-      modLabels = 2*obj.windowdata.labelidx_new(islabeled)-obj.windowdata.labelidx_imp(islabeled);
+      modLabels = 2*obj.windowdata.labelidx_new(islabeled)-obj.windowdata.labelidx_imp(islabeled); %LABAELIDX
 
       %crossError=zeros(1,size(crossScores,1));
       nSomething=size(crossScores,1);
@@ -8957,6 +8945,16 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------    
     function [success,msg,scores,tlabels] = ...
         crossValidateBout(obj,labels,bouts,timed,setidx)
+      %
+      % labels: vector with nframes elements. conceptually, windowdata.labelidx
+      % bouts: struct with 
+      %   .ndx: nBout-by-nframes, logical indicator vec
+      %   .labels: nBout-by-1 vec of 1/2 for pos/neg labels
+      %   .timestamp: nBout-by-1 vec of timestamps
+      % timed: scalar logical
+      % setidx: 
+      %
+      % scores: nTimePt-by-nframes vec
       
       % Get stuff out of self that we need
       data=obj.windowdata.X;
@@ -9161,7 +9159,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       curNdx = obj.windowdata.labelidx_new~=0;
       curLabels = obj.windowdata.labelidx_new(curNdx);
-      modLabels = ((curLabels==1)-0.5)*2;
+      modLabels = ((curLabels==1)-0.5)*2; %LABELIDX
 
       curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
     end
@@ -9196,7 +9194,7 @@ classdef JLabelData < matlab.mixin.Copyable
       nlexp = obj.windowdata.exp(newLabels);
       nlflies = obj.windowdata.flies(newLabels);
       nlt = obj.windowdata.t(newLabels);
-      nlLabels = obj.windowdata.labelidx_new(newLabels);
+      nlLabels = obj.windowdata.labelidx_new(newLabels); %LABELIDX
       nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
       
       classifierfilename = 'None'; 
@@ -9281,7 +9279,7 @@ classdef JLabelData < matlab.mixin.Copyable
       bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
 
       bmodel = fastBag(obj.windowdata.X(islabeled,:),...
-        obj.windowdata.labelidx_new(islabeled),...
+        obj.windowdata.labelidx_new(islabeled),... %LABELIDX
         obj.windowdata.binVals,bins,obj.classifier_params,obj);
       
       obj.bagModels = bmodel;
@@ -9562,7 +9560,7 @@ classdef JLabelData < matlab.mixin.Copyable
         dist(idx) = inf;
       end
       
-      labels = obj.windowdata.labelidx_new;
+      labels = obj.windowdata.labelidx_new; %LABELIDX
       if strcmp(jumpRestrict,'behavior')
         dist(labels ~= 1) = inf;
       elseif strcmp(jumpRestrict,'none')
@@ -9620,14 +9618,14 @@ classdef JLabelData < matlab.mixin.Copyable
       
       [obj.bagModels, obj.distMat] =...
         doBaggingBouts( obj.windowdata.X, ...
-        obj.windowdata.labelidx_new,obj,...
+        obj.windowdata.labelidx_new,obj,... %LABELIDX
         obj.windowdata.binVals,...
         obj.classifier_params,bouts);
       
       obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
       obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
       obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
-      obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
+      obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled); %LABELIDX
       
       obj.ClearStatus();
     end
