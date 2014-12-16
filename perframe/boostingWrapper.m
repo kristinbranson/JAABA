@@ -4,6 +4,7 @@ function [allDataModel,outScores,stats] = boostingWrapper(data,labels,obj,binVal
 % behavior present, etc) or any other value (negative)
 
 assert(isvector(labels) && numel(labels)==size(data,1));
+assert(all(labels==1 | labels==2));
 
 boostIterations = params.iter;
 % Learn classifier with all the data.
