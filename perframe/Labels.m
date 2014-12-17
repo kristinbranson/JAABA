@@ -90,7 +90,20 @@ classdef Labels
           labelidx.imp(1,idx) = 1;
         end
       end
-    end      
+    end
+    
+    function label012 = labelVec2label012(v,vPos,vNeg)
+      % Convert a labeling vector from 0/vPos/vNeg to 0/1/2, ie remap
+      % positive labels to 1 and negative values to 2
+
+      assert(vPos~=vNeg && vPos~=0 && vNeg~=0);
+      assert(isvector(v));
+      assert(all(v==vPos | v==vNeg | v==0));
+      
+      label012 = zeros(size(v));
+      label012(v==vPos) = 1;
+      label012(v==vNeg) = 2;      
+    end
     
   end
   
