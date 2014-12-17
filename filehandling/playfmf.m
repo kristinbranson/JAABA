@@ -32,7 +32,7 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @playfmf_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
-if nargin && ischar(varargin{1})
+if nargin && ischar(varargin{1}) && exist(varargin{1}),
     gui_State.gui_Callback = str2func(varargin{1});
 end
 
@@ -121,7 +121,16 @@ handles.hslider_listener = handle.listener(handles.slider_Frame,...
 set(handles.slider_Frame,'Callback','');
 
 % open video
-handles = open_fmf(handles);
+if numel(varargin) >= 2 && exist(varargin{2},'file'),
+  filename = varargin{2};
+  try
+    handles = open_fmf(handles,filename);
+  catch
+    handles = open_fmf(handles);
+  end
+else
+  handles = open_fmf(handles);
+end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -293,7 +302,7 @@ function menu_File_Open_Callback(hObject, eventdata, handles)
 handles = open_fmf(handles);
 guidata(hObject,handles);
 
-function handles = open_fmf(handles)
+function handles = open_fmf(handles,filename)
 
 global ISPLAYING;
 
@@ -320,9 +329,13 @@ if isfield(handles,'fileext'),
   end
 end
 
+if nargin < 2,
 [filename, pathname] = uigetfile(handles.filterspec, 'Choose FMF video to play',handles.filename);
 if ~ischar(filename),
   return;
+end
+else
+  pathname = '';
 end
 handles.filename = fullfile(pathname,filename);
 [handles.filedir,handles.filenamebase,handles.fileext] = fileparts(handles.filename);

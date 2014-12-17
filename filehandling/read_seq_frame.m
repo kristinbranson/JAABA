@@ -1,4 +1,4 @@
-function frame=read_seq_frame(seqinfo,frame_num)
+function [frame,timestamp]=read_seq_frame(seqinfo,frame_num)
 % read_seq_frame: function to read in a single frame from a seq file
 %
 % form:  frame=read_seq_frame(fname_prefix,frame_num)
@@ -14,3 +14,4 @@ function frame=read_seq_frame(seqinfo,frame_num)
 % required files: r_readseqinfo.m, parsejpg8 (mex file, platform dependent)
 
 frame=parsejpg8(seqinfo.m_strFileName,seqinfo.m_aiSeekPos(frame_num));
+timestamp = seqinfo.m_afTimestamp(frame_num);
