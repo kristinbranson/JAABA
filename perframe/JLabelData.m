@@ -1787,84 +1787,124 @@ classdef JLabelData < matlab.mixin.Copyable
     
 
     % ---------------------------------------------------------------------
-    function errorRates = createConfMat(obj,scores,modLabels)
+    function errorRates = createConfMat(obj,iCls,scores,modLabels)
+      % iCls: classifier index
+      % scores: vector 
+      % modLabels: label vector for scores with values as follows:
+      %   1: lbl1+important
+      %   2: lbl1+notimportant
+      %   3: lbl2+important
+      %   4: lbl2+notimportant
+      % errorRates: .numbers, .frac: 4x3 arrays. rows are labeled:
+      %   row1: lbl1+important
+      %   row2: lbl1+any, ie lbl1+(important or notimportant)
+      %   row3: lbl2+important
+      %   row4: lbl2+any
       
-      assert(false,'ALXXX EXPANDED');
+      %MERGESTUPDATED
       
-      confMat = zeros(2*obj.nbehaviors,3);
-      scoreNorm = obj.windowdata.scoreNorm;
-      if isempty(scoreNorm) || isnan(scoreNorm),
+      % AL: This method is a little awkward in that the original intent 
+      % appears to have been to handle more than two labels/behaviors;
+      % for now we are explicitly specifying a classifier index and
+      % assuming only two label/behavior types in modLabels.      
+      
+      assert(isvector(scores) && isvector(modLabels) ...
+        && numel(scores)==numel(modLabels));
+      
+      scoreNorm = obj.windowdata(iCls).scoreNorm;
+      if isempty(scoreNorm) || isnan(scoreNorm)
         scoreNorm = 0;
       end
-      for ndx = 1:2*obj.nbehaviors
+      confThresholds = obj.confThresholds(iCls,:);
+    
+      NBEH = 2;
+      confMat = zeros(2*NBEH,3);
+      for ndx = 1:2*NBEH
         if mod(ndx,2)
           curIdx = modLabels==ndx;
         else
-          curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
+          % either ndx or ndx-1; or lblN for both important and
+          % nonimportant
+          curIdx = modLabels>(ndx-1.5) & modLabels<(ndx+0.5);
         end
-        confMat(ndx,1) = nnz(scores(curIdx)>=  (obj.confThresholds(1)*scoreNorm)); %ALXXX confThresholds size change
-        confMat(ndx,2) = nnz(-scores(curIdx)<  (obj.confThresholds(2)*scoreNorm) & ...
-                              scores(curIdx)<  (obj.confThresholds(1)*scoreNorm) );
-        confMat(ndx,3) = nnz(-scores(curIdx)>= (obj.confThresholds(2)*scoreNorm));
+        confMat(ndx,1) = nnz( scores(curIdx)>= (confThresholds(1)*scoreNorm)); 
+        confMat(ndx,2) = nnz(-scores(curIdx)<  (confThresholds(2)*scoreNorm) & ...
+                              scores(curIdx)<  (confThresholds(1)*scoreNorm) );
+        confMat(ndx,3) = nnz(-scores(curIdx)>= (confThresholds(2)*scoreNorm));
       end
+      
+      errorRates = struct();
       errorRates.numbers = confMat;
       errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
     end
 
     
     % ---------------------------------------------------------------------
-    function bouts = getLabeledBouts(obj)
-    % Find the bouts from window data.
-    
-      % ALXXX MINIMAL
+    function bouts = getLabeledBouts(obj,iCls)
+    % Find window data for labeled bouts.
+    %
+    % bouts
+    % .ndx: nBout-by-nsamp logical. bouts.ndx(iBout,:) indexes obj.windowdata(iCls).t etc
+    % .label: 1-by-nBout vector of 1/2 for positive/negative lbls for this classifier
+    % .timestamp: 1-by-nBout vector
+        
+    %MERGESTUPDATED
     
       bouts = struct('ndx',[],'label',[],'timestamp',[]);
+      
+      wd = obj.windowdata(iCls);
+      clsLblNames = obj.iCls2LblNames{iCls};
+      % clsLblNames = {posLbl negLbl}
+      
       for expNdx = 1:obj.nexps
         for flyNdx = 1:obj.nflies_per_exp(expNdx)
-          curLabels = obj.GetLabels(expNdx,flyNdx);
-          for boutNum = 1:numel(curLabels.t0s)
-            idx =  obj.FlyNdx(expNdx,flyNdx) & ...
-              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum) & ...
-              obj.windowdata.labelidx_imp;
-            if ~all(obj.windowdata.labelidx_new(idx)), continue; end
-            bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
-              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum) & ...
-              obj.windowdata.labelidx_imp;
-            bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
-            bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
-          end
           
+          labelsShort = obj.GetLabels(expNdx,flyNdx);
+          nBout = numel(labelsShort.t0s);
+          tfFlyNdx = obj.FlyNdx(expNdx,flyNdx,iCls);
+          for iBout = 1:nBout
+            tfClsLbl = strcmp(labelsShort.names{iBout},clsLblNames);
+            if any(tfClsLbl)
+              idx = tfFlyNdx & ...
+                wd.t >= labelsShort.t0s(iBout) & ...
+                wd.t < labelsShort.t1s(iBout) & ...
+                wd.labelidx_imp;
+              if ~all(wd.labelidx_new(idx))
+                continue;
+              end
+              bouts.ndx(end+1,:) = idx;
+              bouts.label(1,end+1) = find(tfClsLbl); % 1/2 for posLbl/negLbl resp
+              bouts.timestamp(1,end+1) = labelsShort.timestamp(iBout);
+            end
+          end
         end
-      end
-      
-    end 
+      end      
+    end
 
     
-    % ---------------------------------------------------------------------
-    function bouts = GetLabeledBouts_KB(obj)
-      
-      bouts = struct('t0s',[],'t1s',[],'flies',[],'expis',[],'timestamps',[],'names',{{}});
-      for expi = 1:numel(obj.labels),
-        for flyi = 1:size(obj.labels(expi).flies,1),
-          flies = obj.labels(expi).flies(flyi,:);
-          t0s = obj.labels(expi).t0s{flyi};
-          t1s = obj.labels(expi).t1s{flyi};
-          if isempty(t0s),
-            continue;
-          end
-          n = numel(t0s);
-          bouts.t0s(end+1:end+n) = t0s;
-          bouts.t1s(end+1:end+n) = t1s;
-          bouts.flies(end+1:end+n,:) = flies;
-          bouts.expis(end+1:end+n) = expi;
-          bouts.timestamps(end+1:end+n) = obj.labels(expi).timestamp{flyi};
-          bouts.names(end+1:end+n) = obj.labels(expi).names{flyi};
-        end
-      end
-      
-    end  % method
+%     % ---------------------------------------------------------------------
+%     function bouts = GetLabeledBouts_KB(obj)
+%       
+%       bouts = struct('t0s',[],'t1s',[],'flies',[],'expis',[],'timestamps',[],'names',{{}});
+%       for expi = 1:numel(obj.labels),
+%         for flyi = 1:size(obj.labels(expi).flies,1),
+%           flies = obj.labels(expi).flies(flyi,:);
+%           t0s = obj.labels(expi).t0s{flyi};
+%           t1s = obj.labels(expi).t1s{flyi};
+%           if isempty(t0s),
+%             continue;
+%           end
+%           n = numel(t0s);
+%           bouts.t0s(end+1:end+n) = t0s;
+%           bouts.t1s(end+1:end+n) = t1s;
+%           bouts.flies(end+1:end+n,:) = flies;
+%           bouts.expis(end+1:end+n) = expi;
+%           bouts.timestamps(end+1:end+n) = obj.labels(expi).timestamp{flyi};
+%           bouts.names(end+1:end+n) = obj.labels(expi).names{flyi};
+%         end
+%       end
+%       
+%     end  % method
     
     
  % Window data computation.
@@ -2421,9 +2461,11 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function UpdateBoostingBins(obj)
-      islabeled = obj.windowdata.labelidx_new ~= 0;
-      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+    function UpdateBoostingBins(obj,iCls)
+      %MERGESTUPDATED
+      islabeled = obj.windowdata(iCls).labelidx_new~=0;
+      obj.windowdata(iCls).binVals = findThresholds(obj.windowdata(iCls).X(islabeled,:),...
+        obj.classifier_params{iCls});
     end
     
     
@@ -3659,7 +3701,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function idx = FlyNdx(obj,expi,flies,iCls)
       %MERGESTUPDATED      
       
-      if isempty(obj.windowdata(iCls).exp),
+      if isempty(obj.windowdata(iCls).exp)
         idx = [];
         return;
       end
@@ -8849,94 +8891,127 @@ classdef JLabelData < matlab.mixin.Copyable
   methods % Evaluating performance
 
     % ---------------------------------------------------------------------
-    function [success,msg,crossError,tlabels] = CrossValidate(obj,varargin)
+    function [success,msg,crossErrorCell,tlabels] = CrossValidate(obj,varargin)
     % Cross validate on bouts.
+    %
+    % success: nclassifier-by-1 logical
+    % msg: nclassifier-by-1 cellstr
+    % crossErrorCell: nclassifier-by-1 cell
+    % tlabels: nclassifier-by-1 cell
       
-      obj.StoreLabelsAndPreLoadWindowData();
+    %MERGESTUPDATED
+    
+      nCls = obj.nclassifiers;
+      success = false(nCls,1);
+      msg = repmat({''},nCls,1);
+      crossErrorCell = cell(nCls,1);
+      tlabels = cell(nCls,1);
       
-      [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success
+      obj.StoreLabelsAndPreLoadWindowData();      
+      
+      tmpsuccess = obj.PreLoadPeriLabelWindowData();
+      if ~tmpsuccess        
         return;
       end
       
       [setidx,byexp] = myparse(varargin,'setidx',[],'byexp',false);
-
-      islabeled = obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp;
-      if ~any(islabeled),                        
-        crossError.numbers = zeros(4,3);
-        crossError.frac = zeros(4,3);
-        crossError.oldNumbers = zeros(4,3);
-        crossError.oldFrac = zeros(4,3);
-        tlabels = {};
-        success = false;
-        msg = 'No Labeled Data';
-        obj.ClearStatus();
-        return; 
-      end
       
-      if ~strcmp(obj.classifiertype,'boosting'); return; end
-
-      obj.SetStatus('Cross-validating the classifier for %d examples...',nnz(islabeled));
-
-      obj.UpdateBoostingBins();
-
-      bouts = obj.getLabeledBouts();
-      
-      if byexp && isempty(setidx),
-        [~,~,setidx] = unique(obj.windowdata.exp);
-      end
-      
-      % Don't use unimportant labels
-      labels = obj.windowdata.labelidx_new; %LABELIDX
-      labels(~obj.windowdata.labelidx_imp) = 0;
-      
-      [success,msg,crossScores,tlabels] = ...
-        obj.crossValidateBout(labels,...
-                              bouts, ...
-                              true, ...
-                              setidx);
-      
-      if ~success, 
-        crossError.numbers = zeros(4,3);
-        crossError.frac = zeros(4,3);
-        crossError.oldNumbers = zeros(4,3);
-        crossError.oldFrac = zeros(4,3);
-        tlabels = {};
-        obj.ClearStatus();
-        return, 
-      end;
-
-%{      
+      for iCls = 1:nCls
+        
+        wd = obj.windowdata(iCls);
+        islabeled = wd.labelidx_new~=0 & wd.labelidx_imp;
+        if ~any(islabeled)
+%           ce = struct;
+%           ce.numbers = zeros(4,3);
+%           ce.frac = zeros(4,3);
+%           ce.oldNumbers = zeros(4,3);
+%           ce.oldFrac = zeros(4,3);
+%           crossErrorCell{iCls} = ce;
+          msg{iCls} = 'No Labeled Data';
+          continue;
+        end
+        
+        if ~strcmp(obj.classifiertype{iCls},'boosting'); 
+          msg{iCls} = 'Not boosting classifier';
+          continue;
+        end        
+        
+        obj.SetStatus('Cross-validating classifier ''%s'' for %d examples...',...
+          obj.classifiernames{iCls},nnz(islabeled));
+        
+        obj.UpdateBoostingBins(iCls);
+        
+        bouts = obj.getLabeledBouts(iCls);
+        
+        if byexp && isempty(setidx)
+          [~,~,setidx] = unique(wd.exp);
+        end
+        
+        % Don't use unimportant labels
+        labels = wd.labelidx_new;
+        labels(~wd.labelidx_imp) = 0;
+        iLbl = obj.iCls2iLbl{iCls};
+        iLblPos = iLbl(1);
+        iLblNeg = iLbl(2);
+        labels012 = Labels.labelVec2label012(labels,iLblPos,iLblNeg);
+                
+        [success(iCls),msg{iCls},crossScores,tlabels{iCls}] = ...
+          obj.crossValidateBout(iCls,labels012,bouts,true,setidx);        
+        if ~success(iCls)
+%           crossError.numbers = zeros(4,3);
+%           crossError.frac = zeros(4,3);
+%           crossError.oldNumbers = zeros(4,3);
+%           crossError.oldFrac = zeros(4,3);
+%           tlabels = {};
+          continue;          
+        end
+        
+        %{
 %       crossScores=...
 %         crossValidate( obj.windowdata.X(islabeled,:), ...
 %         obj.windowdata.labelidx_cur(islabeled,:),obj,...
 %         obj.windowdata.binVals,...
 %         obj.windowdata.bins(:,islabeled),obj.classifier_params);
-%}
-      
-      obj.windowdata.scores_validated = zeros(numel(islabeled),1);
-      obj.windowdata.scores_validated(islabeled) = crossScores(1,:);
-
-      modLabels = 2*obj.windowdata.labelidx_new(islabeled)-obj.windowdata.labelidx_imp(islabeled); %LABAELIDX
-
-      %crossError=zeros(1,size(crossScores,1));
-      nSomething=size(crossScores,1);
-      crossError=struct('numbers',cell(1,nSomething), ...
-                        'frac',cell(1,nSomething));
-      for tndx = 1:nSomething
-        crossError(tndx) = obj.createConfMat(crossScores(tndx,:),modLabels);
+        %}
+        
+        obj.windowdata(iCls).scores_validated = zeros(numel(islabeled),1);
+        obj.windowdata(iCls).scores_validated(islabeled) = crossScores(1,:);
+        
+        % AL: various versions of label-vectors here and above presumably
+        % redundant
+        labelsLabeled = wd.labelidx_new(islabeled);
+        labelsImpLabeled = wd.labelidx_imp(islabeled);
+        assert(all(labelsImpLabeled==1));
+        labelsLabeled12 = Labels.labelVec2label012(labelsLabeled,iLblPos,iLblNeg);        
+        assert(all(labelsLabeled12==1 | labelsLabeled12==2));
+        % modLabels: 1==positive+important; 3==negative+important
+        modLabels = 2*labelsLabeled12 - labelsImpLabeled;
+        
+        %crossError=zeros(1,size(crossScores,1));
+        nSomething = size(crossScores,1);
+        crossError = struct('numbers',cell(1,nSomething),...
+          'frac',cell(1,nSomething));
+        for tndx = 1:nSomething
+          crossError(tndx) = obj.createConfMat(iCls,crossScores(tndx,:),modLabels);
+        end
+        
+        waslabeled = false(numel(islabeled),1);
+        waslabeled(1:numel(wd.labelidx_old)) = wd.labelidx_old~=0 & wd.labelidx_imp;
+        oldSelect = waslabeled(islabeled);
+        oldScores = crossScores(oldSelect);
+        tfWasIsLbled = waslabeled(:)&islabeled(:);
+        labelsCur = wd.labelidx_cur(tfWasIsLbled);
+        labelsImp = wd.labelidx_imp(tfWasIsLbled);
+        assert(all(labelsImp==1));
+        labelsCur12 = Labels.labelVec2label012(labelsCur,iLblPos,iLblNeg);
+        
+        oldLabels = 2*labelsCur12 - labelsImp;
+        oldError = obj.createConfMat(iCls,oldScores,oldLabels);
+        crossError(1).oldNumbers = oldError.numbers;
+        crossError(1).oldFrac = oldError.frac;
+        
+        crossErrorCell{iCls} = crossError;
       end
-      
-      waslabeled = false(numel(islabeled),1);
-      waslabeled(1:numel(obj.windowdata.labelidx_old)) = ...
-        obj.windowdata.labelidx_old~=0 & obj.windowdata.labelidx_imp;
-      oldSelect = waslabeled(islabeled);
-      oldScores = crossScores(oldSelect);
-      oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled(:)&islabeled(:)) - ...
-                  obj.windowdata.labelidx_imp(waslabeled(:)&islabeled(:));
-      oldError = obj.createConfMat(oldScores,oldLabels);
-      crossError(1).oldNumbers = oldError.numbers;
-      crossError(1).oldFrac = oldError.frac;
       
       obj.ClearStatus();
     end
@@ -8944,53 +9019,67 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------    
     function [success,msg,scores,tlabels] = ...
-        crossValidateBout(obj,labels,bouts,timed,setidx)
+        crossValidateBout(obj,iCls,labels,bouts,timed,setidx)
       %
-      % labels: vector with nframes elements. conceptually, windowdata.labelidx
-      % bouts: struct with 
-      %   .ndx: nBout-by-nframes, logical indicator vec
-      %   .labels: nBout-by-1 vec of 1/2 for pos/neg labels
-      %   .timestamp: nBout-by-1 vec of timestamps
-      % timed: scalar logical
-      % setidx: 
+      % Let windowdata have length nsamp, ie nsamp = numel(obj.windowdata(iCls).t)
       %
-      % scores: nTimePt-by-nframes vec
+      % iCls: classifier index
+      % labels: vector of length nsamp. Values are 1/2 for pos/neg labels, 
+      %   resp. Conceptually like obj.windowdata(iCls).labelidx; can 
+      %   contain 0 (?).
+      % bouts: see getLabeledBouts()
+      % timed: scalar logical. Currently ignored/set to false
+      % setidx: integer grouping vector, length nsamp. Values in range 1:k. 
+      %   Partitions windowdata for k-fold crossvalidation.
+      %
+      % scores: vector of classification scores. Length nsamp, except 
+      %  indices for labels==0 removed.
+      % tlabels: Currently unused (for timed)
       
-      % Get stuff out of self that we need
-      data=obj.windowdata.X;
-      binVals=obj.windowdata.binVals;
-      params=obj.classifier_params;
+      %MERGESTUPDATED
+      
+      data = obj.windowdata(iCls).X;
+      binVals = obj.windowdata(iCls).binVals;
+      params = obj.classifier_params{iCls};
+      
+      [nsamp,nftrs] = size(data);
+      assert(size(binVals,2)==nftrs);
+      assert(isvector(labels) && numel(labels)==nsamp);
+      assert(all(labels==0 | labels==1 | labels==2)); % AL: are there labels==0?
+      assert(size(bouts.ndx,2)==nsamp);      
 
-      success = true; msg = '';
-      k = params.CVfolds;
+      modLabels = sign((labels==1)-0.5); % labels==0?
 
-      % Learn classifier with all the data.
-      if exist('timed','var') && timed,
+      if exist('timed','var') && timed
         fprintf('WARNING: setting timed = false in crossValidateBout, even though the input is true. FIX THIS!\n');
       end
       timed = false;
 
-      if ~exist('setidx','var') ,
+      if exist('setidx','var') && ~isempty(setidx)
+        validateattributes(setidx,{'numeric'},{'integer' 'vector' 'numel' nsamp});
+      else
         setidx = [];
       end
-
       issetidx = ~isempty(setidx);
-      if issetidx,
+      
+      if issetidx
         k = max(setidx);
+      else
+        k = params.CVfolds;
       end
 
       % choose sets to hold out together
-      if ~issetidx,
-
-        posBouts = bouts.label == 1;
+      if ~issetidx
+        assert(all(bouts.label==1 | bouts.label==2));
+        posBouts = bouts.label==1;
         negBouts = ~posBouts;
 
         numPosBouts = nnz(posBouts);
         numNegBouts = nnz(negBouts);
 
-        if numPosBouts<k || numNegBouts<k,
-          scores = zeros(1,size(data,1));
-          scores(labels==0) = [];
+        if numPosBouts<k || numNegBouts<k
+          scores = zeros(1,nsamp);
+          scores(labels==0) = []; 
           tlabels = {};
           success = false;
 
@@ -9009,119 +9098,117 @@ classdef JLabelData < matlab.mixin.Copyable
         posCum = cumsum(posBouts);
         negCum = cumsum(negBouts);
         % Randomly permute the bouts.
+        % ALXXX NEEDS REVIEW
+        % Looks like a bug based on subsequent usage
         posCum = posCum(randperm(numel(posCum)));
         negCum = negCum(randperm(numel(negCum)));
-
       end
 
-      modLabels = sign( (labels==1)-0.5);
       tlabels = {};
-      if timed,
-        tpoints(1) = max(bouts.timestamp);  %#ok
-        tlabels{1} = datestr(tpoints(1));
-        tpoints(end+1) = addtodate(tpoints(1),-5,'minute');
-        tlabels{end+1} = '-5m';
-        tpoints(end+1) = addtodate(tpoints(1),-10,'minute');
-        tlabels{end+1} = '-10m';
-        tpoints(end+1) = addtodate(tpoints(1),-15,'minute');
-        tlabels{end+1} = '-15m';
-        tpoints(end+1) = addtodate(tpoints(1),-20,'minute');
-        tlabels{end+1} = '-20m';
-        tpoints(end+1) = addtodate(tpoints(1),-25,'minute');
-        tlabels{end+1} = '-25m';
-        tpoints(end+1) = addtodate(tpoints(1),-30,'minute');
-        tlabels{end+1} = '-30m';
-        tpoints(end+1) = addtodate(tpoints(1),-45,'minute');
-        tlabels{end+1} = '-45m';
-        tpoints(end+1) = addtodate(tpoints(1),-1,'hour');
-        tlabels{end+1} = '-1h';
-        tpoints(end+1) = addtodate(tpoints(1),-2,'hour');
-        tlabels{end+1} = '-2h';
-        tpoints(end+1) = addtodate(tpoints(1),-3,'hour');
-        tlabels{end+1} = '-3h';
-        tpoints(end+1) = addtodate(tpoints(1),-4,'hour');
-        tlabels{end+1} = '-4h';
-        tpoints(end+1) = addtodate(tpoints(1),-1,'day');
-        tlabels{end+1} = '-1d';
-        tpoints(end+1) = addtodate(tpoints(1),-2,'day');
-        tlabels{end+1} = '-2d';
-        tpoints(end+1) = addtodate(tpoints(1),-3,'day');
-        tlabels{end+1} = '-3d';
-        tpoints(end+1) = addtodate(tpoints(1),-7,'day');
-        tlabels{end+1} = '-1w';
-        tpoints(end+1) = addtodate(tpoints(1),-7*2,'day');
-        tlabels{end+1} = '-2w';
-        tpoints(end+1) = addtodate(tpoints(1),-1,'month');
-        tlabels{end+1} = '-1mo';
-        tpoints(end+1) = addtodate(tpoints(1),-2,'month');
-        tlabels{end+1} = '-2mo';
-        tpoints(end+1) = addtodate(tpoints(1),-6,'month');
-        tlabels{end+1} = '-6mo';
-        tpoints(end+1) = addtodate(tpoints(1),-1,'year');
-        tlabels{end+1} = '-1y';
-        tpoints(end+1) = addtodate(tpoints(1),-2,'year');
-        tlabels{end+1} = '-2y';
-        tpoints(end+1) = addtodate(tpoints(1),-10,'year');
-        tlabels{end+1} = '-10y';
-
-        tooOld = tpoints< min(bouts.timestamp) ;
-        tpoints(tooOld) = [];
-        tlabels(tooOld) = [];
+      if timed
+        assert(false,'Currently unreachable codepath.');
+%         tpoints(1) = max(bouts.timestamp);  %#ok
+%         tlabels{1} = datestr(tpoints(1));
+%         tpoints(end+1) = addtodate(tpoints(1),-5,'minute');
+%         tlabels{end+1} = '-5m';
+%         tpoints(end+1) = addtodate(tpoints(1),-10,'minute');
+%         tlabels{end+1} = '-10m';
+%         tpoints(end+1) = addtodate(tpoints(1),-15,'minute');
+%         tlabels{end+1} = '-15m';
+%         tpoints(end+1) = addtodate(tpoints(1),-20,'minute');
+%         tlabels{end+1} = '-20m';
+%         tpoints(end+1) = addtodate(tpoints(1),-25,'minute');
+%         tlabels{end+1} = '-25m';
+%         tpoints(end+1) = addtodate(tpoints(1),-30,'minute');
+%         tlabels{end+1} = '-30m';
+%         tpoints(end+1) = addtodate(tpoints(1),-45,'minute');
+%         tlabels{end+1} = '-45m';
+%         tpoints(end+1) = addtodate(tpoints(1),-1,'hour');
+%         tlabels{end+1} = '-1h';
+%         tpoints(end+1) = addtodate(tpoints(1),-2,'hour');
+%         tlabels{end+1} = '-2h';
+%         tpoints(end+1) = addtodate(tpoints(1),-3,'hour');
+%         tlabels{end+1} = '-3h';
+%         tpoints(end+1) = addtodate(tpoints(1),-4,'hour');
+%         tlabels{end+1} = '-4h';
+%         tpoints(end+1) = addtodate(tpoints(1),-1,'day');
+%         tlabels{end+1} = '-1d';
+%         tpoints(end+1) = addtodate(tpoints(1),-2,'day');
+%         tlabels{end+1} = '-2d';
+%         tpoints(end+1) = addtodate(tpoints(1),-3,'day');
+%         tlabels{end+1} = '-3d';
+%         tpoints(end+1) = addtodate(tpoints(1),-7,'day');
+%         tlabels{end+1} = '-1w';
+%         tpoints(end+1) = addtodate(tpoints(1),-7*2,'day');
+%         tlabels{end+1} = '-2w';
+%         tpoints(end+1) = addtodate(tpoints(1),-1,'month');
+%         tlabels{end+1} = '-1mo';
+%         tpoints(end+1) = addtodate(tpoints(1),-2,'month');
+%         tlabels{end+1} = '-2mo';
+%         tpoints(end+1) = addtodate(tpoints(1),-6,'month');
+%         tlabels{end+1} = '-6mo';
+%         tpoints(end+1) = addtodate(tpoints(1),-1,'year');
+%         tlabels{end+1} = '-1y';
+%         tpoints(end+1) = addtodate(tpoints(1),-2,'year');
+%         tlabels{end+1} = '-2y';
+%         tpoints(end+1) = addtodate(tpoints(1),-10,'year');
+%         tlabels{end+1} = '-10y';
+% 
+%         tooOld = tpoints< min(bouts.timestamp) ;
+%         tpoints(tooOld) = [];
+%         tlabels(tooOld) = [];
       else
         tpoints = now;
       end
 
-
-      scores = zeros(numel(tpoints),size(data,1));
+      scores = zeros(numel(tpoints),nsamp);
       bins = findThresholdBins(data,binVals);
 
       for bno = 1:k
-
-        if ~issetidx,
-
-        curPosTest = posCum >= posBlocks(bno) & ...
-          posCum < posBlocks(bno+1) & ...
-          posBouts;
-
-        curNegTest = negCum >= negBlocks(bno) & ...
-          negCum < negBlocks(bno+1) & ...
-          negBouts;
-
-        curTestNdx = false(1,size(data,1));
-        for posNdx = find(curPosTest)
-          curTestNdx = curTestNdx | bouts.ndx(posNdx,:);
-        end
-
-        for negNdx = find(curNegTest)
-          curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
-        end
-
-        else
-
-          curTestNdx = setidx == bno;
-
+        % generate curTestNdx, indicator vector for test set
+        if ~issetidx
+          % AL 20141216: Looks like intent is, give me bno'th block of 
+          % positive bouts, suitably randomized; and similarly for negative
+          % bouts. However, seems unlikely that random permutation of 
+          % pos/negCum above has the desired effect. Eg consider 
+          % negBouts = [1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 ... many zeros]. 
+          % In this case negCum is dominated by the value 4 and after
+          % randomization the likely effect is that whichever block
+          % contains 4 will contain all bouts.
+          curPosTest = posCum >= posBlocks(bno) & posCum < posBlocks(bno+1) & posBouts;
+          curNegTest = negCum >= negBlocks(bno) & negCum < negBlocks(bno+1) & negBouts;
+          curTestNdx = false(1,nsamp);
+          assert(isrow(curPosTest));
+          assert(isrow(curNegTest));
+          for posNdx = find(curPosTest)
+            curTestNdx = curTestNdx | bouts.ndx(posNdx,:);
+          end          
+          for negNdx = find(curNegTest)
+            curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
+          end          
+        else          
+          curTestNdx = setidx==bno;          
         end
 
         for tndx = 1:numel(tpoints)
-
-          if ~issetidx,
-
-          curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
-          curNegTrain = find(~curNegTest & negBouts & bouts.timestamp<=tpoints(tndx));
-
-          curTrainNdx = false(1,size(data,1));
-          for posNdx = curPosTrain
-            curTrainNdx = curTrainNdx | bouts.ndx(posNdx,:);
+          % find curTrainNdx, indicator vector for train set
+          if ~issetidx
+            curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
+            curNegTrain = find(~curNegTest & negBouts & bouts.timestamp<=tpoints(tndx));
+            curTrainNdx = false(1,nsamp);
+            assert(isrow(curPosTrain));
+            assert(isrow(curNegTrain));
+            for posNdx = curPosTrain
+              curTrainNdx = curTrainNdx | bouts.ndx(posNdx,:);
+            end
+            for negNdx = curNegTrain
+              curTrainNdx = curTrainNdx | bouts.ndx(negNdx,:);
+            end            
+          else            
+            curTrainNdx = bno~=setidx;            
           end
-          for negNdx = curNegTrain
-            curTrainNdx = curTrainNdx | bouts.ndx(negNdx,:);
-          end
-
-          else
-
-            curTrainNdx = bno ~= setidx;
-
-          end
+          
+          assert(~any(curTestNdx & curTrainNdx),'Training/testing sets are not disjoint.');
 
           curTrainLabels = modLabels(curTrainNdx);
 
@@ -9138,51 +9225,60 @@ classdef JLabelData < matlab.mixin.Copyable
             round( done/(numel(tpoints)*k)*100), ...
             round( ((numel(tpoints)*k)-done)*etime));
           drawnow();
-
         end
-
-
       end
 
       scores(:,labels==0) = [];
-
-    end  % method
+      success = true;
+      msg = '';
+    end
     
     
     % ---------------------------------------------------------------------
-    function [curScores,modLabels]=getCurrentScoresForROCCurve(obj)
-    % This now shows histogram, apt naming be damned.
-    
-      if ~obj.classifierIsPresent(),
+    function [curScores,modLabels] = getCurrentScoresForROCCurve(obj,iCls)
+      %MERGESTUPDATED
+      
+      if ~obj.classifierIsPresent()
         error('JLabelData:noClassifier', ...
               'No classifier has been trained to set the confidence thresholds.');
       end
-      curNdx = obj.windowdata.labelidx_new~=0;
-      curLabels = obj.windowdata.labelidx_new(curNdx);
-      modLabels = ((curLabels==1)-0.5)*2; %LABELIDX
-
-      curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
+      
+      clsfr = obj.classifier{iCls};
+      windata = obj.windowdata(iCls);
+      labels = windata.labelidx_new;
+      iLbls = obj.iCls2iLbl{iCls};
+      
+      curNdx = labels~=0;
+      curLabels = labels(curNdx);
+      curLabels12 = Labels.labelVec2label012(curLabels,iLbls(1),iLbls(2));
+      modLabels = ((curLabels12==1)-0.5)*2;
+      curScores = myBoostClassify(windata.X(curNdx,:),clsfr);
     end
         
     
     % ---------------------------------------------------------------------
-    function newError = TestOnNewLabels(obj)
+    function newError = TestOnNewLabels(obj,iCls)
+      %MERGESTUPDATED
+      
       obj.StoreLabelsAndPreLoadWindowData();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success,
+      if ~success
         warning(msg);
         return;
       end
+            
       newError = struct();
+      
+      windata = obj.windowdata(iCls);
 
-      prevLabeled = obj.windowdata.labelidx_cur~=0;
+      prevLabeled = windata.labelidx_cur~=0;
       Nprev = numel(prevLabeled);
-      newLabels = obj.windowdata.labelidx_new ~= 0;
+      newLabels = windata.labelidx_new~=0;
       tOld = newLabels(1:Nprev);
       tOld(prevLabeled) = false;
       newLabels(1:Nprev) = tOld;
       
-      if ~nnz(newLabels); 
+      if ~nnz(newLabels)
         fprintf('No new labeled data\n');
         return;
       end
@@ -9190,23 +9286,32 @@ classdef JLabelData < matlab.mixin.Copyable
       % Find out the index of scores with the same exp, flynum and time as
       % the newly labeled data.
       
-      orderedScores = []; orderedLabels = []; orderedLabels_imp = [];
-      nlexp = obj.windowdata.exp(newLabels);
-      nlflies = obj.windowdata.flies(newLabels);
-      nlt = obj.windowdata.t(newLabels);
-      nlLabels = obj.windowdata.labelidx_new(newLabels); %LABELIDX
-      nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
+      orderedScores = [];
+      orderedLabels = [];
+      orderedLabels_imp = [];
+      nlexp = windata.exp(newLabels);
+      nlflies = windata.flies(newLabels);
+      nlt = windata.t(newLabels);
+      nlLabels = windata.labelidx_new(newLabels);
+      iLbls = obj.iCls2iLbl{iCls};
+      nlLabels012 = Labels.labelVec2label012(nlLabels,iLbls{1},iLbls{2});
+      nlLabels_imp = windata.labelidx_imp(newLabels);
       
-      classifierfilename = 'None'; 
+      classifierfilename = 'None';
       %setClassifierfilename = 1;
-      for curExp = unique(nlexp)'
+      unNLExp = unique(nlexp);
+      for curExp = unNLExp(:)'
         curNLexpNdx = nlexp==curExp;
-        for curFly = unique(nlflies(curNLexpNdx))';
-          curT = nlt( nlexp==curExp & nlflies == curFly);
-          curLabels = nlLabels(nlexp==curExp & nlflies == curFly);
-          curLabels_imp = nlLabels_imp(nlexp==curExp & nlflies == curFly);
-          curScoreNdx = find(obj.predictdata{curExp}{curFly}.cur_valid);
-          scoresT = obj.predictdata{curExp}{curFly}.t(curScoreNdx);
+        unFlies = unique(nlflies(curNLexpNdx));
+        for curFly = unFlies(:)'
+          tfExpFly = nlexp==curExp & nlflies==curFly;
+          curT = nlt(tfExpFly);
+          curLabels = nlLabels012(tfExpFly);
+          curLabels_imp = nlLabels_imp(tfExpFly);
+          
+          pd = obj.predictdata{curExp}{curFly}{iCls};
+          curScoreNdx = find(pd.cur_valid);
+          scoresT = pd.t(curScoreNdx);
           [curValidScoreNdx,loc] = ismember(scoresT,curT);
           if nnz(curValidScoreNdx)~=numel(curT)
             warndlg('Scores are missing for some labeled data');
@@ -9216,7 +9321,7 @@ classdef JLabelData < matlab.mixin.Copyable
           
           orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];  %#ok
           orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];  %#ok
-          orderedScores = [orderedScores; obj.predictdata{curExp}{curFly}.cur(curScoreNdx(curValidScoreNdx~=0))'];  %#ok
+          orderedScores = [orderedScores; pd.cur(curScoreNdx(curValidScoreNdx~=0))'];  %#ok
         end
 %         if setClassifierfilename,
 %           classifierfilename = obj.windowdata.classifierfilenames{curExp};
@@ -9228,11 +9333,9 @@ classdef JLabelData < matlab.mixin.Copyable
           
       end
       
-      modLabels = 2*orderedLabels-orderedLabels_imp;
-      
-      newError = obj.createConfMat(orderedScores,modLabels);
-      newError.classifierfilename = classifierfilename;
-      
+      modLabels = 2*orderedLabels - orderedLabels_imp;      
+      newError = obj.createConfMat(iCls,orderedScores,modLabels);
+      newError.classifierfilename = classifierfilename;      
     end
     
 %     % ---------------------------------------------------------------------
@@ -9610,7 +9713,7 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~strcmp(obj.classifiertype,'boosting'); return; end
       if isempty(obj.classifier), obj.Train;             end
       
-      bouts = obj.getLabeledBouts();
+      bouts = obj.getLabeledBouts(); %ALXXX API change
       
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
@@ -10310,7 +10413,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
 
-      crossError = obj.createConfMat(gt_scores,gt_labels);
+      crossError = obj.createConfMat(gt_scores,gt_labels); %ALXXX API 
     end  % method
     
     % ---------------------------------------------------------------------
@@ -10709,7 +10812,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function result=classifierIsPresent(obj)
       result=~isempty(obj.classifier);
-    end  % method
+    end
     
     
     % ---------------------------------------------------------------------
