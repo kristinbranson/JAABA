@@ -6991,8 +6991,17 @@ return
 % ---------------------------------------------------------------------
 function ROCCurve(JLabelHandle,jld)
 % This now shows histogram, apt naming be damned.
+
+%MERGESTUPDATED
+
+if jld.nclassifiers>1
+  error('JLabel:multiclass','ROC curve currently unsupported for multiple classifiers.');
+  % JLabelData methods are updated (untested), but UI is not updated
+end
+
+ICLS = 1;
 try
-  [curScores,modLabels]=jld.getCurrentScoresForROCCurve();
+  [curScores,modLabels] = jld.getCurrentScoresForROCCurve(ICLS);
 catch excp
   if isequal(excp.identifier,'JLabelData:noClassifier')
     uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
@@ -7093,13 +7102,19 @@ function menu_classifier_cross_validate_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%handles.data.StoreLabelsAndPreLoadWindowData();
-%  The above is done inside JLabelData.CrossValidate()
-[success,msg,crossError,tlabels] = handles.data.CrossValidate();
+if handles.data.nclassifiers>1
+  error('JLabel:multiclass','Evaluate on new labels currently unsupported for multiple classifiers.');
+  % JLabelData methods are updated (untested), but UI is not updated
+end
 
-if ~success, warndlg(msg); 
+[success,msg,crossError,tlabels] = handles.data.CrossValidate();
+msg = msg{1};
+crossError = crossError{1};
+tlabels = tlabels{1};
+if ~success
+  warndlg(msg); 
   return; 
-end;
+end
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
@@ -7379,7 +7394,15 @@ function menu_classifier_evaluate_on_new_labels_Callback(hObject, eventdata, han
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-newError = handles.data.TestOnNewLabels();
+%MERGESTUPDATED
+
+if handles.data.nclassifiers>1
+  error('JLabel:multiclass','Evaluate on new labels currently unsupported for multiple classifiers.');
+  % JLabelData methods are updated (untested), but UI is not updated
+end
+
+ICLS = 1;
+newError = handles.data.TestOnNewLabels(ICLS);
 handles = predict(handles);
 if ~isfield(newError,'numbers'), return; end;
 dialogStr = {};
