@@ -9304,7 +9304,7 @@ classdef JLabelData < matlab.mixin.Copyable
       nlt = windata.t(newLabels);
       nlLabels = windata.labelidx_new(newLabels);
       iLbls = obj.iCls2iLbl{iCls};
-      nlLabels012 = Labels.labelVec2label012(nlLabels,iLbls{1},iLbls{2});
+      nlLabels012 = Labels.labelVec2label012(nlLabels,iLbls(1),iLbls(2));
       nlLabels_imp = windata.labelidx_imp(newLabels);
       
       classifierfilename = 'None';
@@ -9319,7 +9319,7 @@ classdef JLabelData < matlab.mixin.Copyable
           curLabels = nlLabels012(tfExpFly);
           curLabels_imp = nlLabels_imp(tfExpFly);
           
-          pd = obj.predictdata{curExp}{curFly}{iCls};
+          pd = obj.predictdata{curExp}{curFly}(iCls);
           curScoreNdx = find(pd.cur_valid);
           scoresT = pd.t(curScoreNdx);
           [curValidScoreNdx,loc] = ismember(scoresT,curT);
