@@ -589,14 +589,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.lastFullClassifierTrainingSize = 0;
       self.classifierTS = zeros(1,0); 
       self.trainstats = cell(1,0);
-      self.classifier_params = ...
-        struct('iter',100, ...
-               'iter_updates',10, ...
-               'numSample',2500, ...
-               'numBins',30, ...
-               'CVfolds',7, ...
-               'baseClassifierTypes',{'Decision Stumps'}, ...
-               'baseClassifierSelected',1);
+      self.classifier_params = cell(1,0);
       %self.predict_cache = struct;
       self.filetypes = {'movie','trx','perframedir','clipsdir','scores'};
       self.moviefilename = 0;
@@ -5140,6 +5133,23 @@ classdef JLabelData < matlab.mixin.Copyable
       % % clear the cached per-frame, trx data
       % self.ClearCachedPerExpData();      
     end  % setClassifierStuff() method
+    
+    function setClassifierParams(self,params)
+      %MERGESTUPDATED
+      
+      assert(iscell(params) && numel(params)==self.nclassifiers);
+      oldParams = self.classifier_params;      
+      
+      for iCls = 1:self.nclassifiers
+        prm0 = oldParams{iCls};
+        prm1 = params{iCls};
+        if prm0.numBins~=prm1.numBins
+          self.windowdata(iCls).binVals = [];
+          self.windowdata(iCls).bins = [];
+        end
+      end
+      self.classifier_params = params(:)';
+    end
 
     
     % ---------------------------------------------------------------------
@@ -10651,71 +10661,60 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-    % ---------------------------------------------------------------------
-    function atLeastOneNormalLabelExists=getAtLeastOneNormalLabelExists(self)
-      % Returns true iff at least one normal (non-GT) label exists.
-      atLeastOneNormalLabelExists=false;
-      for i=1:self.nexps
-        if ~isempty(self.labels(i).t0s)
-          atLeastOneNormalLabelExists=true;
-          break
-        end
-      end
-      % If we haven't found any labels yet, check labelidx
-      if ~atLeastOneNormalLabelExists,
-        if any(self.labelidx.vals),
-          atLeastOneNormalLabelExists=true;
-        end
-      end
-    end
+%     % ---------------------------------------------------------------------
+%     function atLeastOneNormalLabelExists=getAtLeastOneNormalLabelExists(self)
+%       % Returns true iff at least one normal (non-GT) label exists.
+%       atLeastOneNormalLabelExists=false;
+%       for i=1:self.nexps
+%         if ~isempty(self.labels(i).t0s)
+%           atLeastOneNormalLabelExists=true;
+%           break
+%         end
+%       end
+%       % If we haven't found any labels yet, check labelidx
+%       if ~atLeastOneNormalLabelExists,
+%         if any(self.labelidx.vals),
+%           atLeastOneNormalLabelExists=true;
+%         end
+%       end
+%     end
     
     
     % ---------------------------------------------------------------------
-    function atLeastOneNormalLabelOfEachClassExists= ...
-      getAtLeastOneNormalLabelOfEachClassExists(self)
+    function tf = getAtLeastOneNormalLabelOfEachClassExists(self,labelNames)
       % Returns true iff at least one normal (non-GT) label exists for each
-      % class, e.g. at least one walking label and at least one not-walking
-      % label.
-      atLeastOneNormalLabelOfEachClassExists=false;
-      labelNamesSeenSoFar=cell(1,0);
-      for i=1:self.nexps
-        if isempty(self.labels(i).names),
-          labelNamesThis=cell(1,0);
-        else
-          labelNamesThisDeep=self.labels(i).names;
-          labelNamesThis=[labelNamesThisDeep{:}];  % concatenate all the individual label lists
-        end
-        labelNamesSeenThis=unique(labelNamesThis);
-        labelNamesSeenSoFar=union(labelNamesSeenSoFar,labelNamesSeenThis);
-        if length(labelNamesSeenSoFar)>=2
-          atLeastOneNormalLabelOfEachClassExists=true;
-          break
-        end
+      % member of labelNames. 
+      %
+      % labelNames: cellstr, subset of self.labelnames. Defaults to
+      % self.labelnames
+      %
+      % tf: scalar logical
+
+      %MERGESTUPDATED
+      
+      if ~exist('labelNames','var') || isempty(labelNames)
+        labelNames = self.labelnames;
+      else
+        assert(iscellstr(labelNames) && all(ismember(labelNames,self.labelnames)));
       end
-      % If we haven't seen two different labels so far, check labelidx
-      if length(labelNamesSeenSoFar)<2,
-        valsInLabelIndex=unique(self.labelidx.vals);
-        valsInLabelIndex=valsInLabelIndex(valsInLabelIndex>0);
-          % ignore unknowns
-        labelNamesInLabelIndex=self.labelnames(valsInLabelIndex);
-        labelNamesSeenSoFar=union(labelNamesSeenSoFar,labelNamesInLabelIndex);
-        if length(labelNamesSeenSoFar)>=2
-          atLeastOneNormalLabelOfEachClassExists=true;
-        end
-      end        
+      
+      tf = Labels.labelsSeen(self.labels,labelNames);      
+      if ~all(tf)
+        % Haven't seen all labels yet, check labelidx
+        iLbl = unique(self.labelidx.vals(:)); % indices into self.labelnames (or 0)
+        iLbl = iLbl(iLbl>0);
+        names = self.labelnames(iLbl); % all unique names seen in .labelidx      
+        tf = tf | ismember(labelNames,names);
+      end
+      
+      tf = all(tf);      
     end
     
-    function res = HasWindowdata(self)
-      res = false;
-      if ~self.getAtLeastOneNormalLabelOfEachClassExists()
-        return;
-      end
-      
-      if isempty(self.windowdata.X),
-        return;
-      end
-      
-      res = true;
+    function res = HasWindowdata(self,iCls)
+      %MERGESTUPDATED
+      names = self.iCls2LblNames{iCls};
+      res = self.getAtLeastOneNormalLabelOfEachClassExists(names) && ...
+            ~isempty(self.windowdata(iCls).X);
     end
     
     

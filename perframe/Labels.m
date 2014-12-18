@@ -360,6 +360,27 @@ classdef Labels
       end
     end
     
+    function tf = labelsSeen(labels,names)
+      % names: cellstr
+      % tf: logical array, same size as names. tf(i) is true if names{i} is
+      % in at least one bout in labels.
+      
+      % MERGESTUPDATED
+      
+      assert(iscellstr(names));
+      tf = false(size(names));      
+      for i = 1:numel(labels)
+        labelsCell = labels(i).names;
+        assert(iscell(labelsCell));
+        namesExp = [labelsCell{:}]; % concatenate bouts/names for all flies in exp
+        namesExp = unique(namesExp);
+        tf = tf | ismember(names,namesExp);
+        if all(tf)
+          break;
+        end
+      end
+    end
+    
     function labelsComb = compileLabels(combExpDirNames,labelsCell,expDirNamesCell)
       % Compile/combine multiple label struct arrays.
       % 

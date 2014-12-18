@@ -2,6 +2,8 @@ function [hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
   sorted_weights,feature_order,bins,scores] = ...
   ShowWindowFeatureWeights(data,varargin)
 
+%MERGESTUPDATED
+
 if isempty(data.classifier), 
   warndlg('Classifier is empty'); 
 end
@@ -12,11 +14,14 @@ data.MaybeStoreLabelsAndPreLoadWindowDataNow();
 % take care of on its own.  Other parties shouldn't need to tell JLabelData
 % to get its house in order.
 
-[hax,hfig,figpos,...
+[hax,hfig,figpos,iCls,...
   nfeatures_show] = ...
-  myparse(varargin,'axes',[],'figure',[],...
+  myparse(varargin,...
+  'axes',[],...
+  'figure',[],...
   'figpos',[],...
-  'nfeatures_show',numel(data.classifier));
+  'iCls',1,...
+  'nfeatures_show',[]);
 
 didcreateaxes = false;
 if numel(hax) < 2,
@@ -44,6 +49,10 @@ if ~isempty(figpos),
   set(hfig,'Position',figpos);
 end
 
+if isempty(nfeatures_show)
+  nfeatures_show = numel(data.classifier{iCls});
+end
+
 holdstate = false(1,2);
 for i = 1:2,
   holdstate(i) = ishold(hax(i));
@@ -51,7 +60,7 @@ for i = 1:2,
 end
 
 [sorted_weights,feature_order,bins,scores] = ...
-  sortWindowFeaturesByWeight(data.classifier,data.windowdata.X);
+  sortWindowFeaturesByWeight(data.classifier{iCls},data.windowdata(iCls).X);
 
 nfeatures_show = min(nfeatures_show,find(sorted_weights <= 0,1)-1);
 
@@ -77,12 +86,12 @@ set(hax(2),'YDir','reverse');
 print_names = cell(1,nfeatures_show);
 for ii = 1:nfeatures_show,
   i = feature_order(ii);
-  print_names{ii} = data.windowdata.featurenames{i}{1};
-  for j = 3:2:numel(data.windowdata.featurenames{i}),
-    if ischar(data.windowdata.featurenames{i}{j}),
-      print_names{ii} = [print_names{ii},'_',data.windowdata.featurenames{i}{j}];
+  print_names{ii} = data.windowdata(iCls).featurenames{i}{1};
+  for j = 3:2:numel(data.windowdata(iCls).featurenames{i}),
+    if ischar(data.windowdata(iCls).featurenames{i}{j}),
+      print_names{ii} = [print_names{ii},'_',data.windowdata(iCls).featurenames{i}{j}];
     else
-      print_names{ii} = [print_names{ii},'_',data.windowdata.featurenames{i}{j-1},num2str(data.windowdata.featurenames{i}{j})];
+      print_names{ii} = [print_names{ii},'_',data.windowdata(iCls).featurenames{i}{j-1},num2str(data.windowdata(iCls).featurenames{i}{j})];
     end
   end
 end
