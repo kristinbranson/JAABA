@@ -2734,8 +2734,7 @@ classifierExists=~isempty(data) && ...
 %   ~isempty(data) && ...
 %   data.getAtLeastOneNormalLabelExists();
 atLeastOneNormalLabelOfEachClassExists= ...
-  ~isempty(data) && ...
-  data.getAtLeastOneNormalLabelOfEachClassExists;
+  ~isempty(data) && data.getAtLeastOneNormalLabelOfEachClassExists;
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 savewindowdata = handles.data.savewindowdata;
@@ -7488,9 +7487,15 @@ function menu_classifier_visualize_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-assert(false,'ALXXX EXPANDED.');
+%MERGESTUPDATED
 
-if ~handles.data.HasWindowdata();
+if handles.data.nclassifiers>1
+  warning('JLabel:multiclass','Visualizing classifier ''%s'' only.',...
+    handles.data.classifiernames{1});
+end
+ICLS = 1;
+
+if ~handles.data.HasWindowdata(ICLS)
   uiwait(warndlg('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata.'));
   return;
 end
@@ -7500,9 +7505,9 @@ SetStatus(handles,'Creating classifier visualization');
 [hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
   sorted_weights,feature_order,bins,scores] = ...
   ShowWindowFeatureWeights(handles.data,'figpos',...
-  [10,10,1000,1000],'nfeatures_show',50); %#ok<ASGLU>
+  [10,10,1000,1000],'nfeatures_show',50,'iCls',ICLS); %#ok<ASGLU>
 
-ti = sprintf('Classifier %s',datestr(handles.data.classifierTS));
+ti = sprintf('Classifier %s',datestr(handles.data.classifierTS(ICLS)));
 set(hfig,'Name',ti);
 
 handles.visualizeclassifier = ...
