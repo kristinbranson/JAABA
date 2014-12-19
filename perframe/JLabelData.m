@@ -6139,55 +6139,61 @@ classdef JLabelData < matlab.mixin.Copyable
       success = true;
     end
     
-    function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)
-
-      assert(obj.nclassifier==1,'ALXXX MINIMAL');
-
+    function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)      
+      %MERGESTUPDATED
+      
+      assert(obj.nclassifiers==1,'Current project must be a single-classifier project.');
+      % AL 20141219: In the multiclassifier world one can imagine a
+      % different merge operation, where the incoming Jab contains new
+      % classifiers/behaviors to be added to the current Jab.
       
       success = true; 
       msg = '';
       
       try
         Q = load(jabfilename,'-mat');
-      catch ME,
+      catch ME
         success = false;
         msg = ME.message;
         return;
       end
       
+      assert(isscalar(Q.x.classifierStuff),...
+        'Jabfile ''%s'' is not a single-classifier project.',jabfilename);
+      
       if obj.IsGTMode
         origExpDirNames = Q.x.gtExpDirNames;
         origLabels = Q.x.gtLabels;
+        % modernize labels?
       else
         origExpDirNames = Q.x.expDirNames;
         origLabels = Q.x.labels;
+        origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
       end
+      assert(numel(origExpDirNames)==numel(origLabels));
       
       for ndx = 1:numel(origExpDirNames)
         expdirname = origExpDirNames{ndx};
         labels = origLabels(ndx);
         if importlabels % Change the names
-          for fly = 1:numel(labels.flies)
-            for bnum = 1:numel(labels.names{fly})
-              if ~strcmpi(labels.names{fly}{bnum},'none')
-                labels.names{fly}{bnum} = obj.labelnames{1};
-              end
-            end
-          end
-          
-          
+          assert(numel(Q.x.behaviors.names)==2);
+          origBehName = Q.x.behaviors.names{1};
+          newBehName = obj.labelnames{1};
+          labels = Labels.renameBehavior(labels,origBehName,newBehName,...
+            origBehName,newBehName);
         end
         
-        curexp = find(strcmp(expdirname,obj.expdirs)); %#ok<EFIND>
-        if isempty(curexp);
+        curexp = find(strcmp(expdirname,obj.expdirs));
+        if isempty(curexp)
           [success,msg] = obj.AddExpDir(expdirname);
-          if ~success,
+          if ~success
             return;
           end
           if importlabels
             obj.labels(end) = labels;
           end
         elseif importlabels
+          tfLabelsUpdated = false;
           if obj.haslabels(curexp)
             dlgstr = sprintf('Experiment %s already has labels. Discard the existing (current) labels and load the new ones?',...
               expdirname);
@@ -6195,57 +6201,35 @@ classdef JLabelData < matlab.mixin.Copyable
               'Keep Existing','Load New','Cancel','Keep Existing');
             if strcmp(res,'Load New')
               obj.labels(curexp) = labels;
+              tfLabelsUpdated = true;
             end
-            
           else
             obj.labels(curexp) = labels;
+            tfLabelsUpdated = true;
           end
           
-          if curexp == obj.expi
+          if tfLabelsUpdated && curexp==obj.expi
+            % initialize .labelidx from .labels
+            % AL 20141219: added tfLabelsUpdated condition; seems like we
+            % only want to update .labelidx (especially from .labels) if
+            % the new labels were accepted
             
-            T0 = max(obj.GetTrxFirstFrame(obj.expi,obj.flies));
-            T1 = min(obj.GetTrxEndFrame(obj.expi,obj.flies));
-            n = T1-T0+1;
-            off = 1 - T0;
-            flyndx = find(labels.flies==obj.flies);
-            if isempty(flyndx),
-              continue;
+            labelShort = Labels.labelsShort;
+            [labelsShort,tffly] = Labels.labelsShortInit(labelShort,labels,obj.flies);            
+            if tffly
+              T0 = max(obj.GetTrxFirstFrame(obj.expi,obj.flies));
+              T1 = min(obj.GetTrxEndFrame(obj.expi,obj.flies));
+              labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
+              labelidx = Labels.labelIdxInit(labelidx,labelsShort);
+              obj.labelidx = labelidx;
+            else
+              % none. obj.flies not present in new labels. .labelidx not 
+              % updated, so may contain bouts that differ from .labels
             end
-            
-            labelidx.vals = zeros(1,n);
-            labelidx.imp = zeros(1,n);
-            labelidx.timestamp = zeros(1,n);
-            
-            for i = 1:obj.nbehaviors,
-              for j = find(strcmp(labels.names{flyndx},obj.labelnames{i})),
-                t0 = labels.t0s{flyndx}(j);
-                t1 = labels.t1s{flyndx}(j);
-                if t0>T1 || t1<T0; continue;end
-                t0 = max(T0,t0);
-                t1 = min(T1+1,t1);
-                labelidx.vals(t0+off:t1-1+off) = i;
-                labelidx.timestamp(t0+off:t1-1+off) = labels.timestamp{flyndx}(j);
-              end
-            end
-            for j = 1:numel(labels.imp_t0s{flyndx})
-              t0 = labels.imp_t0s{flyndx}(j); 
-              t1 = labels.imp_t1s{flyndx}(j);
-              if t0>T1 || t1<T0; continue;end
-              t0 = max(T0,t0);
-              t1 = min(T1+1,t1);
-              labelidx.imp(t0+off:t1-1+off) = 1; % ALXXX MINIMAL labelidx.imp multiclass
-            end
-            obj.labelidx = labelidx;
-          end
-          
+          end          
         end
       end
-      
-
-      
     end
-
-    
     
     
     % ---------------------------------------------------------------------

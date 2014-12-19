@@ -76,10 +76,10 @@ classdef Labels
         % importance 
         assert(numel(labelsShort.imp_t0s)==numel(labelsShort.imp_t1s));
         for iLbl = 1:numel(labelsShort.imp_t0s)
-          t0 = labelsShort.imp_t0s(iLbl); 
+          t0 = labelsShort.imp_t0s(iLbl);
           t1 = labelsShort.imp_t1s(iLbl);
           if t0>labelidx.T1 || t1<labelidx.T0
-            continue; 
+            continue;
           end
           t0 = max(labelidx.T0,t0);
           t1 = min(labelidx.T1+1,t1);
@@ -310,7 +310,8 @@ classdef Labels
       for iExp = 1:numel(labels)
         for iFly = 1:numel(labels(iExp).flies)
           % rename bout lbls
-          labels(iExp).names{iFly} = regexprep(labels(iExp).names{iFly},behOld,behNew);
+          tf = strcmp(labels(iExp).names{iFly},behOld);
+          labels(iExp).names{iFly}(tf) = {behNew};
           
           % rename timelinetimestamp
           timelineTS = labels(iExp).timelinetimestamp{iFly};
