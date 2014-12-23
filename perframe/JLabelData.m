@@ -435,6 +435,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     usePastOnly % whether to only use past information when predicting the current frame
     
+    deterministic = false; % scalar logical, for testing purposes
+    
   end
 
  
@@ -2342,8 +2344,8 @@ classdef JLabelData < matlab.mixin.Copyable
               labels_curr = obj.GetLabels(expi,flies);
               for j = 1:numel(labels_curr.t0s),
                 ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
-              end              
-              assert(isequal(ts+labelIdx.off,find(labelIdxVals{flyi})));
+              end
+              assert(isequal(sort(ts+labelIdx.off),sort(find(labelIdxVals{flyi}))));
             else
               % Just use labelIdxVals{flyi} and trust that it is the right
               % thing.
@@ -2460,7 +2462,7 @@ classdef JLabelData < matlab.mixin.Copyable
       %MERGESTUPDATED
       islabeled = obj.windowdata(iCls).labelidx_new~=0;
       obj.windowdata(iCls).binVals = findThresholds(obj.windowdata(iCls).X(islabeled,:),...
-        obj.classifier_params{iCls});
+        obj.classifier_params{iCls},'deterministic',obj.deterministic);
     end
     
     
@@ -8637,7 +8639,7 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.classifier_old{iCls} = obj.classifier{iCls};
               [obj.windowdata(iCls).binVals] = findThresholds(...
                 obj.windowdata(iCls).X(islabeled,:),...
-                obj.classifier_params{iCls});
+                obj.classifier_params{iCls},'deterministic',obj.deterministic);
               bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
                 obj.windowdata(iCls).binVals);
               
@@ -9372,7 +9374,7 @@ classdef JLabelData < matlab.mixin.Copyable
       if isempty(obj.classifier), obj.Train;             end
 
       if isempty(obj.windowdata.binVals),
-        obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+        obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params,'deterministic',obj.deterministic);
       end
       
       bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
@@ -9713,7 +9715,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
-      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params,'deterministic',obj.deterministic);
       
       [obj.bagModels, obj.distMat] =...
         doBaggingBouts( obj.windowdata.X, ...
