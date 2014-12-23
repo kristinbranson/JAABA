@@ -8962,11 +8962,11 @@ return
 function initAfterBasicParamsSet(figureJLabel)
 % Initializes the JLabel GUI on return from ProjectSetup after the user
 % selects New..., or during opening of an existing everything file.
-handles=guidata(figureJLabel);
+handles = guidata(figureJLabel);
 handles.guidata.initializeAfterBasicParamsSet();                               
 handles.guidata.setLayout(figureJLabel);
-handles=InitializeStateAfterBasicParamsSet(handles);
-handles=InitializePlotsAfterBasicParamsSet(handles);
+handles = InitializeStateAfterBasicParamsSet(handles);
+handles = InitializePlotsAfterBasicParamsSet(handles);
 handles = updatePanelPositions(handles);
 guidata(figureJLabel,handles);
 return
@@ -9376,10 +9376,7 @@ return
 % -------------------------------------------------------------------------
 function newEverythingFile(figureJLabel)
 
-% get handles
-handles=guidata(figureJLabel);
-
-% launch the project setup GUI
+handles = guidata(figureJLabel);
 hobj = HandleObj;
 uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaultmoviefilename',handles.guidata.defaultmoviefilename,...
@@ -9389,12 +9386,11 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
 newFileSetupDone(figureJLabel,hobj.data);
 
 % no experiments? ask to add
-if handles.data.nexps == 0,
+if handles.data.nexps==0
   drawnow;
   uiwait(JModifyFiles('figureJLabel',handles.figure_JLabel));   
 end
-  
-           
+
 return
 
 
@@ -9402,43 +9398,45 @@ return
 function editEverythingFileViaChooser(figureJLabel,groundTruthingMode)
 
 % Prompt user for filename
-handles=guidata(figureJLabel);
-defaultPath=handles.data.defaultpath;
-title=fif(groundTruthingMode, ...
+handles = guidata(figureJLabel);
+defaultPath = handles.data.defaultpath;
+title = fif(groundTruthingMode, ...
           'Open in Ground-Truthing Mode...', ...
           'Open...');
-if ispc,
+if ispc
   pause(1);
 end
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
             title, ...
             defaultPath);
-if ~ischar(filename),
+if ~ischar(filename)
   % user hit cancel
   return;
 end
-fileNameAbs=fullfile(pathname,filename);
+fileNameAbs = fullfile(pathname,filename);
 
 try 
-  Q = load(fileNameAbs,'-mat');
-catch ME,
-  warndlg('Could not read the jab file');
+  Q = load(fileNameAbs,'-mat');  
+catch ME
+  warndlg('Could not read the jab file: %s',ME.message);
   return;
 end
+macG = Macguffin(Q.x);
+macG.modernize();
 
-% launch the project setup GUI
+hobj = HandleObj;
 uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaultmoviefilename',handles.guidata.defaultmoviefilename,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename,...
-  'basicParamsStruct',Q.x));
+  'basicParamsStruct',macG,...
+  'handleobj',hobj));
+newFileSetupDone(figureJLabel,hobj.data);
 
 % no experiments? ask to add
-if handles.data.nexps == 0,
-
+if handles.data.nexps==0
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
-  
 end
 
 return
@@ -9446,70 +9444,26 @@ return
 
 % -------------------------------------------------------------------------
 function newFileSetupDone(figureJLabel,macguffin)
-% Called by ProjectSetup after the user clicks Done.  Causes the JLabel
-% "object" to set itself up for a new file, using the settings in
-% basicParams, which is a Macguffin.
+% Called after a new project is loaded. Causes the JLabel "object" to set 
+% itself up for a new file, using the settings in basicParams, which is a 
+% Macguffin.
 
-% get handles
-handles=guidata(figureJLabel);
-
-% % Make up filename
-% try
-%   behaviorName=basicParams.getMainBehaviorName();
-%   fileNameRel=sprintf('%s.jab',behaviorName);
-% catch excp
-%   if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
-%     fileNameRel='untitled.jab';
-%   else
-%     rethrow(excp);
-%   end
-% end  
-% fileNameAbs=fullfile(pwd(),fileNameRel);
-
-% % Update the status, change the pointer to the watch
-% SetStatus(handles,sprintf('Opening %s ...',filename));
+handles = guidata(figureJLabel);
 
 % Don't want to see "No experiment loaded" when status is cleared!
-handles.guidata.status_bar_text_when_clear='';
-guidata(figureJLabel,handles);  % sync the guidata to handles
+handles.guidata.status_bar_text_when_clear = '';
+guidata(figureJLabel,handles);
 
 % Set up the model for a new file
 handles.data.newJabFile(macguffin);
 
-% % First set the project parameters, which will initialize the JLabelData
-% groundTruthingMode=false;  % all new files start in labeling mode
-% %initBasicParams(figureJLabel,basicParams,groundTruthingMode);
-% handles.guidata.initializeGivenMacguffin(basicParams, ...
-%                                          figureJLabel, ...
-%                                          groundTruthingMode, ...
-%                                          @(s)SetStatusCallback(s,figureJLabel) , ...
-%                                          @()ClearStatusCallback(figureJLabel) );
-
-%handles.guidata.initializeAfterBasicParamsSet();                               
 initAfterBasicParamsSet(figureJLabel);
-handles=guidata(figureJLabel);  % make sure handles is up-to-date
+handles = guidata(figureJLabel);  % make sure handles is up-to-date
 
-% Don't want to type "handles.data" all the damn time
-data=handles.data;  % ref
-%data.SetGTMode(groundTruthingMode);
+data = handles.data; % ref
 
-% Set the GUI to match the labeling mode
-%handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
-guidata(figureJLabel,handles);  % write the handles back to the figure
-
-% % Now load the classifier, which includes the experiments, and load the
-% % labels also.  ('classifierlabels',true means to load the labels, too.)
-% data.setClassifierParams(everythingParams.saveableClassifier, ...
-%                          'classifierlabels',true);
-
-% Set the functions that end up getting called when we call SetStatus()
-% and ClearStatus()
-% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% % Copy the default path out of the JLabelData.
-% handles.guidata.defaultpath = handles.data.defaultpath;
+guidata(figureJLabel,handles); 
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
@@ -9520,13 +9474,7 @@ else
 end
 
 % clear the old experiment directory
-handles.guidata.oldexpdir='';
-
-% % Note that there is currently an open file, and note its name
-% handles.guidata.thereIsAnOpenFile=true;
-% handles.guidata.everythingFileNameAbs=fileNameAbs;
-% handles.guidata.userHasSpecifiedEverythingFileName=false;
-% handles.guidata.needsave=true;
+handles.guidata.oldexpdir = '';
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
@@ -9536,12 +9484,9 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
 
 % Done, set status message to cleared message, pointer to normal
-%fileNameRel=fileNameRelFromAbs(fileNameAbs);
-%handles.guidata.status_bar_text_when_clear=fileNameRel;
 syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
 
-% write the handles back to figure
 guidata(figureJLabel,handles);
 
 return
@@ -10020,27 +9965,27 @@ ClearStatus(handles);
 return
 
 
-% --------------------------------------------------------------------
-function menu_file_basic_settings_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_new (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-basicSettings(findAncestorFigure(hObject));
-return
-
-
-% -------------------------------------------------------------------------
-function basicSettings(figureJLabel)
-
-% get handles
-handles=guidata(figureJLabel);
-
-% launch the project setup GUI
-basicParamsStruct=handles.data.getBasicParamsStruct();
-ProjectSetup('figureJLabel',handles.figure_JLabel, ...
-             'basicParams',basicParamsStruct);
-           
-return
+% % --------------------------------------------------------------------
+% function menu_file_basic_settings_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_new (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% basicSettings(findAncestorFigure(hObject));
+% return
+% 
+% 
+% % -------------------------------------------------------------------------
+% function basicSettings(figureJLabel)
+% 
+% % get handles
+% handles=guidata(figureJLabel);
+% 
+% % launch the project setup GUI
+% basicParamsStruct=handles.data.getBasicParamsStruct();
+% ProjectSetup('figureJLabel',handles.figure_JLabel, ...
+%              'basicParams',basicParamsStruct);
+%            
+% return
 
 
 % % --------------------------------------------------------------------
