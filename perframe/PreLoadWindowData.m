@@ -10,7 +10,8 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(...
 % perframedata: perframe data for perframefn
 % missingts: vector of times over which to compute window data, except any 
 %   elements that are also elements of object.windowdata_t_flyndx will not be
-%   computed (as those times already have window data)
+%   computed (as those times already have window data). missingts does NOT
+%   have to be sorted
 % labelIdxVals/Imp: vector, labelidx.vals and labelidx.imp for this
 %   expi/fly/classifier
 % labelIdxT0: T0 for labelIdx
