@@ -374,6 +374,9 @@ classdef Labels
         labelsCell = labels(i).names;
         assert(iscell(labelsCell));
         namesExp = [labelsCell{:}]; % concatenate bouts/names for all flies in exp
+        if isempty(namesExp)
+          namesExp = cell(1,0);
+        end
         namesExp = unique(namesExp);
         tf = tf | ismember(names,namesExp);
         if all(tf)
@@ -594,6 +597,20 @@ classdef Labels
       nobeh = ['No_' beh];
     end
     
+    function lblnames = behnames2labelnames(behnames)
+      % Augment behavior names with no-behavior names to get full set of
+      % labelnames
+      
+      lblnames = behnames(:)';      
+      nbeh = numel(behnames);
+      switch nbeh
+        case 1 % classic/singleBehavior
+          lblnames{1,2} = 'None';
+        otherwise % Multiple behaviors
+          lblnames = [lblnames cellfun(@Labels.noBehaviorName,lblnames,'uni',0)];
+      end
+    end
+    
 %     function beh = labelName2ClassifierName(name)
 %       % eg, return 'Lift' for either 'Lift' or 'No_lift', the point being
 %       % that both labels pertain to the Lift classifier.
@@ -612,27 +629,56 @@ classdef Labels
       clr = behColor/1.5;
     end
     
-    function labelcolors = cropOrAugmentLabelColors(labelcolors,nRealBeh)
-      % labelcolors (input): given labelcolors, may be too small or large for nRealBeh
-      % nRealBeh: number of desired real behaviors (not counting None or No_beh)
+    function labelcolors = cropOrAugmentLabelColors(labelcolors,nlabels)
+      % labelcolors (input): given labelcolors, may be too small or large
+      % for nlabels
+      % nlabels: number of labels (including no-behavior labels)
       %
-      % labelcolors(output): cropped or augmented to have 3*nRealBeh
-      % elements
+      % labelcolors(output): cropped or augmented to have nlabels*3
+      % elements. Colors are assumed to correspond to
+      % beh1,beh2,...,behN,nobeh1,...nobehN
 
-      assert(isvector(labelcolors));
-      nlblClrs = numel(labelcolors);
+      assert(mod(nlabels,2)==0,'Number of labels must be even (no-behavior labels should be included)');
+      nclrs = numel(labelcolors);
+      assert(mod(nclrs,3)==0,'Number of existing labelcolors must be a multiple of 3 (RGB)');
+
+      tfarray = ~isvector(labelcolors);
+      if tfarray
+        % assumed shape is Nbehx3, cols are R-G-B
+        tmp = labelcolors';
+        labelcolors = tmp(:);
+      end
       
-      if nlblClrs>=3*nRealBeh
+      if nclrs>=3*nlabels
         % truncate existing colors
-        labelcolors = labelcolors(1:3*nRealBeh);
+        labelcolors = labelcolors(1:3*nlabels);
       else
-        % add new colors
-        nbehOld = floor(nlblClrs)/3; % nlblClrs should be multiple of 3
-        lncolors = lines(nRealBeh);
-        newcolors = lncolors(nbehOld+1:nRealBeh,:)';
-        newcolors = newcolors(:);
-        labelcolors(3*nbehOld+1:3*nRealBeh) = newcolors;
-      end      
+        % augment existing colors
+        if nlabels==2
+          % Single-classifier
+          DEFAULTCOLORS_CLASSIC = [0.7000 0 0 0 0 0.7000]; % currently also specified in Macguffin
+          labelcolors(nclrs+1:6) = DEFAULTCOLORS_CLASSIC(nclrs+1:6);
+          % Don't worry about possible "color collisions" (same color for
+          % beh and None)
+        else
+          % Multi-classifier; currently, force certain colors for no-behs
+          nrealbeh = nlabels/2;
+          DEFAULTCOLORS_MULTI = lines(nrealbeh)';
+          DEFAULTCOLORS_MULTI = DEFAULTCOLORS_MULTI(:);
+          labelcolors(nclrs+1:nrealbeh*3) = DEFAULTCOLORS_MULTI(nclrs+1:nrealbeh*3);
+          for i = 1:nrealbeh
+            idxRealBeh = 3*(i-1)+1:3*(i-1)+3;
+            idxNoBeh = idxRealBeh+3*nrealbeh;
+            realClr = labelcolors(idxRealBeh);
+            noneClr = Labels.noneColor(realClr);
+            labelcolors(idxNoBeh) = noneClr;
+          end
+        end
+      end
+      
+      if tfarray
+        labelcolors = reshape(labelcolors,3,[])';
+      end
     end
     
     function labelcolors = addNoBehColors(labelcolors)

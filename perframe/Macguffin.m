@@ -36,7 +36,7 @@ classdef Macguffin < handle
       self.file.perframedir = 'perframe';
       self.file.clipsdir = 'clips';
       %self.windowfeatures = struct;
-      self.behaviors.labelcolors = zeros(1,0); % [0.7,0,0,0,0,0.7];
+      self.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
       self.behaviors.unknowncolor = [0,0,0];
       self.trxGraphicParams=trxGraphicParamsFromAnimalType(animalType);
       self.labelGraphicParams.colormap = 'line';
@@ -357,7 +357,7 @@ classdef Macguffin < handle
       % set combined .behaviors 
       self.behaviors.type = m(1).behaviors.type;
       self.behaviors.names = [allbehnames cellfun(@Labels.noBehaviorName,allbehnames,'uni',0)];
-      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(allbehnames));
+      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(self.behaviors.names));
       self.behaviors.labelcolors = Labels.addNoBehColors(self.behaviors.labelcolors);
       self.behaviors.labelcolors = reshape(self.behaviors.labelcolors,3,[])';
       self.behaviors.unknowncolor = m(1).behaviors.unknowncolor;
@@ -611,11 +611,15 @@ classdef Macguffin < handle
         %   self(i).expDirTags = ExperimentTags.expTags(self(i).expDirNames);
         % end
         
+        if ischar(self(i).file.scorefilename)
+          self(i).file.scorefilename = {self(i).file.scorefilename};
+        end          
         if isstruct(self(i).windowFeaturesParams)
           self(i).windowFeaturesParams = {self(i).windowFeaturesParams};
         end
         nCls = numel(self(i).classifierStuff);
-        assert(numel(self(i).windowFeaturesParams)==nCls);        
+        assert(isequal(nCls,numel(self(i).file.scorefilename),...
+                       numel(self(i).windowFeaturesParams)));
         
         tfmod = tfmodlbl || tfmodcls; % || tfmodtags;
         if dowarn && tfmod

@@ -1015,7 +1015,9 @@ classdef JLabelData < matlab.mixin.Copyable
           obj.nbehaviors = numel(obj.labelnames);
         else
           obj.labelnames = {'Behavior','None'};
-        end        
+        end
+        assert(numel(obj.labelcolors)==3*numel(obj.labelnames));
+
         [obj.ntimelines,obj.lblIdx2timelineIdx] = Labels.determineNumTimelines(obj.labelnames);
                 
         if isfield(everythingParams.file,'moviefilename'),
@@ -11016,22 +11018,20 @@ classdef JLabelData < matlab.mixin.Copyable
     function newJabFile(obj,macguf,varargin)
       % Only called by ProjectSetup/new project creation. 
       % IMPORTANT: macguf has type Macguffin, but it is not a properly
-      % initialized Macguffin object. It is semi-initialized object coming 
-      % from ProjectSetup for the purposes of initialization, hence the 
-      % various massaging here.
+      % initialized Macguffin object. It is semi-initialized object 
+      % originating from ProjectSetup for the purposes of initialization, 
+      % hence the various massaging here.
       
-      % optional args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
         error('JLabelData:oddNumberOfOptionalArgsToNewJabFile',  ...
-              'Number of optional inputs to JLabelData.newJabFile() must be even');
+              'Optional inputs to JLabelData.newJabFile() should be p-v pairs.');
       end
 
-      % parse arguments into keywords and corresponding values
       keys = varargin(1:2:end);
       values = varargin(2:2:end);     
       
       % If caller set the default path, set that now
-      oldDefaultPath=obj.defaultpath;
+      oldDefaultPath = obj.defaultpath;
       i = find(strcmpi(keys,'defaultpath'),1);
       if ~isempty(i),
         [success,msg] = obj.SetDefaultPath(values{i});
@@ -11040,43 +11040,14 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      % Set the ground-truthing mode to false, b/c new file
       obj.gtMode = false;
-      
-      % Massage macguffin.behaviors
-      % * ProjectSetup does not add 'None' or 'No_<behavior>'.
-      % * ProjectSetup does not initialize labelcolors
-      % AL 201407: JLabelGUIData was sharing responsibility for initting 
-      % labelcolors but I am putting it here for now.
-      labelnames = macguf.behaviors.names;
-      labelcolors = macguf.behaviors.labelcolors;
-      if ~iscell(labelnames)
-        labelnames = {labelnames};
-      end
-      Nbeh = numel(labelnames);
-      switch Nbeh
-        case 1 % classic/singleBehavior
-          labelnames{1,2} = 'None';
-          labelcolors = [labelcolors [1 0 0]]; % Red for 'None'  
-        otherwise % Multiple behaviors
-          nrealbeh = numel(labelnames);
-          labelnames = [labelnames cellfun(@Labels.noBehaviorName,labelnames,'uni',0)];
-          assert(numel(labelcolors)==3*nrealbeh);          
-          for i = 1:nrealbeh
-            realbehclr = labelcolors(3*(i-1)+1:3*(i-1)+3);
-            realnobehclr = Labels.noneColor(realbehclr);
-            labelcolors = [labelcolors realnobehclr]; %#ok<AGROW>
-          end
-      end
-      macguf.behaviors.names = labelnames;   
-      macguf.behaviors.labelcolors = labelcolors;
-                
+                     
       % Set the file data from the Macguffin object
       try
         obj.setMacguffin(macguf);
       catch excp
         % roll things back
-        obj.defaultpath=oldDefaultPath;
+        obj.defaultpath = oldDefaultPath;
         rethrow(excp);
       end
       
@@ -11086,7 +11057,7 @@ classdef JLabelData < matlab.mixin.Copyable
         fileNameRel = [sprintf('%s_',realbehnames{1:end-1}) realbehnames{end} '.jab'];
       catch excp
         if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
-          fileNameRel='untitled.jab';
+          fileNameRel = 'untitled.jab';
         else
           rethrow(excp);
         end
@@ -11097,26 +11068,14 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.thereIsAnOpenFile = true;
       obj.everythingFileNameAbs = fileNameAbs;
       obj.userHasSpecifiedEverythingFileName = false;
-      obj.needsave = true;  % b/c new file
-      
-%       % Now handle other arguments
-%       i = find(strcmpi(keys,'openmovie'),1);
-%       if ~isempty(i),
-%         obj.openmovie = values{i};
-%       end
-            
-%       % cacheSize
-%       i = find(strcmpi(keys,'cacheSize'),1);
-%       if ~isempty(i),
-%         obj.cacheSize = values{i};
-%       end
+      obj.needsave = true; % b/c new file
       
       % initialize the status table describing what required files exist
       [success,msg] = obj.UpdateStatusTable();
       if ~success,
         error(msg);
       end      
-    end  % method
+    end
 
     
     % ---------------------------------------------------------------------
