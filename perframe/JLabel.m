@@ -3714,7 +3714,7 @@ handles.guidata.labels_plot.predy(:,iFirst:iLast,:,:) = nan;
 nBeh = handles.data.nbehaviors;
 nTL = handles.data.ntimelines;
 assert(nBeh==2*nTL);
-iBeh2iTL = handles.data.lblIdx2timelineIdx;
+iBeh2iTL = handles.data.iLbl2iCls;
 assert(isequal(nTL,size(predictedidx,1),size(scores,1)));
 for iBeh = 1:nBeh % indexing handles.data.labelnames
   iTL = iBeh2iTL(iBeh);
