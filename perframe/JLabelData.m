@@ -199,7 +199,11 @@ classdef JLabelData < matlab.mixin.Copyable
   
   properties
     ntimelines
-    lblIdx2timelineIdx
+    iLbl2iCls % 2*nclassifiers-by-1 array. iCls = iLbl2iCls(iLbl) where 
+              % iLbl/iCls reference .labelnames/.classifiernames resp.
+    iCls2iLbl % nclassifiers-by-1 cell array, each el is 1-by-2 array.
+              % [iLblPos iLblNeg] = iCls2iLbl{iCls} where iLblPos, iLblNeg 
+              % index .labelnames.
 
     % statistics of labeled data per experiment
     % labelstats(expi).nflies_labeled is the total number of flies labeled,
@@ -448,12 +452,7 @@ classdef JLabelData < matlab.mixin.Copyable
     ismovie    % true iff the movie file name is nonempty.  If movie file name is empty, it means we don't try to open movies.
     nclassifiers
     classifiernames % 1-by-nclassifiers cellstr
-    nobehaviornames % 1-by-nclassifiers cellstr
-    iLbl2iCls % 2*nclassifiers-by-1 array. iCls = iLbl2iCls(iLbl) where 
-              % iLbl/iCls reference .labelnames/.classifiernames resp.
-    iCls2iLbl % nclassifiers-by-1 cell array, each el is 1-by-2 array.
-              % [iLblPos iLblNeg] = iCls2iLbl{iCls} where iLblPos, iLblNeg 
-              % index .labelnames.
+    nobehaviornames % 1-by-nclassifiers cellstr  
     iCls2LblNames % nclassifiers-by-1 cell array, each el is 1-by-2 cellstr
   end
 
@@ -475,8 +474,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %         self.expDirNames=newValue;
 %       end        
 %     end
-
-    
     function v = get.nclassifiers(self)
       v = self.ntimelines;
     end
@@ -486,12 +483,12 @@ classdef JLabelData < matlab.mixin.Copyable
     function v = get.nobehaviornames(self)
       v = self.labelnames(self.nclassifiers+1:end);
     end
-    function v = get.iLbl2iCls(self)
-      v = self.labelidx.idxBeh2idxTL;      
-    end
-    function v = get.iCls2iLbl(self)
-      v = self.labelidx.TL2idxBeh;      
-    end
+%     function v = get.iLbl2iCls(self)
+%       v = self.labelidx.idxBeh2idxTL;      
+%     end
+%     function v = get.iCls2iLbl(self)
+%       v = self.labelidx.TL2idxBeh;      
+%     end
     function v = get.iCls2LblNames(self)
       lblnames = self.labelnames;
       iCls2iLbl = self.iCls2iLbl;
@@ -1020,7 +1017,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         assert(numel(obj.labelcolors)==3*numel(obj.labelnames));
 
-        [obj.ntimelines,obj.lblIdx2timelineIdx] = Labels.determineNumTimelines(obj.labelnames);
+        [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
                 
         if isfield(everythingParams.file,'moviefilename'),
           [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
