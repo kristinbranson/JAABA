@@ -77,16 +77,14 @@ classdef ClassifierStuff < handle
 %       self.scoreNorm = repmat(self.scoreNorm,1,nbehavior);
 %     end
     
-    function tfmodified = modernize(self) 
+    function tfmodified = modernize(self)      
       tfmodified = false;
-%       
-%       nbehavior = numel(self.params);
-%       if numel(self.timeStamp)~=nbehavior
-%         ts = self.timeStamp;
-%         assert(isscalar(ts));
-%         self.timeStamp = repmat(ts,1,nbehavior);
-%         tfmodified = true;
-%       end
+      for i = 1:numel(self)
+        if isempty(self(i).savewindowdata)
+          self(i).savewindowdata = false;
+          tfmodified = true;
+        end
+      end
     end
         
   end 
