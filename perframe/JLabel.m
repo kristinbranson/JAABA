@@ -1690,10 +1690,12 @@ if ~exist('doupdateplot','var'),
   doupdateplot = true;
 end
 
-data=handles.data;  % a ref
-oldFlies=data.flies;
+assert(isscalar(flies));
+
+data = handles.data;  % a ref
+oldFlies = data.flies;
 [success,msg] = data.setCurrentTarget(data.expi,flies);
-if ~success,
+if ~success
   uiwait(waitdlg(sprintf('Error loading data for current set of flies: %s',msg)));
   return;
 end
@@ -1701,11 +1703,9 @@ end
 % same flies, return
 if ~doforce && ...
    isempty(setdiff(flies,oldFlies)) && ...
-   isempty(setdiff(oldFlies,flies)),
+   isempty(setdiff(oldFlies,flies))
   return;
 end
-
-% handles.data.flies = flies;
 
 % % frames these flies are both alive
 % handles.guidata.t0_curr = max(data.GetTrxFirstFrame(handles.data.expi,handles.data.flies));
@@ -1714,7 +1714,8 @@ end
 % form of labels for easier plotting:
 % x, y positions of all labels
 handles.guidata.labels_plot = LabelsPlot.labelsPlot(...
-  data.t0_curr,data.t1_curr,data.ntimelines,data.nbehaviors,numel(data.flies));
+  data.t0_curr,data.t1_curr,data.ntimelines,data.nbehaviors,...
+  data.iLbl2iCls,data.iCls2iLbl,numel(data.flies));
 
 % handles.guidata.labels_plot = struct;
 % n = handles.data.t1_curr-handles.data.t0_curr+1;
@@ -1737,19 +1738,25 @@ set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto
 
 labelidx = data.GetLabelIdx(handles.data.expi,flies);
 
-classifierPresent=data.classifierIsPresent();
-if classifierPresent,
+classifierPresent = data.classifierIsPresent();
+if classifierPresent
   prediction = data.GetPredictedIdx(handles.data.expi,flies);
   predictedidx = prediction.predictedidx;
   scores = data.NormalizeScores(prediction.scoresidx);
+  confThreshs = data.GetConfidenceThreshold(1:data.nbehaviors);
+else
+  predictedidx = [];
+  scores = [];
+  confThreshs = [];
 end
-for flyi = 1:numel(flies),
+for flyi = 1:numel(flies)
   fly = flies(flyi);
   x = data.GetTrxValues('X1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
   y = data.GetTrxValues('Y1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
     
   handles.guidata.labels_plot = LabelsPlot.labelsPlotInitXY(...
-    handles.guidata.labels_plot,labelidx,flyi,x,y);
+    handles.guidata.labels_plot,flyi,x,y,labelidx.vals,predictedidx,scores,...
+    confThreshs);
 %   for behaviori = 1:data.nbehaviors
 %     idx = find(labelidx == behaviori);
 %     idx1 = min(idx+1,numel(x));
