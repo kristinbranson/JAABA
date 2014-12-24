@@ -193,7 +193,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % names of behaviors, corresponding to labelidx
     labelnames        
         
-    % number of behaviors, including 'none'
+    % number of behaviors, including 'none'.
+    % AL: Better name is nlabels
     nbehaviors
   end  
   
@@ -11153,15 +11154,12 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function importClassifier(self,fileNameAbs)      
-      % load the file
-      macguffin=loadAnonymous(fileNameAbs);
+    function importClassifier(self,fileNameAbs)
+      %MERGEST SEEMSOK 
+      
+      macguffin = loadAnonymous(fileNameAbs);
 
-      assert(false,'ALXXX MINIMAL');
-
-      % Set the classifier in self
       self.setScoreFeatures(macguffin.scoreFeatures);
-      %larping=copy(self);
       self.setFeatureSublexicon(macguffin.featureLexicon, ...
                                 macguffin.featureLexiconName, ...
                                 macguffin.sublexiconPFNames);
@@ -11190,9 +11188,8 @@ classdef JLabelData < matlab.mixin.Copyable
 %       force=true;
 %       self.setCurrentTarget(self.expi,self.flies,force);
       
-      % Note that we now need saving
       self.needsave=true;
-    end  % method
+    end 
     
     
     % ---------------------------------------------------------------------
