@@ -573,7 +573,7 @@ classdef Macguffin < handle
     
     % ---------------------------------------------------------------------
     function setMainBehaviorName(self,behaviorName)
-      self.behaviors.names={behaviorName};
+      self.behaviors.names={behaviorName 'None'};
     end  % method
 
     % ---------------------------------------------------------------------
@@ -604,7 +604,7 @@ classdef Macguffin < handle
       end
       
       for i = 1:numel(self)
-        [self(i).labels,tfmodlbl] = Labels.modernizeLabels(self(i).labels,Labels.verifyBehaviorNames(self(i).behaviors.names));        
+        [self(i).labels,tfmodlbl] = Labels.modernizeLabels(self(i).labels,Labels.verifyBehaviorNames(self(i).behaviors.names));
         tfmodcls = self(i).classifierStuff.modernize();
         % tfmodtags = isequal(self(i).expDirTags,[]);
         % if tfmodtags

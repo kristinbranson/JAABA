@@ -6756,8 +6756,9 @@ classdef JLabelData < matlab.mixin.Copyable
 
       % Clean window data
       for iCls = 1:numel(obj.windowdata)
-        assert(iscolumn(obj.windowdata(iCls).exp));
-        newExp = newExpNumbers(obj.windowdata(iCls).exp);
+        wdExp = obj.windowdata(iCls).exp;
+        assert(iscolumn(wdExp) || isequal(wdExp,[]));
+        newExp = newExpNumbers(wdExp);
         obj.windowdata(iCls).exp = newExp(:);
       end
       % removed exps now have obj.windowdata.exp==0

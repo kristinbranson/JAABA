@@ -46,7 +46,11 @@ classdef WindowData
         
         assert(isequal([n 1],size(w.exp),size(w.flies),size(w.t),...
           size(w.labelidx_cur),size(w.labelidx_new),size(w.labelidx_old),...
-          size(w.labelidx_imp)));
+          size(w.labelidx_imp)) || ...
+          isempty(w.exp) && isempty(w.flies) && isempty(w.t) && ... % AL: alternate condition here for legacy compat
+          isempty(w.labelidx_cur) && isempty(w.labelidx_new) && ...
+          isempty(w.labelidx_old) && isempty(w.labelidx_imp));
+        
         assert(numel(w.featurenames)==nftr);
 
         % scoreNorm?
@@ -125,9 +129,11 @@ classdef WindowData
     function wd = windowdataSetFeaturenames(wd,featurenames)
       assert(iscell(featurenames)&&numel(featurenames)==numel(wd));
       for i = 1:numel(wd)
-        if ~isempty(wd(i).X)
+        nFtr = numel(featurenames{i});
+        if isequal(wd(i).X,[])
+          wd(i).X = zeros(0,nFtr);          
+        else
           nCol = size(wd(i).X,2);
-          nFtr = numel(featurenames{i});
           assert(nCol==nFtr,...
             'Number of featurenames (%d) does not match number of cols in feature matrix (%d).',...
             nFtr,nCol);
