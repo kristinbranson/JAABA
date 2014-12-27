@@ -905,25 +905,27 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function addSingleScoreFeature(obj,scoreFeature)
       % This is called by setScoreFeatures() to add a single score feature.
-      % Rolling back on error is handles by setScoreFeatures.
+      % Rolling back on error is handled by setScoreFeatures.
       % We assume the score feature to be added is not already present.
       % This changes obj.scoreFeatures and obj.allperframefns, but not
       % obj.perframedata.
+      
+      % MERGEST OK
 
       % Convert the scores files into perframe files.
-      pfName=scoreFeature.scorefilename;  % this is the base name of the score file, which also serves as the per-frame feature name
-      timeStamp=scoreFeature.ts;
-      nExps=obj.nexps;
-      for iExp=1:nExps
-        expName=obj.expnames{iExp};
+      pfName = scoreFeature.scorefilename; % this is the base name of the score file, which also serves as the per-frame feature name
+      timeStamp = scoreFeature.ts;
+      nExps = obj.nexps;
+      for iExp = 1:nExps
+        expName = obj.expnames{iExp};
         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',pfName,expName);
         [success,msg,timeStamp,newProjectName] = obj.ScoresToPerframe(iExp, ...
           pfName, ...
           timeStamp,...
           scoreFeature.classifierfile);
-        if ~success,
+        if ~success
           error('JLabelData:errorGeneratingPerframeFileFromScoreFile', ...
-                sprintf('Error generating score-based per-frame file %s for %s: %s',pfName,expName,msg));  %#ok
+                sprintf('Error generating score-based per-frame file %s for %s: %s',pfName,expName,msg)); %#ok
         end
         scoreFeature.classifierfile = newProjectName;
       end
@@ -931,27 +933,33 @@ classdef JLabelData < matlab.mixin.Copyable
       scoreFeature.ts = timeStamp;
       
       % store scoreFeatures in self
+      assert(~any(strcmp(pfName,obj.allperframefns)),...
+        'Perframe function with name ''%s'' already exists.');
       obj.scoreFeatures = [obj.scoreFeatures;scoreFeature];
-      obj.allperframefns=[obj.allperframefns;pfName];      
-    end  % method
+      obj.allperframefns = [obj.allperframefns;pfName];
+    end
 
     
     % ---------------------------------------------------------------------
     function deleteSingleScoreFeature(obj,scoreFeature)
       % This is called by setScoreFeatures() to delete a single score feature.
-      % Rolling back on error is handles by setScoreFeatures.
+      % Rolling back on error is handled by setScoreFeatures.
       % This changes obj.scoreFeatures and obj.allperframefns, but not
       % obj.perframedata.
+      
+      % MERGEST OK
 
-      % Delete from the scoreFeatures
-      toBeDeleted=arrayfun(@(s)isequal(s,scoreFeature),obj.scoreFeatures);
-      obj.scoreFeatures=obj.scoreFeatures(~toBeDeleted);
+      % Delete from scoreFeatures
+      toBeDeleted = arrayfun(@(s)isequal(s,scoreFeature),obj.scoreFeatures);
+      obj.scoreFeatures = obj.scoreFeatures(~toBeDeleted);
       
       % Delete from allperframefns
-      pfName=scoreFeature.scorefilename;
-      notPfName=@(string)(~isequal(string,pfName));
-      obj.allperframefns=cellFilter(notPfName,obj.allperframefns);      
-    end  % method
+      pfName = scoreFeature.scorefilename;
+      tf = strcmp(pfName,obj.allperframefns);
+      assert(isequal(tf,toBeDeleted));
+      notPfName = @(string)(~isequal(string,pfName));
+      obj.allperframefns = cellFilter(notPfName,obj.allperframefns);      
+    end
   
     
     % ---------------------------------------------------------------------
@@ -4140,16 +4148,16 @@ classdef JLabelData < matlab.mixin.Copyable
     
 
     % ---------------------------------------------------------------------
-    function scoreFileName=getScoreFileName(obj)
-      % Get the score file name, a string
-      scoreFileName=obj.scorefilename;
+    function scoreFileName = getScoreFileName(obj)
+      scoreFileName = obj.scorefilename;
     end
     
     
     % ---------------------------------------------------------------------
     function [success,msg] = setScoreFileName(obj,scorefilename)
+      assert(iscellstr(scorefilename) && numel(scorefilename)==obj.nclassifiers);
       obj.scorefilename = scorefilename;
-      obj.needsave=true;
+      obj.needsave = true;
       [success,msg] = obj.UpdateStatusTable('scores');
     end
 
@@ -7123,49 +7131,58 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = GenerateScoreFeaturePerframeFiles(obj,expi)
-      success=true;
-      msg='';
-      % Convert the scores file into perframe files.      
+      % MERGEST OK
+      
+      success = true;
+      msg = '';
+      % Convert the scores file into perframe files.
       for i = 1:numel(obj.scoreFeatures)
         %obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
         [success,msg] = obj.ScoresToPerframe(expi, ...
-                                             obj.scoreFeatures(i).scorefilename, ...
-                                             obj.scoreFeatures(i).ts);
-          if ~success,
-            %obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-            %obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-            return
-          end
+          obj.scoreFeatures(i).scorefilename, ...
+          obj.scoreFeatures(i).ts);
+        if ~success,
+          %obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+          %obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+          return
+        end
       end
-    end  % method
+    end
 
     
     % ---------------------------------------------------------------------
-    function [success, msg, ts, projectName] = ScoresToPerframe(obj,expi,fileName,ts, projectName)
+    function [success,msg,ts,projectName] = ...
+        ScoresToPerframe(obj,expi,fileName,ts,projectName)
+      % Create perframe file from scorefile in toplevel-dir
+      %
+      % ts: timestamp
       
-      assert(false,'ALXXX EXPANDED.');
+      % MERGESTUPDATED
       
       persistent perframescoresfile_didselectyes;
-      success = true; msg = '';
-      %outdir = obj.outexpdirs{expi};
-      outdir = obj.expdirs{expi};      
+      
+      success = true;
+      msg = '';
+
+      outdir = obj.expdirs{expi};
       scoresFileIn = [fullfile(outdir,fileName) '.mat'];
       scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fileName) '.mat'];
-      if ~exist(scoresFileIn,'file'),
+      if ~exist(scoresFileIn,'file')
         success = false; 
         msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
         return;
       end
+      
       Q = load(scoresFileIn);
-      if obj.isInteractive,
-        if Q.timestamp > ts,
+      if obj.isInteractive
+        if Q.timestamp > ts
           res = questdlg(sprintf('The timestamp for scores file %s (%s) is newer than that expected for this project (%s). Do you want to update the current project, proceed without updating, or cancel?',...
               scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Update project','Proceed without updating','Cancel','Update project');
-          if strcmpi(res,'Update project'),
+          if strcmpi(res,'Update project')
             
-            while true,
+            while true
               [f,p] = uigetfile('*.jab',sprintf('Choose the project corresponding to %s',fileName),projectName);
-              if ~ischar(f),
+              if ~ischar(f)
                 break;
               end
               newProjectName = fullfile(p,f);
@@ -7174,11 +7191,15 @@ classdef JLabelData < matlab.mixin.Copyable
                 continue;
               end
               projectData = loadAnonymous(newProjectName);
-              if projectData.classifierStuff.timeStamp ~= Q.timestamp,
+              projectData = Macguffin(projectData);
+              projectData.modernize();
+              assert(isscalar(projectData.classifierStuff),...
+                'Project ''%s'' is a multi-classifier project; this is currently unsupported.',newProjectName);              
+              if projectData.classifierStuff.timeStamp ~= Q.timestamp
                 uiwait(warndlg(sprintf('Timestamp in project file %s = %s does not match time stamp in score file %s = %s',newProjectName,datestr(projectData.classifierStuff.timeStamp),fileName,datestr(ts))));
                 continue;
               end
-              if ~strcmp(projectData.file.scorefilename,[fileName,'.mat']),
+              if ~strcmp(projectData.file.scorefilename{1},[fileName,'.mat']),
                 uiwait(warndlg(sprintf('Score file name in %s = %s does not match score file name %s',newProjectName,projectData.file.scorefilename,[fileName,'.mat'])));
                 continue;
               end
@@ -7187,8 +7208,8 @@ classdef JLabelData < matlab.mixin.Copyable
               break;
             end
             
-          elseif strcmpi(res,'Proceed without updating'),
-              Q.timestamp = ts;
+          elseif strcmpi(res,'Proceed without updating')
+            Q.timestamp = ts;
           end
         elseif Q.timestamp < ts,
           res = questdlg(sprintf('The timestamp for scores file %s (%s) is older than that expected for this project (%s). Do you want to add this experiment anyways or cancel?',...
@@ -7198,14 +7219,16 @@ classdef JLabelData < matlab.mixin.Copyable
           end
         end
       end
-      if Q.timestamp ~= ts, % check the timestamps match the classifier's timestamp.
+      if Q.timestamp ~= ts % check the timestamps match the classifier's timestamp.
         success = false; 
         msg = sprintf(['The scores file %s was generated using a classifier' ...
           ' that was saved on %s while the classifier chosen was saved on %s'],...
           scoresFileIn,datestr(Q.timestamp),datestr(ts));
       end
+      
       OUT = struct();
-      OUT.units = struct(); OUT.units.num = {'scores'};
+      OUT.units = struct();
+      OUT.units.num = {'scores'};
       OUT.units.den = {''};
       for ndx = 1:numel(Q.allScores.scores)
         t0 = Q.allScores.tStart(ndx);
@@ -7216,7 +7239,7 @@ classdef JLabelData < matlab.mixin.Copyable
         save(scoresFileOut,'-struct','OUT');
       catch ME,
         questmsg = sprintf('Could not write perframe file from scores file: %s.',fileName);
-        if obj.isInteractive && isempty(perframescoresfile_didselectyes),
+        if obj.isInteractive && isempty(perframescoresfile_didselectyes)
           button = questdlg([questmsg,' Continue?'],'Continue','Yes');
           if ~strcmp(button,'Yes')
             success = false;
@@ -10706,27 +10729,29 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function everythingParams=getMacguffin(self)
+    function everythingParams = getMacguffin(self)
       % Construct the object that will be saved in the everything file
-      everythingParams=Macguffin(self);
+      everythingParams = Macguffin(self);
     end
 
     
     % ---------------------------------------------------------------------
     function setScoreFeatures(obj,varargin)
-      % Update obj.scoreFeatures, preserving invariants.  If an exception
+      % Update obj.scoreFeatures, preserving invariants. If an exception
       % occurs, this function will roll back the object to its original
       % state.
+      
+      %MERGEST OK
 
       % Process arguments
       if length(varargin)==1
-        scoreFeaturesNew=varargin{1};
+        scoreFeaturesNew = varargin{1};
       elseif length(varargin)==3
         % collect the args into a scorefeatures struct array
-        scoreFeaturesFileNameListNew=varargin{1};
-        timeStampListNew=varargin{2};
-        scoreFileBaseNameListNew=varargin{3};
-        scoreFeaturesNew= ...
+        scoreFeaturesFileNameListNew = varargin{1};
+        timeStampListNew = varargin{2};
+        scoreFileBaseNameListNew = varargin{3};
+        scoreFeaturesNew = ...
           collectScoreFeatures(scoreFeaturesFileNameListNew, ...
                                timeStampListNew, ...
                                scoreFileBaseNameListNew);
@@ -10735,80 +10760,72 @@ classdef JLabelData < matlab.mixin.Copyable
               'Internal error: Wrong number of arguments to JLabelData.setScoreFeatures()');
       end
       
-      % Get the current scoreFeatures
-      scoreFeaturesOld=obj.scoreFeatures;
-
-      % Get the current list of per-frame features
-      featureNamesInSubdialectOld=obj.allperframefns;
-
+      scoreFeaturesOld = obj.scoreFeatures;
+      featureNamesInSubdialectOld = obj.allperframefns;
       % Get some other things, in case we need to roll-back
-      perframeDataOld=obj.perframedata;
-      perframeUnitsOld=obj.perframeunits;
+      perframeDataOld = obj.perframedata;
+      perframeUnitsOld = obj.perframeunits;
 
-      % Do a bunch of stuff in a try block, so we can easily roll back if
-      % anything goes amiss
+      % Use try block, so we can easily roll back if anything goes amiss
       try 
         % determine which elements of each are kept, added
-        [kept,added]= ...
+        [kept,added] = ...
           setDifferencesScoreFeatures(scoreFeaturesOld,scoreFeaturesNew);
-        deleted=~kept;
+        deleted = ~kept;
 
         % delete each of the deleted score features
-        scoreFeaturesDeleted=scoreFeaturesOld(deleted);
-        nDeleted=length(scoreFeaturesDeleted);
-        for i=1:nDeleted
+        scoreFeaturesDeleted = scoreFeaturesOld(deleted);
+        nDeleted = length(scoreFeaturesDeleted);
+        for i = 1:nDeleted
           obj.deleteSingleScoreFeature(scoreFeaturesDeleted(i));
         end
 
         % add each of the added score features
-        scoreFeaturesAdded=scoreFeaturesNew(added);
-        nAdded=length(scoreFeaturesAdded);
-        for i=1:nAdded
+        scoreFeaturesAdded = scoreFeaturesNew(added);
+        nAdded = length(scoreFeaturesAdded);
+        for i = 1:nAdded
           obj.addSingleScoreFeature(scoreFeaturesAdded(i));
         end
 
         % Re-load the perframe feature signals, since the PFFs may have changed
-        [success,msg]=obj.loadPerframeData(obj.expi,obj.flies);
-        if ~success ,
-          % throw error
-          error('JLabelData:unableToSetScoreFeatures', ...
-                msg);
+        [success,msg] = obj.loadPerframeData(obj.expi,obj.flies);
+        if ~success
+          error('JLabelData:unableToSetScoreFeatures',msg);
         end
       catch excp
         if isequal(excp.identifier,'JLabelData:unableToSetScoreFeatures') || ...
            isequal(excp.identifier,'JLabelData:errorGeneratingPerframeFileFromScoreFile')
           % unroll changes
-          obj.scoreFeatures=scoreFeaturesOld;
-          obj.allperframefns=featureNamesInSubdialectOld;
-          obj.perframedata=perframeDataOld;
-          obj.perframeunits=perframeUnitsOld;
+          obj.scoreFeatures = scoreFeaturesOld;
+          obj.allperframefns = featureNamesInSubdialectOld;
+          obj.perframedata = perframeDataOld;
+          obj.perframeunits = perframeUnitsOld;
         end
         % We always rethrow the exception, so the caller can inform the user
         rethrow(excp);
       end
       
-      % need to clear the classifier
       obj.clearClassifierProper();
       
       % note that we now have unsaved changes
-      obj.needsave=true;
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function result=classifierIsPresent(obj)
-      result=~isempty(obj.classifier);
+      obj.needsave = true;
     end
     
     
     % ---------------------------------------------------------------------
-    function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
-      if self.thereIsAnOpenFile ,
-        nExp=self.nexps;
-        someExperimentIsCurrent=(1<=self.expi) && ...
-                                (self.expi<=nExp) ;
+    function result = classifierIsPresent(obj)
+      result = ~isempty(obj.classifier);
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function someExperimentIsCurrent = getSomeExperimentIsCurrent(self)
+      if self.thereIsAnOpenFile
+        nExp = self.nexps;
+        someExperimentIsCurrent = (1<=self.expi) && ...
+                                  (self.expi<=nExp);
       else
-        someExperimentIsCurrent=false;
+        someExperimentIsCurrent = false;
       end
     end
     
