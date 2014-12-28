@@ -440,7 +440,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     usePastOnly % whether to only use past information when predicting the current frame
     
-    deterministic = false; % scalar logical, for testing purposes
+    deterministic = false; % scalar logical or double, for testing purposes. If nonzero, may be used as RNG seed
     
   end
 
@@ -2346,7 +2346,7 @@ classdef JLabelData < matlab.mixin.Copyable
               % Legacy codepath: build up ts from labels_curr. This should
               % end up the same as labelidxVals{flyi}; assert this to
               % verify.
-              ts = [];
+              ts = zeros(1,0);
               labels_curr = obj.GetLabels(expi,flies);
               for j = 1:numel(labels_curr.t0s),
                 ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
