@@ -27,7 +27,9 @@ end
 % 
 % toc
 
-if deterministic  
+if deterministic
+  rng(deterministic);
+  
   subsets = nan(numDim,sampleSize);
   for i = 1:numDim
     subsets(i,:) = randperm(numPts,sampleSize);
