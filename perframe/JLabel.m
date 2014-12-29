@@ -10342,11 +10342,21 @@ while true,
   if ischange && isempty(errs),
     
     % remove extra computation threads
-    if matlabpool('size') > computation_threads,
-      SetStatus(handles,sprintf('Shrinking matlab pool to %d workers',computation_threads));
-      pause(2);
-      matlabpool close;
-      matlabpool('open',computation_threads);
+    if verLessThan('matlab','8.3.0.532'),
+      if matlabpool('size') > computation_threads,
+        SetStatus(handles,sprintf('Shrinking matlab pool to %d workers',computation_threads));
+        pause(2);
+        matlabpool close;
+        matlabpool('open',computation_threads);
+      end
+    else
+      c = gcp('nocreate');
+      if ~isempty(c) && (c.NumWorkers>computation_threads),
+        SetStatus(handles,sprintf('Shrinking parallel pool to %d workers',computation_threads));
+        pause(2);
+        delete(gcp);
+        parpool(computation_threads);
+      end
     end
     
     % remove extra frame cache threads
@@ -10361,16 +10371,28 @@ while true,
     end
    
     % add extra computation threads
-    if matlabpool('size') < computation_threads,
-      SetStatus(handles,sprintf('Growing matlab pool to %d workers',computation_threads));
-      if matlabpool('size') > 0,
-        matlabpool close;
+    if verLessThan('matlab','8.3.0.532'),
+      if matlabpool('size') < computation_threads,
+        SetStatus(handles,sprintf('Growing matlab pool to %d workers',computation_threads));
+        if matlabpool('size') > 0,
+          matlabpool close;
+        end
+        pause(1);
+        matlabpool('open',computation_threads);
+        pause(1);
       end
-      pause(1);
-      matlabpool('open',computation_threads);
-      pause(1);
+    else
+      c = gcp('nocreate');
+      if isempty(c) || c.NumWorkers < computation_threads,
+        SetStatus(handles,sprintf('Growing matlab pool to %d workers',computation_threads));
+        if ~isempty(c),
+          delete(gcp);
+        end
+        pause(1);
+        parpool(computation_threads);
+        pause(1);
+      end
     end
-    
     % add extra frame cache threads
     movie_height = handles.guidata.movie_maxy - handles.guidata.movie_miny + handles.guidata.movie_pixelsize;
     movie_width = handles.guidata.movie_maxx - handles.guidata.movie_minx + handles.guidata.movie_pixelsize;
