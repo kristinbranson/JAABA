@@ -9390,6 +9390,10 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename,...
   'handleobj',hobj));
 
+if isempty(hobj.data)
+  return;
+end
+
 newFileSetupDone(figureJLabel,hobj.data);
 
 % no experiments? ask to add
@@ -9429,7 +9433,11 @@ catch ME
   warndlg('Could not read the jab file: %s',ME.message);
   return;
 end
-macG = Macguffin(Q.x);
+if isa(Q.x,'Macguffin')
+  macG = Q.x;
+else
+  macG = Macguffin(Q.x);
+end
 macG.modernize();
 
 hobj = HandleObj;
@@ -9438,6 +9446,11 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename,...
   'basicParamsStruct',macG,...
   'handleobj',hobj));
+
+if isempty(hobj.data)
+  return;
+end
+
 newFileSetupDone(figureJLabel,hobj.data);
 
 % no experiments? ask to add
