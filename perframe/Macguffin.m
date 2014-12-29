@@ -111,6 +111,9 @@ classdef Macguffin < handle
       if isnonempty(jld.landmark_params) ,
         self.extra.perframe.landmarkParams=jld.landmark_params;
       end
+      if isnonempty(jld.perframe_params) ,
+        self.extra.perframe.params=jld.perframe_params;
+      end
       % Get the labels, put them in self
       if jld.gtMode ,
         self.gtExpDirNames=jld.expdirs;
