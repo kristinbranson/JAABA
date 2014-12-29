@@ -2626,6 +2626,8 @@ end
 
 % Since we made and deleted buttons, need to make sure the arrays of
 % buttons are up-to-date
+% AL20141208: might be unnecessary, we are setting handles.guidata stuff
+% here
 handles.guidata.UpdateGraphicsHandleArrays(handles.figure_JLabel);
 
 return
@@ -10212,48 +10214,23 @@ function menu_file_change_score_file_name_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-scoreFileName=handles.data.getScoreFileName();
-ChangeScoreFileNameDialog(scoreFileName,handles.figure_JLabel);
-return
-
-
-% -------------------------------------------------------------------------
-function changeScoreFileNameDone(figureJLabel,newScoreFileName)
-
-% get handles
-handles=guidata(figureJLabel);
-
-% if new same as old, do nothing
-data=handles.data;  % a ref
-if isequal(newScoreFileName,data.getScoreFileName())
-  return
+sfn = handles.data.getScoreFileName();
+newsfn = inputdlg(sfn,'Change score filenames',1,sfn,'on');
+if isempty(newsfn) ... % cancel 
+  || isequal(sfn,newsfn)
+  return;
 end
-  
-% Update the status, change the pointer to the watch
-SetStatus(handles,'Changing score file name...');
 
-% Set the score file name in JLabelData
-data.setScoreFileName(newScoreFileName);
+handles.data.setScoreFileName(newsfn); % throws
 
-% % Note that we now need saving
-% handles.data.needsave=true;
+%SetStatus(handles,'Changing score file name...');
 
 % Update the names on the labeling buttons
-handles = UpdateLabelButtons(handles);
-
-% Update the plots
-%UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
-%UpdatePlots(handles);
+%handles = UpdateLabelButtons(handles);
 
 % Done, set status message to cleared message, pointer to normal
-syncStatusBarTextWhenClear(handles);
-ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
-
-return
-
+%syncStatusBarTextWhenClear(handles);
+%ClearStatus(handles);
 
 % -------------------------------------------------------------------------
 function menu_classifier_compareFrames_Callback(hObject,eventdata,handles)
