@@ -78,7 +78,140 @@ if exist(file_name,'file')
   delete(file_name);
 end
 
-fprintf('Done building.\n');
+% make the JAABA app executable for mac
+if ismac,
+  ff = fopen('JAABA.app/Contents/MacOS/preprelaunch','w');
+  fprintf(ff,'#!/bin/bash\n');
+  fprintf(ff,'cd `dirname "$0"` \n');
+  fprintf(ff,'cd ../../..\n');
+  fprintf(ff,'exe_dir=`pwd -P`\n');
+  fprintf(ff,'echo exe_dir is ${exe_dir};\n');
+  fprintf(ff,'export JAABAROOT=$exe_dir\n');
+  fprintf(ff,'exec "${exe_dir}"/JAABA.app/Contents/MacOS/prelaunch\n');
+  fprintf(ff,'exit');
+  cmd = 'sed -i "" ''s/prelaunch/preprelaunch/g'' JAABA.app/Contents/Info.plist';
+  system(cmd);
+  fclose(ff);
+  fileattrib('JAABA.app/Contents/MacOS/preprelaunch','+x');
+
+end
+
+
+
+% JAABAPlot
+mcc('-o','JAABAPlot', ...
+    '-m', ...
+    '-d',exeDirName, ...
+    '-I',fullfile(jaabaRootDirName,'filehandling'), ...
+    '-I',fullfile(jaabaRootDirName,'misc'), ...
+    '-I',fullfile(jaabaRootDirName,'perframe'), ...
+    '-I',fullfile(jaabaRootDirName,'perframe','compute_perframe_features'), ...
+    '-I',fullfile(jaabaRootDirName,'perframe','larva_compute_perframe_features'), ...
+    '-v', ...
+    fullfile(jaabaRootDirName,'perframe','JAABAPlot_compiled.m'), ...
+    '-a',fullfile(jaabaRootDirName,'perframe','janelia_logo.png'), ...
+    '-a',fullfile(jaabaRootDirName,'perframe','version.txt'), ...
+    '-a',fullfile(jaabaRootDirName,'misc','javasysmon-0.3.4.jar'),...
+    '-R','-logfile,JAABAPlot.log',...
+    '-R','-startmsg,"Starting JAABAPlot. Please wait, this may take a while."'...
+    );
+
+  
+fprintf('Clearing out intermediate/useless files...\n');
+
+file_name=fullfile(exeDirName,'mccExcludedFiles.log');
+if exist(file_name,'file')
+  delete(file_name);
+end
+
+file_name=fullfile(exeDirName,'readme.txt');
+if exist(file_name,'file')
+  delete(file_name);
+end
+if ismac,
+  ff = fopen('JAABAPlot.app/Contents/MacOS/preprelaunch','w');
+  fprintf(ff,'#!/bin/bash\n');
+  fprintf(ff,'cd `dirname "$0"` \n');
+  fprintf(ff,'cd ../../..\n');
+  fprintf(ff,'exe_dir=`pwd -P`\n');
+  fprintf(ff,'echo exe_dir is ${exe_dir};\n');
+  fprintf(ff,'export JAABAROOT=$exe_dir\n');
+  fprintf(ff,'exec "${exe_dir}"/JAABAPlot.app/Contents/MacOS/prelaunch\n');
+  fprintf(ff,'exit');
+  fclose(ff);
+  cmd = 'sed -i "" ''s/prelaunch/preprelaunch/g'' JAABAPlot.app/Contents/Info.plist';
+  system(cmd);
+  fileattrib('JAABAPlot.app/Contents/MacOS/preprelaunch','+x');
+end
+
+
+% PrepareJAABAData
+mcc('-o','PrepareJAABAData', ...
+    '-m', ...
+    '-d',exeDirName, ...
+    '-I',fullfile(jaabaRootDirName,'filehandling'), ...
+    '-I',fullfile(jaabaRootDirName,'misc'), ...
+    '-I',fullfile(jaabaRootDirName,'perframe'), ...
+    '-v', ...
+    fullfile(jaabaRootDirName,'perframe','PrepareJAABAData_compiled.m'), ...
+    '-a',fullfile(jaabaRootDirName,'perframe','janelia_logo.png'), ...
+    '-a',fullfile(jaabaRootDirName,'perframe','version.txt'), ...
+    '-R','-logfile,PrepareJAABAData.log',...
+    '-R','-startmsg,"Starting PrepareJAABAData. Please wait, this may take a while."'...
+    );
+
+  
+fprintf('Clearing out intermediate/useless files...\n');
+
+file_name=fullfile(exeDirName,'mccExcludedFiles.log');
+if exist(file_name,'file')
+  delete(file_name);
+end
+
+file_name=fullfile(exeDirName,'readme.txt');
+if exist(file_name,'file')
+  delete(file_name);
+end
+
+if ismac,
+  ff = fopen('PrepareJAABAData.app/Contents/MacOS/preprelaunch','w');
+  fprintf(ff,'#!/bin/bash\n');
+  fprintf(ff,'cd `dirname "$0"` \n');
+  fprintf(ff,'cd ../../..\n');
+  fprintf(ff,'exe_dir=`pwd -P`\n');
+  fprintf(ff,'echo exe_dir is ${exe_dir};\n');
+  fprintf(ff,'export JAABAROOT=$exe_dir\n');
+  fprintf(ff,'exec "${exe_dir}"/PrepareJAABAData.app/Contents/MacOS/prelaunch\n');
+  fprintf(ff,'exit');
+  fclose(ff);
+  cmd = 'sed -i "" ''s/prelaunch/preprelaunch/g'' PrepareJAABAData.app/Contents/Info.plist';
+  system(cmd);
+  fileattrib('PrepareJAABAData.app/Contents/MacOS/preprelaunch','+x');
+
+end
+
+
+if ismac,
+  vid = fopen(fullfile(jaabaRootDirName,'perframe','version.txt'),'r');
+  vv = textscan(vid,'%s');
+  fclose(vid);
+  vv = vv{1}{1};
+  outdirname = sprintf('JAABA_MAC_%s',vv);
+  if ~exist(outdirname,'dir')
+    mkdir(outdirname);
+  end
+  movefile('JAABA.app',outdirname,'f');
+  movefile('JAABAPlot.app',outdirname,'f');
+  movefile('PrepareJAABAData.app',outdirname,'f');
+  copyfile(fullfile(jaabaRootDirName,'LICENSE.txt'),outdirname);
+  copyfile(fullfile(jaabaRootDirName,'README.txt'),outdirname);
+  copyfile(fullfile(jaabaRootDirName,'misc','javasysmon-0.3.4.jar'),outdirname);
+  
+  
+end
+
+fprintf('Done Building\n');
+
 
 end
 
