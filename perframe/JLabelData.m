@@ -4154,9 +4154,20 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = setScoreFileName(obj,scorefilename)
-      assert(iscellstr(scorefilename) && numel(scorefilename)==obj.nclassifiers);
-      obj.scorefilename = scorefilename;
+    function [success,msg] = setScoreFileName(obj,sfn)
+      assert(iscellstr(sfn) && numel(sfn)==obj.nclassifiers,...
+        'Number of score filenames must match number of classifiers.');
+      assert(numel(sfn)==numel(unique(sfn)),...
+        'Score filenames must be unique.');
+      
+      tfValid = cellfun(@JLabelData.isValidScoreFileName,sfn);
+      if ~all(tfValid)
+        error('JLabelData:scoreFileName',...
+          'The following are not valid score filenames: %s',...
+          civilizedStringFromCellArrayOfStrings(sfn(~tfValid)));
+      end
+      
+      obj.scorefilename = sfn;
       obj.needsave = true;
       [success,msg] = obj.UpdateStatusTable('scores');
     end
