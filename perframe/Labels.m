@@ -72,7 +72,7 @@ classdef Labels
         end
       end
       if ~tfMultiCls
-        % ALXXX EXTENDED. Single classifier, leegacy code for writing 
+        % ALXXX EXTENDED. Single classifier, legacy code for writing 
         % importance 
         assert(numel(labelsShort.imp_t0s)==numel(labelsShort.imp_t1s));
         for iLbl = 1:numel(labelsShort.imp_t0s)
