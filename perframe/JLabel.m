@@ -497,7 +497,7 @@ timeline_axes_color = get(handles.panel_timelines,'BackgroundColor');
 %handles.guidata.himage_timeline_manual = image(zeros([1,1,3]),'Parent',handles.axes_timeline_manual);
 handles.guidata.himage_timeline_manual = ...
   image('parent',handles.axes_timeline_manual, ...
-        'cdata',zeros([1,1,3]));
+        'cdata',zeros([handles.data.nclassifiers,1,3]));
 set(handles.guidata.himage_timeline_manual,'HitTest','off');
 %hold(handles.axes_timeline_manual,'on');
 ylim = [.5,handles.data.ntimelines+0.5];
@@ -550,10 +550,10 @@ for h = handles.guidata.axes_timeline_labels,
   set(h, ...
       'layer','top', ...
       'box','on', ...
-      'ylim',[0.5 handles.data.ntimelines+0.5], ...
       'ydir','reverse', ...
       'xticklabel',{});
 end
+      
 set(handles.axes_timeline_prop1, ...
     'layer','top', ...
     'box','on');
@@ -669,6 +669,13 @@ for i = 2:numel(handles.guidata.axes_timelines),
 %  end
 end
 
+set(handles.axes_timeline_manual,'ylim',[0.5 handles.data.ntimelines+0.5]);
+tfMultiCls = handles.data.nclassifiers>1;
+if tfMultiCls
+  set(handles.axes_timeline_auto,'ylim',[0.5 handles.data.ntimelines+0.5]);
+else
+  set(handles.axes_timeline_auto,'ylim',[0.5 6.5]);
+end
 linkaxes(handles.guidata.axes_timelines,'x');
 
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
@@ -1786,7 +1793,7 @@ handles.guidata.current_interval = [];
 set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
 %axis(handles.axes_timeline_manual,[handles.data.t0_curr-.5,handles.data.t1_curr+.5,.5,1.5]);
 set(handles.axes_timeline_manual,'xlim',[handles.data.t0_curr-.5,handles.data.t1_curr+.5]);
-set(handles.axes_timeline_manual,'ylim',[.5 handles.data.ntimelines+0.5]); % AL is this necessary?
+%set(handles.axes_timeline_manual,'ylim',[.5 handles.data.ntimelines+0.5]); % AL is this necessary?
 % update zoom
 for h = handles.guidata.axes_timeline_labels,
   zoom(h,'reset');
