@@ -2,7 +2,7 @@ classdef LabelsPlot
   
   methods (Static)
     
-    function labels_plot = labelsPlot(t0,t1,nTL,nBeh,beh2TL,TL2beh,nflies)      
+    function labels_plot = labelsPlot(t0,t1,nTL,nBeh,beh2TL,TL2beh,nflies)
       n = t1-t0+1;      
 
       labels_plot = struct();      
@@ -15,7 +15,14 @@ classdef LabelsPlot
       labels_plot.TL2beh = TL2beh;
 
       labels_plot.im = zeros(nTL,n,3);
-      labels_plot.predicted_im = zeros(nTL,n,3); % TODO: multiclass shortcut: just show raw scores, plot gets busy
+      tfMultiCls = nTL>1;
+      if tfMultiCls
+        % Just show raw scores, plot gets busy
+        labels_plot.predicted_im = zeros(nTL,n,3);
+      else
+        % Classic tripartite timeline; 6 rows by design
+        labels_plot.predicted_im = zeros(6,n,3);
+      end
       labels_plot.suggest_xs = nan;
       labels_plot.error_xs = nan;
       labels_plot.suggest_gt = nan;
@@ -136,6 +143,7 @@ classdef LabelsPlot
       
       assert(isequal(size(scores),size(pred),size(scores_bottom),size(pred_bottom)));
       assert(numel(confThresh)==2);
+      assert(size(labels_plot.predicted_im,1)==6);
       
       idxBottomScores = ~isnan(scores_bottom);
       bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
@@ -177,7 +185,7 @@ classdef LabelsPlot
       
       %MERGESTUPDATED
       
-      nTL = size(labels_plot.predicted_im,1);
+      nTL = labels_plot.nTL;
       assert(isequal(size(labels_plot.predicted_im),[nTL labels_plot.n 3]));
       assert(isequal(size(predTF),[nTL labels_plot.n]));
       
