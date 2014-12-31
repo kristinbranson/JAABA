@@ -388,9 +388,9 @@ classdef JLabelData < matlab.mixin.Copyable
                   % This is set to empty unless a file is open.
     
     % Ground truthing suggestion
-    randomGTSuggestions
+    randomGTSuggestions % randomGTSuggestions{iExp}(iFly).start, .end (scalars)
     thresholdGTSuggestions
-    loadedGTSuggestions
+    loadedGTSuggestions % same format/structure as randomGTSuggestions, except .start/.end can be vectors
     balancedGTSuggestions
     GTSuggestionMode
     
@@ -460,21 +460,6 @@ classdef JLabelData < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   methods  % getters and setters need to be in a methods block with no access specifiers
-%     function expdirs=get.expdirs(self)
-%       if self.gtMode, 
-%         expdirs=self.gtExpDirNames;
-%       else
-%         expdirs=self.expDirNames;
-%       end        
-%     end
-% 
-%     function set.expdirs(self,newValue)
-%       if self.gtMode, 
-%         self.gtExpDirNames=newValue;
-%       else
-%         self.expDirNames=newValue;
-%       end        
-%     end
     function v = get.nclassifiers(self)
       v = self.ntimelines;
     end
@@ -484,22 +469,16 @@ classdef JLabelData < matlab.mixin.Copyable
     function v = get.nobehaviornames(self)
       v = self.labelnames(self.nclassifiers+1:end);
     end
-%     function v = get.iLbl2iCls(self)
-%       v = self.labelidx.idxBeh2idxTL;      
-%     end
-%     function v = get.iCls2iLbl(self)
-%       v = self.labelidx.TL2idxBeh;      
-%     end
     function v = get.iCls2LblNames(self)
       lblnames = self.labelnames;
       iCls2iLbl = self.iCls2iLbl;
       v = cellfun(@(x)lblnames(x),iCls2iLbl,'uni',0);
     end
     
-    function expnames=get.expnames(self)
+    function expnames = get.expnames(self)
       % Get the names of all the experiments for the current GT mode
-      expDirNames=self.expdirs;
-      expnames=cellfun(@fileBaseName,expDirNames,'UniformOutput',false);
+      expDirNames = self.expdirs;
+      expnames = cellfun(@fileBaseName,expDirNames,'UniformOutput',false);
     end
     
 %     function set.expnames(self,newValue)  %#ok
@@ -508,9 +487,9 @@ classdef JLabelData < matlab.mixin.Copyable
 %       warning('Trying to set JLabelData.expnames');
 %     end    
     
-    function nexps=get.nexps(self)
+    function nexps = get.nexps(self)
       % Get the number of experiments for the current GT mode
-      nexps=length(self.expdirs);
+      nexps = length(self.expdirs);
     end
     
 %     function set.nexps(self,newValue)  %#ok
@@ -532,9 +511,9 @@ classdef JLabelData < matlab.mixin.Copyable
 %       warning('Trying to set JLabelData.nTargetsInCurrentExp');
 %     end
     
-    function ismovie=get.ismovie(self)
+    function ismovie = get.ismovie(self)
       % Get whether the movie file name is set
-      ismovie=~isempty(self.moviefilename);
+      ismovie = ~isempty(self.moviefilename);
       % ismovie=~isempty(self.moviefilename) && self.openmovie;
     end
     
@@ -652,8 +631,8 @@ classdef JLabelData < matlab.mixin.Copyable
       self.cacheSize = 4000;
       self.postprocessparams = [];
       self.version = '';
-      self.otherModeLabelsEtc=struct('expDirNames',{cell(1,0)}, ...
-                                     'labels',{struct([])});
+      self.otherModeLabelsEtc = struct('expDirNames',{cell(1,0)}, ...
+                                       'labels',{struct([])});
       self.labelGraphicParams=[];
       self.trxGraphicParams=[];
       self.labelcolors = [];
@@ -1111,9 +1090,9 @@ classdef JLabelData < matlab.mixin.Copyable
 
     % ---------------------------------------------------------------------
     function setLabelsFromStructForAllExps(self,labelsForAll)
-      statusTableString=fif(self.gtMode,'gt_label','label');
-      nExps=length(self.expdirs);
-      for expi = 1:nExps,
+      statusTableString = fif(self.gtMode,'gt_label','label');
+      nExps = length(self.expdirs);
+      for expi = 1:nExps
         self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
         %self.labelfilename = 0;
         self.UpdateStatusTable(statusTableString);   
@@ -2672,8 +2651,6 @@ classdef JLabelData < matlab.mixin.Copyable
       newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
       assert(isequal(labelidx.labelnames,obj.labelnames));
       assert(labelidx.nbeh==obj.nbehaviors);
-      tmpImp = labelidx.imp(labelidx.vals>0);
-      assert(all(tmpImp(:)),'Expected all labeled frames to be important'); % ALTODO labels.importance
       for iTL = 1:labelidx.nTL
         
         % Write bouts
@@ -2694,13 +2671,13 @@ classdef JLabelData < matlab.mixin.Copyable
       % write importance
       if labelidx.nTL==1
         [i0s,i1s] = get_interval_ends(labelidx.imp);
-        if ~isempty(i0s),
+        if ~isempty(i0s)
           newlabels.imp_t0s = i0s - labelidx_off;
           newlabels.imp_t1s = i1s - labelidx_off;
         end
       else
-        % ALTODO labels.importance
-        % Don't set importance, appears to be unused
+        % ALXXX EXTENDED
+        % Multiclassifier importance for GT
       end
       maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
 %       % Store labels according to the mode
@@ -2939,49 +2916,57 @@ classdef JLabelData < matlab.mixin.Copyable
 
     % ---------------------------------------------------------------------
     function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
+      % Set obj.randomGTSuggestions, obj.GTSuggestionMode
+      %
       % This is currently public, but seems like maybe it should be private, 
       % and get called when callers actually query
       % self.randomGTSuggestions, or something.  -- ALT, Apr 19, 2013
       
-      success = false; msg = '';
+      % MERGEST OK
+      
+      success = false; 
+      msg = '';
       
       % Do nothing if we already have suggestions with the same settings for
       % all the experiments.
-      recompute = false;
-      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp), 
+      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp)
         recompute = true; 
       else
+        recompute = false;
         for endx = 1:obj.nexps
           prevperexp = 0;
           
           for fndx = 1:obj.nflies_per_exp(endx)
-            
-            if isempty(obj.randomGTSuggestions{endx}(fndx).start); continue; end
+            if isempty(obj.randomGTSuggestions{endx}(fndx).start);
+              continue;
+            end
             prevperfly = obj.randomGTSuggestions{endx}(fndx).end - ...
               obj.randomGTSuggestions{endx}(fndx).start+1;
-            if (prevperfly ~= perfly),
+            if (prevperfly ~= perfly)
               recompute = true;
-              break;
+              break; % AL: Ideally breaks out of both loops, not just inner?
             end
             prevperexp = prevperexp+1;
           end
           
-          if prevperexp ~= perexp, recompute = true; end
-          
+          if prevperexp ~= perexp
+            recompute = true;
+          end          
         end
       end
-      if ~recompute;
+      if ~recompute
         obj.GTSuggestionMode = 'Random';
         return;
       end
       
-      
       for endx = 1:obj.nexps
+        % AL: appears to be the wrong initialization, don't we want
+        % repmat(...,1,obj.nflies_per_exp(endx)?
         obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
         
         validflies = find( (obj.endframes_per_exp{endx} - ...
           obj.firstframes_per_exp{endx})>perfly );
-        if numel(validflies)<perexp,
+        if numel(validflies)<perexp
           msg = sprintf('Experiment %s does not have %d flies with more than %d frames',...
             obj.expnames{endx},perexp,perfly);
           success = false;
@@ -2990,8 +2975,8 @@ classdef JLabelData < matlab.mixin.Copyable
         permuteValid = validflies(randperm(numel(validflies)));
         randFlies = permuteValid(1:perexp);
         
-        for fndx = 1:obj.nflies_per_exp(endx),
-          if any(fndx == randFlies),
+        for fndx = 1:obj.nflies_per_exp(endx)
+          if any(fndx == randFlies)
               first = obj.firstframes_per_exp{endx}(fndx);
               last = obj.endframes_per_exp{endx}(fndx);
               suggestStart = first + round( (last-first-perfly)*rand(1));
@@ -2999,32 +2984,35 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
           else
               obj.randomGTSuggestions{endx}(fndx).start = [];
-              obj.randomGTSuggestions{endx}(fndx).end = [];
-              
+              obj.randomGTSuggestions{endx}(fndx).end = [];              
           end
-        end
-        
+        end        
       end
       success = true;
-      obj.GTSuggestionMode = 'Random';
-      
-    end  % method
+      obj.GTSuggestionMode = 'Random';      
+    end
     
     
     % ---------------------------------------------------------------------
     function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      % Set obj.balancedGTSuggestions, obj.GTSuggestionMode
+      %
       % Suggest frames such that half the suggested frames are predicted
       % positive and half are negative.
       % Excludes frames that have normal labels.
       
-      assert(false,'ALXXX EXPANDED');
+      % MERGEST OK
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      
       success = true; msg = '';
       
-      if ~obj.HasLoadedScores(), % ALXXX API
+      if ~obj.HasLoadedScores(1)
         uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
       end
       
       jabparams = load(obj.everythingFileNameAbs,'-mat');
+      assert(numel(jabparams.x.classifierStuff==1),'Unsupported for multiple classifiers.');
       frames2exclude = cell(1,obj.nexps);
       for ndx = numel(jabparams.x.expDirNames)
         matchingGtexp = find(strcmp(jabparams.x.expDirNames{ndx},obj.expdirs));
@@ -3125,7 +3113,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = SuggestLoadedGT(obj,filename)
-      success = false;
+      %MERGEST OK
+      
+      success = false; %#ok<NASGU>
       msg = '';
       fid = fopen(filename);
       if fid < 0,
@@ -3149,7 +3139,7 @@ classdef JLabelData < matlab.mixin.Copyable
         curexp = find(strcmp(m{1},obj.expnames));
         if isempty(curexp)
           if ~any(strcmp(m{1},missingexps))
-            missingexps{end+1} = m{1};
+            missingexps{end+1} = m{1}; %#ok<AGROW>
           end
           continue;
         end
@@ -3160,12 +3150,11 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~isempty(missingexps)
         expstring = '';
         for ii = 1:numel(missingexps),
-          expstring = [expstring ' ' missingexps{ii}];
+          expstring = [expstring ' ' missingexps{ii}]; %#ok<AGROW>
         end
         uiwait(warndlg(sprintf(...
           'Experiments:%s are not currently loaded. Not loading the GT suggestions for these experiments',...
-          expstring)));
-        
+          expstring)));        
       end
       
       dat = cell2mat(dat);
@@ -3197,7 +3186,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function tf = HasLoadedScores(obj,iCls)
-      % tf: true if there are loaded for all exps/flies
+      % tf: true if there are loaded scores for all exps/flies
       
       %MERGESTUPDATED
       
@@ -5001,38 +4990,17 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function setAllLabels(self, ...
                           everythingParams)
+      % MERGEST OK
       
-      % Update the status bar
-      %self.SetStatus('Loading labels...');
-
-      % remove all experiments, if present
       % AL 20141125: Unnecessary, SetExpDirs() call handles this
 %       if self.nexps>0
 %         self.RemoveExpDirs(1:self.nexps);
 %       end
 
-      % I think all this stuff is taken care of when we set the project
-%       % set movie
-%       [success,msg] = self.SetMovieFileName(everythingParams.file.moviefilename);
-%       if ~success,error(msg);end
-%       
-%       % trx
-%       [success,msg] = self.SetTrxFileName(everythingParams.file.trxfilename);
-%       if ~success,error(msg);end
-% 
-%       % perframedir
-%       [success,msg] = self.SetPerFrameDir(everythingParams.file.perframedir);
-%       if ~success,error(msg);end
-%       
-%       % clipsdir
-%       [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
-%       if ~success,error(msg);end
-
       if self.gtMode
-        assert(false,'ALXXX EXPANDED');
-        dirNames=everythingParams.gtExpDirNames;
-        labels=everythingParams.gtLabels;
-        self.otherModeLabelsEtc=struct('expDirNames',{everythingParams.expDirNames}, ...
+        dirNames = everythingParams.gtExpDirNames;
+        labels = everythingParams.gtLabels;
+        self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.expDirNames}, ...
                                        'labels',{everythingParams.labels});
       else
         % Normal labeling mode (not GT)
@@ -5041,16 +5009,14 @@ classdef JLabelData < matlab.mixin.Copyable
         self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.gtExpDirNames}, ...
                                        'labels',{everythingParams.gtLabels});
       end
+      assert(numel(dirNames)==numel(labels));
 
-      % set experiment directories
       [success,msg] = self.SetExpDirs(dirNames);
       if ~success, error(msg); end
       
-      % Update the status table
       [success,msg] = self.UpdateStatusTable();
       if ~success, error(msg); end
 
-      % set the labels
       self.setLabelsFromStructForAllExps(labels);
       
       % % set the GT labels
@@ -5061,7 +5027,7 @@ classdef JLabelData < matlab.mixin.Copyable
       if (self.nexps>0)
         self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
         [success1,msg1] = self.setCurrentTarget(1,1);
-        if ~success1,
+        if ~success1
           msg = sprintf('Error getting basic trx info: %s',msg1);
           self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
           uiwait(warndlg(msg));
@@ -5077,10 +5043,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % clear the cached per-frame, trx data
       self.ClearCachedPerExpData();
-
-      % Set the status bar back to the default message
-      %self.ClearStatus();
-    end  % setLabels() method
+    end
 
     
     % ---------------------------------------------------------------------
@@ -10157,8 +10120,11 @@ classdef JLabelData < matlab.mixin.Copyable
 
     % ---------------------------------------------------------------------
     function [success,msg] = setGTSuggestionMode(obj,modeString,varargin)
-      % Sets the ground-truth suggestion mode.  This determines how things
+      % Sets the ground-truth suggestion mode. This determines how things
       % returned by GetGTSuggestionIdx() are calculated.
+      
+      %MERGEST OK
+      
       switch modeString,
         case 'Random'
           [success,msg] = obj.SuggestRandomGT(varargin{:});
@@ -10171,16 +10137,17 @@ classdef JLabelData < matlab.mixin.Copyable
         otherwise
           error('JLabelData:noSuchGTSuggestionMode', ...
                 'Internal error: No such ground-truth suggestion mode');
-      end  % switch
-    end  % method
+      end
+    end
 
 
     % ---------------------------------------------------------------------
     function avgBoutLen = GetAverageLoadedPredictionBoutLength(obj)
-      assert(false,'ALXXX EXPANDED');
-      if ~obj.HasLoadedScores(), % ALXXX API
-        error('JLabelData:noLoadedScores', ...
-              'No scores have been loaded.'); 
+      %MERGEST OK
+      assert(obj.nclassifiers==1,'Only supported for single classifiers.');
+      
+      if ~obj.HasLoadedScores(1)
+        error('JLabelData:noLoadedScores','No scores have been loaded.');
       end
       
       blen = [];
@@ -10189,20 +10156,24 @@ classdef JLabelData < matlab.mixin.Copyable
           curidx = obj.predictdata{endx}{flies}.loaded_valid;
           posts = obj.predictdata{endx}{flies}.loaded(curidx)>0;
           labeled = bwlabel(posts);
-          aa = regionprops(labeled,'Area');  %#ok
-          blen = [blen [aa.Area]];  %#ok
+          aa = regionprops(labeled,'Area'); %#ok
+          blen = [blen [aa.Area]]; %#ok
         end
       end
       avgBoutLen = mean(blen);
       
-    end  % method
+    end
     
     
     % ---------------------------------------------------------------------
     function SaveSuggestionGT(obj,filename)
+      
+      %MERGEST OK
+      
+      assert(obj.nclassifiers==1,'Only supported for single classifiers.');
+
       fid = fopen(filename,'w');
       switch obj.GTSuggestionMode
-        
         case 'Random'
           for expi = 1:obj.nexps
             for fly = 1:obj.nflies_per_exp(expi)
@@ -10217,22 +10188,18 @@ classdef JLabelData < matlab.mixin.Copyable
               for fly = 1:obj.nflies_per_exp(expi)
                 T1 = obj.GetTrxEndFrame(expi,fly);
                 suggestedidx = zeros(1,T1);
-                suggestedidx( obj.predictdata{expi}{fly}.t) = ...
+                suggestedidx(obj.predictdata{expi}{fly}.t) = ...
                   obj.NormalizeScores(obj.predictdata{expi}{fly}.loaded) > ...
                   -obj.thresholdGTSuggestions;
                 [t0s,t1s] = get_interval_ends(suggestedidx);
                 for ndx = 1:numel(t0s)
-                  if t1s(ndx)< T0, continue ; end
+                  if t1s(ndx)< T0, continue; end
                   fprintf(fid,'exp:%s,fly:%d,start:%d,end:%d\n',obj.expnames{expi}.fly,t0s(ndx),t1s(ndx));
                 end
               end
             end
           end
-          
-          
         case 'Balanced'
-
-          
           for ndx = 1:numel(obj.balancedGTSuggestions)
 %             if obj.balancedGTSuggestions(ndx).exp ~= expi
 %               continue;
@@ -10243,7 +10210,6 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.expnames{obj.balancedGTSuggestions(ndx).exp},...
               obj.balancedGTSuggestions(ndx).flies,start,last);
           end
-          
         case 'Imported'
           for expi = 1:obj.nexps
             for fly = 1:obj.nflies_per_exp(expi)
@@ -10257,8 +10223,6 @@ classdef JLabelData < matlab.mixin.Copyable
               end
             end
           end
-          
-          
       end
       fclose(fid);
 
@@ -10267,8 +10231,13 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function suggestedidx = GetGTSuggestionIdx(obj,expi,flies,T0,T1)
-    % Get the indices of gt suggestion  
-      if nargin<4,
+
+      % MERGEST OK
+      
+      assert(obj.nclassifiers==1,'Only supported for single classifiers.');
+
+      % Get the indices of gt suggestion  
+      if nargin<4
         T0 = obj.GetTrxFirstFrame(expi,flies);
         T1 = obj.GetTrxEndFrame(expi,flies);
       end
@@ -10343,6 +10312,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % experiment/fly/classifier has a valid predicted score (for at least
       % one frame)
       
+      %MERGEST UPDATED
+      
       has = false;
       for expi = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(expi)
@@ -10356,33 +10327,29 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end
     
+    
     % ---------------------------------------------------------------------
     function crossError = GetGTPerformance(obj)
-           
-      assert(false,'ALXXX EXPANDED');
+      % Computes classifier performance on the GT data.
       
-      % Computes the performance on the GT data.
-      if ~obj.gtMode ,
-        error('JLabelData:wrongMode',...
+      %MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Only supported for single classifiers.');
+      assert(obj.gtMode,'JLabelData:wrongMode',...
               'Can only call GetGTPerformance() in ground-truthing mode.');
-      end
-      obj.StoreLabelsAndPreLoadWindowData();
-      crossError.numbers = zeros(4,3);
-      crossError.frac = zeros(4,3);
 
-      hasloaded = obj.HasLoadedScores(); %ALXXX API
+      obj.StoreLabelsAndPreLoadWindowData();
+      
+      hasloaded = obj.HasLoadedScores(1);
       if ~hasloaded
-        
-        for expi = 1:obj.nexps,
-          for i = 1:size(obj.labels(expi).flies,1),
-            
+        for expi = 1:obj.nexps
+          for i = 1:size(obj.labels(expi).flies,1)
             flies = obj.labels(expi).flies(i,:);
             labels_curr = obj.GetLabels(expi,flies);
-            ts = [];
-            
-            for j = 1:numel(labels_curr.t0s),
+%             ts = [];            
+            for j = 1:numel(labels_curr.t0s)
 %               ts = [ts,labels_curr.t0s(j):(labels_curr.t1s(j)-1)]; %#ok<AGROW>
-              obj.PredictFast(expi,flies,labels_curr.t0s(j),labels_curr.t1s(j)-1); %ALXXX API
+              obj.PredictFast(expi,flies,labels_curr.t0s(j),labels_curr.t1s(j)-1,1);
             end
             
             % assumes that if have any loaded score for an experiment we
@@ -10392,7 +10359,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %               warndlg(msg);
 %               return;
 %             end
-            
           end
         end
 %        obj.PredictLoaded();
@@ -10407,10 +10373,10 @@ classdef JLabelData < matlab.mixin.Copyable
           flies = obj.labels(expi).flies(i,:);
           labels_curr = obj.GetLabels(expi,flies);
           
-          % Find the importatnt labels
+          % Find the important labels
           labels_imp = [];
           for j = 1:numel(labels_curr.imp_t0s),
-            t0 = labels_curr.imp_t0s(j); % ALXXX imp_t0s/t1s changed
+            t0 = labels_curr.imp_t0s(j);
             t1 = labels_curr.imp_t1s(j);
             labels_imp = [labels_imp t0:t1-1];  %#ok
           end
@@ -10419,10 +10385,12 @@ classdef JLabelData < matlab.mixin.Copyable
             t0 = labels_curr.t0s(j);
             t1 = labels_curr.t1s(j);
             
-            curLabel = 2*repmat(find(strcmp(labels_curr.names{j},obj.labelnames)),1,t1-t0); %ALXXX ?
-            curLabel(ismember(t0:t1-1,labels_imp)) = curLabel(ismember(t0:t1-1,labels_imp)) -1;
+            curLabel = 2*repmat(find(strcmp(labels_curr.names{j},obj.labelnames)),1,t1-t0); 
+            % single classifier: 2 for beh, 4 for no-beh
+            curLabel(ismember(t0:t1-1,labels_imp)) = curLabel(ismember(t0:t1-1,labels_imp))-1;
+            % now, 1/2/3/4 <-> behImp/behNotImp/noBehImp/noBehNotImp
             
-            gt_labels = [gt_labels curLabel];  %#ok
+            gt_labels = [gt_labels curLabel]; %#ok
             
             if hasloaded,
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
@@ -10444,11 +10412,12 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
 
-      crossError = obj.createConfMat(gt_scores,gt_labels); %ALXXX API 
-    end  % method
+      crossError = obj.createConfMat(1,gt_scores,gt_labels);
+    end
+    
     
     % ---------------------------------------------------------------------
-    function gtMode =  IsGTMode(obj)
+    function gtMode = IsGTMode(obj)
       gtMode = obj.gtMode;
     end
     
