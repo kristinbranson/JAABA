@@ -6708,6 +6708,7 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
       
+      origNExp = obj.nexps;
       newExpNumbers = zeros(1,obj.nexps);
       for ndx = 1:obj.nexps
         if ismember(ndx,expi);
@@ -6773,11 +6774,13 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      if ~isempty(obj.randomGTSuggestions) % ALXXX EXTENDED
+      if ~isempty(obj.randomGTSuggestions)
+        assert(numel(obj.randomGTSuggestions)==origNExp);
         obj.randomGTSuggestions(expi) = [];
       end
       
-      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi % ALXXX EXTENDED
+      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi 
+        assert(numel(obj.loadedGTSuggestions)==origNExp);
         obj.loadedGTSuggestions(expi) = [];
       end
 
