@@ -10077,7 +10077,7 @@ function menu_file_change_behavior_name_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-behaviorName=handles.data.getBehaviorName();
+behaviorName = handles.data.getBehaviorName();
 ChangeBehaviorNameDialog(behaviorName,handles.figure_JLabel);
 return
 

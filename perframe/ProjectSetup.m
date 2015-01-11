@@ -105,14 +105,16 @@ handles = updateFigurePosition(handles);
 centerOnParentFigure(hObject,figureJLabel);
 
 % Initialize the list of possible feature lexicon names
-handles.featureLexiconNameList = getFeatureLexiconListsFromXML();
+[handles.featureLexiconNameList,xmlList] = getFeatureLexiconListsFromXML();
+handles.featureLexiconNameListIsST = cellfun(@xmlParamsIsST,xmlList);
+assert(numel(handles.featureLexiconNameList)==numel(handles.featureLexiconNameListIsST));
 
 % Populate the featureLexiconName popuplist with options
 set(handles.featureconfigpopup,'String',handles.featureLexiconNameList);
 
 if isempty(basicParamsStruct)
   % New project
-  warnst =  warning('off','MATLAB:structOnObject');
+  warnst = warning('off','MATLAB:structOnObject');
   handles.basicParamsStruct = struct(Macguffin('flies')); % the default featureLexiconName
   warning(warnst);
   if ischar(defaultmoviefilename)
@@ -138,7 +140,6 @@ else
   handles.basicParamsStruct.behaviors.names = behnames;
 end
 
-% update checkbox
 if ~isfield(handles.basicParamsStruct,'extra'),
   handles.basicParamsStruct.extra = struct;
 end
@@ -252,8 +253,15 @@ for ndx = 1:numel(fnames)
 end
 
 % Update the select feature dictionary name
-indexOfFeatureLexicon=find(strcmp(handles.basicParamsStruct.featureLexiconName,handles.featureLexiconNameList));
+indexOfFeatureLexicon = find(strcmp(handles.basicParamsStruct.featureLexiconName,handles.featureLexiconNameList));
 set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
+tfST = handles.featureLexiconNameListIsST(indexOfFeatureLexicon);
+if tfST
+  visVal = 'on';
+else
+  visVal = 'off';
+end
+set(handles.txST,'Visible',visVal);
 
 % % Update the list of scores-an-inputs
 % fileNameList = {handles.basicParamsStruct.scoreFeatures(:).classifierfile};
