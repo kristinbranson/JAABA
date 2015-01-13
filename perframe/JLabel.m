@@ -4109,7 +4109,7 @@ if handles.data.isST
   SetStatus(handles,'Training..');
   handles.data.TrainST();
   
-  stPredict(handles);
+  stPredict(handles,false);
   menu_file_save_Callback(hObject,eventdata,handles);  
   ClearStatus(handles);
   UpdateEnablementAndVisibilityOfControls(handles);  
@@ -4166,20 +4166,22 @@ UpdatePlots(handles, ...
             'refresh_curr_prop',false);
 return
 
-function stPredict(handles)
+function stPredict(handles,tfCurrentMovieOnly)
+% calls classifyST and imports scores. Note that classifyST will write
+% scorefiles.
 
 assert(handles.data.isST);
 
 macguffin = handles.data.getMacguffin();
 assert(numel(unique(handles.data.expdirs))==numel(handles.data.expdirs),...
   'The same experiment has been added twice');
-assert(isequaln({macguffin.classifierStuff.params},handles.data.classifier)); % jab should match JLD state
-%tfCurrentMovieOnly = get(handles.cbScoreCurrentMovieOnly,'Value');
-tfCurrentMovieOnly = false;
+assert(isequaln({macguffin.classifierStuff.params},handles.data.classifier));
+
 if tfCurrentMovieOnly
   SetStatus(handles,'Classifying current movie..');
-  classifyST(handles.data.expdirs{handles.data.expi},macguffin,'verbose',1,...
-    'numTargets',updatemexxx); 
+  edir = handles.data.expdirs{handles.data.expi};
+  ntarget = handles.data.nflies_per_exp(handles.data.expi);
+  classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget);
   menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
 else
   SetStatus(handles,'Classifying all movies..');
@@ -4221,7 +4223,7 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if handles.data.isST
-  stPredict(handles);
+  stPredict(handles,false);
 else
   handles = predict(handles);
   guidata(hObject,handles);
@@ -7246,7 +7248,10 @@ function menu_classifier_classify_current_fly_Callback(hObject, eventdata, handl
 % hObject    handle to menu_classifier_classify_current_fly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-t0 =handles.data.t0_curr;
+
+assert(~handles.data.isST,'ST unsupported.');
+
+t0 = handles.data.t0_curr;
 t1 = handles.data.t1_curr;
 handles.data.Predict(handles.data.expi,handles.data.flies,handles.data.t0_curr,handles.data.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
@@ -7273,16 +7278,14 @@ return
 
 % --------------------------------------------------------------------
 function menu_file_import_scores_curr_exp_default_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_import_scores_curr_exp_default_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 handles.data.LoadScoresDefault(handles.data.expi);
+hlpImport(handles);
 
+function hlpImport(handles)
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Imported';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
-find(strcmp(contents,handles.guidata.bottomAutomatic)));
+  find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
@@ -7293,36 +7296,18 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
-return
 
 
 % --------------------------------------------------------------------
 function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_import_scores_curr_exp_diff_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
-defaultPath=handles.data.defaultpath;
+defaultPath = handles.data.defaultpath;
 [fname,pname,~] = uigetfile('*.mat',tstring,defaultPath);
 if ~fname; return; end;
 sfn = fullfile(pname,fname);
 handles.data.LoadScores(handles.data.expi,sfn);
 
-contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Imported';
-set(handles.automaticTimelineBottomRowPopup,'Value',...
-find(strcmp(contents,handles.guidata.bottomAutomatic)));
-
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-return
+hlpImport(handles);
 
 
 % --------------------------------------------------------------------
@@ -7346,48 +7331,16 @@ if ~exist(sfn,'file')
 end
 handles.data.LoadScores(handles.data.expi,sfn);
 
-contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Imported';
-set(handles.automaticTimelineBottomRowPopup,'Value',...
-find(strcmp(contents,handles.guidata.bottomAutomatic)));
-
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+hlpImport(handles);
 return
 
 
 % --------------------------------------------------------------------
 function menu_file_import_scores_all_exp_default_loc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_import_scores_all_exp_default_loc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.data.nexps,
   handles.data.LoadScoresDefault(ndx);
 end
-
-contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Imported';
-set(handles.automaticTimelineBottomRowPopup,'Value',...
-find(strcmp(contents,handles.guidata.bottomAutomatic)));
-
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-return
-
+hlpImport(handles);
 
 % --------------------------------------------------------------------
 function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdata, handles)
@@ -7414,21 +7367,7 @@ for ndx = 1:handles.data.nexps,
   handles.data.LoadScores(ndx,sfn);
 end
 
-contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Imported';
-set(handles.automaticTimelineBottomRowPopup,'Value',...
-find(strcmp(contents,handles.guidata.bottomAutomatic)));
-
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-return
+hlpImport(handles);
 
 
 % --------------------------------------------------------------------
@@ -8135,7 +8074,11 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 try
-  handles.data.PredictSaveMovie(handles.data.expi);
+  if handles.data.isST
+    stPredict(handles,true);
+  else
+    handles.data.PredictSaveMovie(handles.data.expi);
+  end
 catch excp
   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
 end  % try/catch
@@ -8148,6 +8091,9 @@ function menu_classifier_classifyCurrentMovieSaveNew_Callback(hObject, eventdata
 % hObject    handle to menu_classifier_classifyCurrentMovieSaveNew (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+assert(~handles.data.isST,'ST unsupported.');
+
 expi = handles.data.expi;
 fspec = fullfile(handles.data.expdirs{expi},'*.mat'); 
 [fname,pname] = uiputfile(fspec);
@@ -8176,17 +8122,21 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % hObject    handle to menu_classifier_classifyCurrentMovieNoSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.data.PredictWholeMovieNoSave(handles.data.expi);
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-return
+
+if handles.data.isST
+  stPredict(handles,true);
+else
+  handles.data.PredictWholeMovieNoSave(handles.data.expi);
+  handles = UpdateTimelineImages(handles);
+  guidata(handles.figure_JLabel,handles);
+  UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+    'refreshtrx',true,'refreshlabels',true,...
+    'refresh_timeline_manual',false,...
+    'refresh_timeline_xlim',false,...
+    'refresh_timeline_hcurr',false,...
+    'refresh_timeline_selection',false,...
+    'refresh_curr_prop',false);
+end
 
 
 % --------------------------------------------------------------------
@@ -8271,10 +8221,15 @@ function menu_classifier_classifyall_default_Callback(hObject, eventdata, handle
 % hObject    handle to menu_classifier_classifyall_default (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 try
-  for ndx = 1:handles.data.nexps,
-    handles.data.PredictSaveMovie(ndx);
-  end
+  if handles.data.isST
+    stPredict(handles,false);
+  else
+    for ndx = 1:handles.data.nexps,
+      handles.data.PredictSaveMovie(ndx);
+    end
+  end    
 catch excp
   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
 end  % try/catch
@@ -8286,6 +8241,9 @@ function menu_classifier_classifyall_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_classifyall_new (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+assert(~handles.data.isST,'ST unsupported.');
+
 fileNameAsCellArray = inputdlg('Save scores to file name:','Scores File Name?');
 if isempty(fileNameAsCellArray),
   return
@@ -8312,8 +8270,12 @@ function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles
 % hObject    handle to menu_classifier_classifyall_nosave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.data.nexps
-handles.data.PredictWholeMovieNoSave(ndx);
+if handles.data.isST
+  stPredict(handles,false);
+else
+  for ndx = 1:handles.data.nexps
+    handles.data.PredictWholeMovieNoSave(ndx);
+  end
 end
 return
 
