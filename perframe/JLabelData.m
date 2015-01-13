@@ -5110,14 +5110,15 @@ classdef JLabelData < matlab.mixin.Copyable
       % Move the current predictions out of the way
       self.MoveCurPredictionsToOld();
       
-      % Set up for fast prediction
-      self.FindFastPredictParams();
-      
-      % predict for all loaded examples
-      self.PredictLoaded();
+      if ~self.isST
+        
+        % Set up for fast prediction
+        self.FindFastPredictParams();
 
-      % % clear the cached per-frame, trx data
-      % self.ClearCachedPerExpData();      
+        % predict for all loaded examples
+        self.PredictLoaded();
+
+      end
     end  % setClassifierStuff() method
     
     function setClassifierParams(self,params)
