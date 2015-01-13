@@ -8124,6 +8124,8 @@ classdef JLabelData < matlab.mixin.Copyable
       
     % MERGEST UPDATED
     
+      assert(~obj.isST);
+    
       obj.StoreLabelsAndPreLoadWindowData();
       
       % load all labeled data
@@ -8268,6 +8270,60 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.ClearStatus();      
     end 
     
+    function TrainST(obj)
+      assert(obj.isST);
+      
+      % Right now working off the jab, presumably better to just use obj
+      Q = loadAnonymous(obj.everythingFileNameAbs);
+      
+      % Figure out which classifiers are out of date
+      timelineTSes = Labels.mostRecentTimelineTimestamps(Q.labels);
+      classifierTSes = getstructarrayfield(Q.classifierStuff,'timeStamp',...
+        'numericscalar',true);
+      
+      [realbehnames,nobehnames] = Labels.verifyBehaviorNames(Q.behaviors.names);
+      Nrealbeh = numel(realbehnames);
+      assert(all(ismember(fieldnames(timelineTSes),realbehnames)));
+      assert(Nrealbeh==numel(classifierTSes));
+      
+      deltaTS = nan(Nrealbeh,1);
+      for iBeh = 1:Nrealbeh
+        bname = realbehnames{iBeh};
+        if isfield(timelineTSes,bname)
+          lblTS = timelineTSes.(bname);
+        else
+          lblTS = inf;
+        end
+        clsTS = classifierTSes(iBeh);
+        deltaTS(iBeh) = lblTS-clsTS;
+      end
+      trainTS = deltaTS>0;
+      
+      % Train
+      if isfield(Q.extra,'usePastOnly'),
+        usePastOnly = Q.extra.usePastOnly;
+      else
+        usePastOnly = false;
+      end
+      trainIdx = find(trainTS);
+      trainIdx = trainIdx(:)';
+      if ~isempty(trainIdx)
+        for tIdx = trainIdx
+          fprintf('Training classifier ''%s'', %s out of date.\n',...
+            realbehnames{tIdx},deltadatenumstr(deltaTS(tIdx)));
+        end
+      else
+        fprintf('All classifiers up-to-date, no training necessary.\n');
+      end
+      pause(2.0);
+      for tIdx = trainIdx
+        obj.classifier{tIdx} = trainDetectorSTCore(Q.expDirNames,Q.labels,realbehnames{tIdx},nobehnames{tIdx},usePastOnly);
+        obj.classifierTS(tIdx) = now;
+      end
+      
+      obj.needsave = true;
+    end
+    
     
     % ---------------------------------------------------------------------
     function predictForCurrentTargetAndTimeSpan(obj)
@@ -8402,7 +8458,7 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.postprocessparams{iCls},obj.windowdata(iCls).scoreNorm);
         end
         
-        allScores = struct;
+        allScores = struct; % See ScoreFile.allScrs
         allScores.scores = scoresA;
         allScores.tStart = tStartAll;
         allScores.tEnd = tEndAll;
