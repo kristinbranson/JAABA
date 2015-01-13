@@ -1885,101 +1885,107 @@ gdata.labels_plot = LabelsPlot.labelsPlotInitIm(...
   gdata.labels_plot,labelidx,gdata.labelcolors);
 
 %%% Predicted timeline %%%
-prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
-predictedidx = prediction.predictedidx;
-scores = jldata.NormalizeScores(prediction.scoresidx);
-
-% Scores for the bottom row.
-bottomDist = [];
-switch gdata.bottomAutomatic
-  case 'Validated'
-    scores_bottom = jldata.GetValidatedScores(jldata.expi,jldata.flies);
-    scores_bottom = jldata.NormalizeScores(scores_bottom);
-  case 'Imported'
-    [scores_bottom,prediction_bottom] = jldata.GetLoadedScores(jldata.expi,jldata.flies);
-    scores_bottom = jldata.NormalizeScores(scores_bottom);
-  case 'Old'
-    scores_bottom = jldata.GetOldScores(jldata.expi,jldata.flies);
-    scores_bottom = jldata.NormalizeScores(scores_bottom);
-  case 'Postprocessed'
-    [scores_bottom,prediction_bottom] = jldata.GetPostprocessedScores(jldata.expi,jldata.flies);
-    scores_bottom = jldata.NormalizeScores(scores_bottom);
-  case 'None'
-    scores_bottom = zeros(size(scores));
-  case 'Distance'
-    bottomDist = jldata.GetDistance(jldata.expi,jldata.flies);
-    scores_bottom = zeros(size(scores));
-  otherwise
-    warndlg('Undefined scores type to display for the bottom part of the automatic');
-end
-
-if ~(any(strcmp(gdata.bottomAutomatic,{'Postprocessed','Distance','Imported'})))
-  prediction_bottom = zeros(size(scores_bottom));
-  prediction_bottom(scores_bottom>0) = 1;
-  prediction_bottom(scores_bottom<0) = 2;
-end
-
-if jldata.nclassifiers>1
+if jldata.isST
+  [~,predST] = jldata.GetLoadedScores(jldata.expi,jldata.flies);
+  %scores_bottom = jldata.NormalizeScores(scores_bottom);  
   gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiCls(...
-    gdata.labels_plot,predictedidx==1,gdata.labelcolors);
+    gdata.labels_plot,predST==1,gdata.labelcolors);
 else
-  confThresh = arrayfun(@(i)jldata.GetConfidenceThreshold(i),1:2);  
-  gdata.labels_plot = LabelsPlot.labelsPlotSetPredIm(...
-    gdata.labels_plot,scores,predictedidx,confThresh,...
-    gdata.bottomAutomatic,bottomDist,scores_bottom,prediction_bottom,...
-    gdata.labelcolors,gdata.scorecolor);
-end
+  prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
+  predictedidx = prediction.predictedidx;
+  scores = jldata.NormalizeScores(prediction.scoresidx);
 
-%%% Error, suggestions etc %%%
-if jldata.nclassifiers==1
-  [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predictedidx ~= 0 & ...
-    labelidx.vals ~= predictedidx);
-  error_t0s = error_t0s + jldata.t0_curr - 1.5;
-  error_t1s = error_t1s + jldata.t0_curr - 1.5;
-  gdata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
-  set(gdata.htimeline_errors,'XData',gdata.labels_plot.error_xs,...
-    'YData',zeros(size(gdata.labels_plot.error_xs))+1.5);
-
-  [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
-  suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
-  suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
-  gdata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
-  [suggest_t0s,suggest_t1s] = get_interval_ends(jldata.GetGTSuggestionIdx(jldata.expi,jldata.flies));
-  suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
-  suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
-  gdata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
-  if ~jldata.IsGTMode,
-    set(gdata.htimeline_suggestions,'XData',gdata.labels_plot.suggest_xs,...
-      'YData',zeros(size(gdata.labels_plot.suggest_xs))+1.5);
-  else
-    set(gdata.htimeline_gt_suggestions,'XData',gdata.labels_plot.suggest_gt,...
-      'YData',zeros(size(gdata.labels_plot.suggest_gt))+1.5);
+  % Scores for the bottom row.
+  bottomDist = [];
+  switch gdata.bottomAutomatic
+    case 'Validated'
+      scores_bottom = jldata.GetValidatedScores(jldata.expi,jldata.flies);
+      scores_bottom = jldata.NormalizeScores(scores_bottom);
+    case 'Imported'
+      [scores_bottom,prediction_bottom] = jldata.GetLoadedScores(jldata.expi,jldata.flies);
+      scores_bottom = jldata.NormalizeScores(scores_bottom);
+    case 'Old'
+      scores_bottom = jldata.GetOldScores(jldata.expi,jldata.flies);
+      scores_bottom = jldata.NormalizeScores(scores_bottom);
+    case 'Postprocessed'
+      [scores_bottom,prediction_bottom] = jldata.GetPostprocessedScores(jldata.expi,jldata.flies);
+      scores_bottom = jldata.NormalizeScores(scores_bottom);
+    case 'None'
+      scores_bottom = zeros(size(scores));
+    case 'Distance'
+      bottomDist = jldata.GetDistance(jldata.expi,jldata.flies);
+      scores_bottom = zeros(size(scores));
+    otherwise
+      warndlg('Undefined scores type to display for the bottom part of the automatic');
   end
-end
-%{
-%handles.guidata.labels_plot.suggested_im(:) = 0;
-%for behaviori = 1:handles.data.nbehaviors
-%  idx = handles.data.suggestedidx == behaviori;
-%  for channel = 1:3,
-%    handles.guidata.labels_plot.suggested_im(1,idx,channel) = handles.guidata.labelcolors(behaviori,channel);
-%  end
-%end
-%handles.guidata.labels_plot.error_im(:) = 0;
-%idx = handles.data.erroridx == 1;
-%for channel = 1:3,
-%  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.correctcolor(channel);
-%end
-%idx = handles.data.erroridx == 2;
-%for channel = 1:3,
-%  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.incorrectcolor(channel);
-%end
-%}
 
-% handles.guidata.labels_plot.isstart = ...
-% cat(2,labelidx.vals(1)~=0,...
-% labelidx.vals(2:end)~=0 & ...
-% labelidx.vals(1:end-1)~=labelidx.vals(2:end));
-return
+  if ~(any(strcmp(gdata.bottomAutomatic,{'Postprocessed','Distance','Imported'})))
+    prediction_bottom = zeros(size(scores_bottom));
+    prediction_bottom(scores_bottom>0) = 1;
+    prediction_bottom(scores_bottom<0) = 2;
+  end
+
+  if jldata.nclassifiers>1
+    gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiCls(...
+      gdata.labels_plot,predictedidx==1,gdata.labelcolors);
+  else
+    confThresh = arrayfun(@(i)jldata.GetConfidenceThreshold(i),1:2);  
+    gdata.labels_plot = LabelsPlot.labelsPlotSetPredIm(...
+      gdata.labels_plot,scores,predictedidx,confThresh,...
+      gdata.bottomAutomatic,bottomDist,scores_bottom,prediction_bottom,...
+      gdata.labelcolors,gdata.scorecolor);
+  end
+
+  %%% Error, suggestions etc %%%
+  if jldata.nclassifiers==1
+    [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predictedidx ~= 0 & ...
+      labelidx.vals ~= predictedidx);
+    error_t0s = error_t0s + jldata.t0_curr - 1.5;
+    error_t1s = error_t1s + jldata.t0_curr - 1.5;
+    gdata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
+    set(gdata.htimeline_errors,'XData',gdata.labels_plot.error_xs,...
+      'YData',zeros(size(gdata.labels_plot.error_xs))+1.5);
+
+    [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
+    suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
+    suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
+    gdata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+    [suggest_t0s,suggest_t1s] = get_interval_ends(jldata.GetGTSuggestionIdx(jldata.expi,jldata.flies));
+    suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
+    suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
+    gdata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+    if ~jldata.IsGTMode,
+      set(gdata.htimeline_suggestions,'XData',gdata.labels_plot.suggest_xs,...
+        'YData',zeros(size(gdata.labels_plot.suggest_xs))+1.5);
+    else
+      set(gdata.htimeline_gt_suggestions,'XData',gdata.labels_plot.suggest_gt,...
+        'YData',zeros(size(gdata.labels_plot.suggest_gt))+1.5);
+    end
+  end
+  %{
+  %handles.guidata.labels_plot.suggested_im(:) = 0;
+  %for behaviori = 1:handles.data.nbehaviors
+  %  idx = handles.data.suggestedidx == behaviori;
+  %  for channel = 1:3,
+  %    handles.guidata.labels_plot.suggested_im(1,idx,channel) = handles.guidata.labelcolors(behaviori,channel);
+  %  end
+  %end
+  %handles.guidata.labels_plot.error_im(:) = 0;
+  %idx = handles.data.erroridx == 1;
+  %for channel = 1:3,
+  %  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.correctcolor(channel);
+  %end
+  %idx = handles.data.erroridx == 2;
+  %for channel = 1:3,
+  %  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.incorrectcolor(channel);
+  %end
+  %}
+
+  % handles.guidata.labels_plot.isstart = ...
+  % cat(2,labelidx.vals(1)~=0,...
+  % labelidx.vals(2:end)~=0 & ...
+  % labelidx.vals(1:end-1)~=labelidx.vals(2:end));
+end
 
 
 % -------------------------------------------------------------------------
