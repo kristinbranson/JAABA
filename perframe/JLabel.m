@@ -4088,29 +4088,6 @@ t = min(max(handles.data.GetMinFirstFrame,round(pt(1,1))),handles.data.GetMaxEnd
 SetCurrentFrame(handles,1,t,hObject);
 return
 
-function hlpPredict(handles)
-macguffin = handles.data.getMacguffin();
-% KB 20140227: classifier is stored in data
-% jabfilename = handles.data.everythingFileNameAbs();
-% [bdir,nn,~] = fileparts(jabfilename);
-% classifierfilename = fullfile(bdir,[nn '_classifier.mat']);
-if numel(unique(handles.data.expdirs)) ~= numel(handles.data.expdirs),
-  error('KB SANITY CHECK: The same experiment has been added twice');
-end
-assert(isequaln(macguffin.classifierStuff.params,handles.data.classifier)); % jab should match JLD state
-tfCurrentMovieOnly = get(handles.cbScoreCurrentMovieOnly,'Value');
-if tfCurrentMovieOnly
-  SetStatus(handles,'Classifying current movie..');
-  classifyMovie(handles.data.expdirs{handles.data.expi},macguffin,'verbose',1);
-  menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
-else
-  SetStatus(handles,'Classifying all movies..');
-  for ndx = 1:numel(handles.data.expdirs)
-    classifyMovie(handles.data.expdirs{ndx},macguffin,'verbose',1);
-  end
-  menu_file_import_scores_all_exp_default_loc_Callback([],[],handles);
-end
-
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_train.
@@ -4119,33 +4096,46 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% check that the user has selected features already
-perFrameFeatureSetIsNonEmpty = ...
-  ~isempty(handles.data) && ...
-  all(handles.data.getPerFrameFeatureSetIsNonEmpty());
-if ~perFrameFeatureSetIsNonEmpty
-  uiwait(helpdlg('Select Features before training'));
-  oldPointer = pointerToWatch(hObject);
-  SelectFeatures(handles.figure_JLabel);
-  restorePointer(hObject,oldPointer);
-  return;
+if handles.data.isST
+  SetStatus(handles,'Saving..');
+  % Save jab; ST training currently operates off Jab file
+  menu_file_save_Callback(hObject,eventdata,handles);
+  SetStatus(handles,'Training..');
+  handles.data.TrainST();
+  
+  stPredict(handles);
+  menu_file_save_Callback(hObject,eventdata,handles);  
+  ClearStatus(handles);
+  UpdateEnablementAndVisibilityOfControls(handles);  
+else
+  % check that the user has selected features already
+  perFrameFeatureSetIsNonEmpty = ...
+    ~isempty(handles.data) && ...
+    all(handles.data.getPerFrameFeatureSetIsNonEmpty());
+  if ~perFrameFeatureSetIsNonEmpty
+    uiwait(helpdlg('Select Features before training'));
+    oldPointer = pointerToWatch(hObject);
+    SelectFeatures(handles.figure_JLabel);
+    restorePointer(hObject,oldPointer);
+    return;
+  end
+  % store the current labels to windowdata_labeled
+  %handles.data.StoreLabelsAndPreLoadWindowData();  
+  %  now do this inside JLabelData.Train()
+  handles.data.Train(handles.guidata.doFastUpdates);
+  handles = SetPredictedPlot(handles);
+  % predict for current window
+  handles = predict(handles);
+  % handles.data.needsave=true;  % done in .Train()
+  UpdateEnablementAndVisibilityOfControls(handles);
+  guidata(hObject,handles);
 end
-% store the current labels to windowdata_labeled
-%handles.data.StoreLabelsAndPreLoadWindowData();  
-%  now do this inside JLabelData.Train()
-handles.data.Train(handles.guidata.doFastUpdates);
-handles = SetPredictedPlot(handles);
-% predict for current window
-handles = predict(handles);
-% handles.data.needsave=true;  % done in .Train()
-UpdateEnablementAndVisibilityOfControls(handles);
-guidata(hObject,handles);
-%toc(t)
-return
 
 
 % -------------------------------------------------------------------------
 function handles = predict(handles)
+
+assert(~handles.data.isST);
 
 % predict for the currently shown timeline
 % TODO: make this work for multiple axes
@@ -4169,6 +4159,31 @@ UpdatePlots(handles, ...
             'refresh_timeline_selection',false,...
             'refresh_curr_prop',false);
 return
+
+function stPredict(handles)
+
+assert(handles.data.isST);
+
+macguffin = handles.data.getMacguffin();
+assert(numel(unique(handles.data.expdirs))==numel(handles.data.expdirs),...
+  'The same experiment has been added twice');
+assert(isequaln({macguffin.classifierStuff.params},handles.data.classifier)); % jab should match JLD state
+%tfCurrentMovieOnly = get(handles.cbScoreCurrentMovieOnly,'Value');
+tfCurrentMovieOnly = false;
+if tfCurrentMovieOnly
+  SetStatus(handles,'Classifying current movie..');
+  classifyST(handles.data.expdirs{handles.data.expi},macguffin,'verbose',1,...
+    'numTargets',updatemexxx); 
+  menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
+else
+  SetStatus(handles,'Classifying all movies..');
+  for ndx = 1:numel(handles.data.expdirs)
+    edir = handles.data.expdirs{ndx};
+    ntarget = handles.data.nflies_per_exp(ndx);
+    classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget);
+  end
+  menu_file_import_scores_all_exp_default_loc_Callback([],[],handles);
+end
 
 
 % -------------------------------------------------------------------------
@@ -4199,9 +4214,12 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles = predict(handles);
-guidata(hObject,handles);
-return
+if handles.data.isST
+  stPredict(handles);
+else
+  handles = predict(handles);
+  guidata(hObject,handles);
+end
 
 
 % -------------------------------------------------------------------------
@@ -6111,7 +6129,7 @@ set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 %SetButtonImage(handles.pushbutton_playstop);
 adjustButtonColorsIfMac(hObject);
 
-if ~handles.data.IsGTMode()
+if ~handles.data.IsGTMode() && ~handles.data.isST
   handles = predict(handles);
   guidata(hObject,handles);
 end
@@ -6530,6 +6548,8 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of similarFramesButton
+
+assert(~handles.data.isST,'ST mode unsupported');
 
 handles = predict(handles);
 curTime = handles.guidata.ts(1);
@@ -7117,6 +7137,8 @@ function menu_classifier_cross_validate_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+assert(~handles.data.isST,'ST mode unsupported');
+
 if handles.data.nclassifiers>1
   error('JLabel:multiclass','Evaluate on new labels currently unsupported for multiple classifiers.');
   % JLabelData methods are updated (untested), but UI is not updated
@@ -7410,6 +7432,8 @@ function menu_classifier_evaluate_on_new_labels_Callback(hObject, eventdata, han
 % handles    structure with handles and user data (see GUIDATA)
 
 %MERGESTUPDATED
+
+assert(~handles.data.isST,'ST mode unsupported');
 
 if handles.data.nclassifiers>1
   error('JLabel:multiclass','Evaluate on new labels currently unsupported for multiple classifiers.');

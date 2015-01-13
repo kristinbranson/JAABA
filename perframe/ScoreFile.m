@@ -23,7 +23,9 @@ classdef ScoreFile
       obj.timestamp = v;
     end
     function obj = set.jabFileNameAbs(obj,v)
-      assert(ischar(v),'.jabFileNameAbs must be a string.');
+      % AL: classifyST codepath can send in a Macguffin. Eliminate this 
+      % possibility at some point (only allow char)
+      assert(ischar(v) || isa(v,'Macguffin'),'.jabFileNameAbs must be a string.');
       obj.jabFileNameAbs = v;
     end
   end
@@ -55,6 +57,17 @@ classdef ScoreFile
         end
       end
       save(filename,'-struct','s');
+      
+%     AL 20150112: This was in JAABAST
+%       for tryi = 1:5,
+%         try
+%           tmp = load(fname);
+%         catch ME,
+%           warning('Try %d: error testing whether we could reload the saved file %s: %s',tryi,fname,getReport(ME));
+%           continue;
+%         end
+%         break;
+%       end
     end
 
     function obj = initFromStruct(obj,s)
@@ -95,13 +108,13 @@ classdef ScoreFile
       % experiment, all flies.
       
       allScrs = struct(...
-        'scores',cell(1,nfly),... % cell vec of timeseries
+        'scores',{cell(1,nfly)},... % cell vec of timeseries
         'tStart',nan(1,nfly),... 
         'tEnd',nan(1,nfly),...
-        'postprocessed',cell(1,nfly),...
+        'postprocessed',{cell(1,nfly)},...
         'postprocessparams',[],...
-        't0s',cell(1,nfly),...
-        't1s',cell(1,nfly),...
+        't0s',{cell(1,nfly)},...
+        't1s',{cell(1,nfly)},...
         'scoreNorm',nan);
     end
     
