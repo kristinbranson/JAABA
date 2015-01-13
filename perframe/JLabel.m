@@ -2875,17 +2875,19 @@ set(handles.menu_classifier_classifyall_new, ...
 set(handles.menu_classifier_set_confidence_thresholds, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_cross_validate, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_evaluate_on_new_labels, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_visualize, ...
     'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compute_gt_performance, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_post_processing, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compareFrames, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode&&~data.isST));  
+set(handles.menu_classifier_ethogram, ...
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode&&data.isST)); 
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
@@ -10583,54 +10585,34 @@ for i = 1:numel(handles.guidata.axes_previews),
   end
 end
 
-% --- Executes on button press in cbScoreCurrentMovieOnly.
-function cbScoreCurrentMovieOnly_Callback(hObject, eventdata, handles)
-% hObject    handle to cbScoreCurrentMovieOnly (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cbScoreCurrentMovieOnly
+% --------------------------------------------------------------------
+function menu_classifier_ethogram_Callback(hObject, eventdata, handles)
 
-% ALTODO is this checkbox useful?
-
-function pbEthogram_Callback(hObject, eventdata, handles)
-
-% ALTODO probable menu item?
-
-tags = handles.data.getAllUniqueExperimentTags;
-if ~isempty(tags)
-  tagstrs = strcat('Tag:',tags(:));
-  choiceList = [{'All'};tags(:)]; % There could be a tag called 'All' but that is ok
-  choiceListDisplay = [{'All'};tagstrs];
-  [cIdx,ok] = listdlg('ListString',choiceListDisplay,'SelectionMode','single',...
-    'ListSize',[300 300],'Name','Ethogram Plot','PromptString','Select experiments to plot');
-  if ~ok
-    return;
-  end  
-  tfTag = cIdx>1;
-else
-  tfTag = false;
-end
+assert(handles.data.isST);
 
 SetStatus(handles,'Saving..');
 menu_file_save_Callback(hObject,eventdata,handles);
 
 SetStatus(handles,'Opening ethogram..');
-if tfTag
-  tagSelected = choiceList{cIdx};
-  [expdirs,exptags] = handles.data.getTaggedExperiments(tagSelected);  
-else
+% if tfTag
+%   tagSelected = choiceList{cIdx};
+%   [expdirs,exptags] = handles.data.getTaggedExperiments(tagSelected);  
+% else
   expdirs = handles.data.expdirs;
-  exptags = handles.data.expdirtags;
-end
+%   exptags = handles.data.expdirtags;
+% end
 jabname = handles.data.everythingFileNameAbs;
 endframesperexp = handles.data.endframes_per_exp;
 maxendframe = cellfun(@max,endframesperexp);
 maxendframe = max(maxendframe);
 %Nexp = numel(expdirs);
 
-realbehs = Labels.verifyBehaviorNames(handles.data.labelnames);
-automarks = ExpPP.doNamesSpanAllBasicBehaviors(realbehs);
-ethogram_plot(expdirs,{jabname},maxendframe,'automarks',automarks,'exptags',exptags);
+% realbehs = Labels.verifyBehaviorNames(handles.data.labelnames);
+% automarks = ExpPP.doNamesSpanAllBasicBehaviors(realbehs);
+ethogram_plot(expdirs,{jabname},maxendframe);
 
 ClearStatus(handles);
+
+
+
