@@ -145,7 +145,7 @@ perframefns = cell(numel(datfiles),2);
 
 for i = 1:numel(datfiles),
   [~,name] = myfileparts(datfiles{i});
-  match = regexp(name,['\.(.+)\.',datext,'$'],'tokens','once');
+  match = regexp(name,['\.([^\.]+)\.',datext,'$'],'tokens','once');
   if isempty(match),
     msg = sprintf('Could not parse dat file type for file %s',name);
     return;

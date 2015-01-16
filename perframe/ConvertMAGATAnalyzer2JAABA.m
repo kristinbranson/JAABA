@@ -125,7 +125,7 @@ for i = 1:nflies,
   tail = double(cat(2,expdata.experiment_1.track(i).pt.tail));
   spine = {expdata.experiment_1.track(i).pt.spine};
   contour = {expdata.experiment_1.track(i).pt.contour};
-  
+  area = double(cat(2,expdata.experiment_1.track(i).pt.area));
   
   % convert to pixels, as everything else will be for plotting purposes
   loc_px = cat(1,expdata.experiment_1.camcalinfo.r2cX(loc(1,:),loc(2,:)),...
@@ -135,6 +135,9 @@ for i = 1:nflies,
   trk.y = nan(1,trk.nframes);
   trk.y(frameidx) = loc_px(YIND,:)+1;
 
+  % area
+  trk.area=nan(1,trk.nframes);
+  trk.area(frameidx)=area;
   % midpoint
   xmid_cm = mid(XIND,:);
   ymid_cm = mid(YIND,:);
@@ -286,6 +289,8 @@ for i = 1:nflies,
   % approximate pxpermm
   trk.pxpermm = 1/expdata.experiment_1.camcalinfo.realUnitsPerPixel/SCALE;
 
+  % convert are to square mm from pixels
+  trk.area_mm=trk.area/(trk.pxpermm*trk.pxpermm);
   % frame rate
   trk.dt = dt(trk.firstframe:trk.endframe-1);
   %trk.dt = diff([expdata.experiment_1.track(i).pt.et]);
