@@ -210,7 +210,7 @@ if ismac,
   
 end
 
-if isunix
+if isunix && ~ismac
   vid = fopen(fullfile(jaabaRootDirName,'perframe','version.txt'),'r');
   vv = textscan(vid,'%s');
   fclose(vid);
