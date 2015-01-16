@@ -102,6 +102,8 @@ classdef WindowData
       
       for i = 1:numel(wd)
         n = size(wd(i).X,1);
+        % MAYANK_JAN16_2015: Don't trim if there is no windowdata.
+        if n == 0, continue ; end
         tfRm = predFcn(wd(i));
         assert(islogical(tfRm)&&isvector(tfRm)&&numel(tfRm)==n);
         
