@@ -8137,6 +8137,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       if nargin<2
         % ALTODO: Looks like doFastUpdates input arg can be removed
+        % MAYANK: yes. It wasn't a very helpful option.
         doFastUpdates = false;
       end
       assert(nargin<3,'Unexpected call arguments.');      
@@ -9619,7 +9620,10 @@ classdef JLabelData < matlab.mixin.Copyable
           end
         end
         
-        flyStats(iCls).gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
+        % MAYANK_JAN15_2016: Do we need gtsuggestions if its normal mode?
+        if obj.IsGTMode,
+          flyStats(iCls).gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
+        end
         
         %       if ~isempty(obj.windowdata.X)
         %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
@@ -10301,7 +10305,14 @@ classdef JLabelData < matlab.mixin.Copyable
         tf = tf | ismember(labelNames,names);
       end
       
-      tf = all(tf);      
+      % MAYANK_JAN16_2015: For multiclassifier, 
+      % this should return true if labels for behavior and not behavior 
+      % exist for a single behavior. Should require labels for all
+      % behaviors. Below assumes that behaviors are in the first half and 
+      % not behaviors are in the second half.
+      tf = tf(1:end/2) & tf(end/2+1:end);
+      
+      tf = any(tf);      
     end
     
     function res = HasWindowdata(self,iCls)
