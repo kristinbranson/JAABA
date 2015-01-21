@@ -23,9 +23,7 @@ classdef ScoreFile
       obj.timestamp = v;
     end
     function obj = set.jabFileNameAbs(obj,v)
-      % AL: classifyST codepath can send in a Macguffin. Eliminate this 
-      % possibility at some point (only allow char)
-      assert(ischar(v) || isa(v,'Macguffin'),'.jabFileNameAbs must be a string.');
+      assert(ischar(v),'.jabFileNameAbs must be a string.');
       obj.jabFileNameAbs = v;
     end
   end

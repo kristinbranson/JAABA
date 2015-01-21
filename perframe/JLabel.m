@@ -4175,6 +4175,7 @@ function stPredict(handles,tfCurrentMovieOnly)
 assert(handles.data.isST);
 
 macguffin = handles.data.getMacguffin();
+jabfilename = handles.data.everythingFileNameAbs;
 assert(numel(unique(handles.data.expdirs))==numel(handles.data.expdirs),...
   'The same experiment has been added twice');
 assert(isequaln({macguffin.classifierStuff.params},handles.data.classifier));
@@ -4183,14 +4184,16 @@ if tfCurrentMovieOnly
   SetStatus(handles,'Classifying current movie..');
   edir = handles.data.expdirs{handles.data.expi};
   ntarget = handles.data.nflies_per_exp(handles.data.expi);
-  classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget);
+  classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget,...
+    'jabfilename',jabfilename);
   menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
 else
   SetStatus(handles,'Classifying all movies..');
   for ndx = 1:numel(handles.data.expdirs)
     edir = handles.data.expdirs{ndx};
     ntarget = handles.data.nflies_per_exp(ndx);
-    classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget);
+    classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget,...
+      'jabfilename',jabfilename);
   end
   menu_file_import_scores_all_exp_default_loc_Callback([],[],handles);
 end

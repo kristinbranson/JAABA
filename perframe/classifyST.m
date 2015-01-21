@@ -10,26 +10,35 @@ function classifyST(expdir,jab,varargin)
 %   will not be overwritten.
 % - verbose (default=0): Integer specifying verbosity level. Currently
 %   expects either 0 or 1
+% - jabfilename (default=''). Used only if jab is a Macguffin, filename to
+%   store in scorefiles.
 % - useGetClassifierFromJabFile (default=false): if true, access classifier
 %   using getClassifierFromJabFile (which checks for 'external'
 %   classifierfiles and 'fixes' jabfiles etc), rather than reading jabfile
 %   directly.
 % - numTargets: see classifySTCore.
 
-[doforce,verbose,useGetClassifierFromJabFile,numTargets] = myparse(varargin,...
+[doforce,verbose,jabfilename,useGetClassifierFromJabFile,numTargets] = myparse(varargin,...
   'doforce',false,...
   'verbose',0,...
+  'jabfilename','',...
   'useGetClassifierFromJabFile',false,...
   'numTargets',1);
 
 assert(ischar(expdir) && exist(expdir,'dir')==7,'Cannot find directory %s.',expdir);
 
-if ischar(jab),
+if ischar(jab)
   Q = loadAnonymous(jab);
+  if ~isempty(jabfilename)
+    warning('classifyST:ignore','jabfilename ''%s'' ignored, using ''%s''.',...
+      jabfilename,jab);
+  end
+  jabfilename = jab;
 else
   assert(isa(jab,'Macguffin'),...
     'Input argument ''jab'' must either be a filename or a Macguffin obj');
   Q = jab;
+  assert(ischar(jabfilename),'jabfilename must be a string.');
 end
 
 Q.modernize(true);
@@ -95,7 +104,7 @@ for i = 1:Ncls
   sf.allScores = allScores;
   sf.behaviorName = behs{i};
   sf.timestamp = clsTS(i);
-  sf.jabFileNameAbs = jab;
+  sf.jabFileNameAbs = jabfilename;
   sf.version = Q.version;
 
   savefilename = fullfile(expdir,scorefn);
