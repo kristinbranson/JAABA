@@ -10,7 +10,7 @@ function classifyST(expdir,jab,varargin)
 %   will not be overwritten.
 % - verbose (default=0): Integer specifying verbosity level. Currently
 %   expects either 0 or 1
-% - jabfilename (default=''). Used only if jab is a Macguffin, filename to
+% - jabfilename (default=''). Used only if jab is a Macguffin. Jab filename to
 %   store in scorefiles.
 % - useGetClassifierFromJabFile (default=false): if true, access classifier
 %   using getClassifierFromJabFile (which checks for 'external'
