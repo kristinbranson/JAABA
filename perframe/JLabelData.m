@@ -3666,7 +3666,7 @@ classdef JLabelData < matlab.mixin.Copyable
         vid = fopen('version.txt','r');
         vv = textscan(vid,'%s');
         fclose(vid);
-        obj.version = vv{1};
+        obj.version = vv{1}{1};
       catch ME
         warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  
         obj.version = '0.0';

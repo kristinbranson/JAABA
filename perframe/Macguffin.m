@@ -105,7 +105,8 @@ classdef Macguffin < handle
       self.file.trxfilename=jld.trxfilename;
       self.file.scorefilename=jld.scorefilename;
       self.file.clipsdir=jld.clipsdir;                  
-      self.file.perframedir=jld.perframedir;                  
+      self.file.perframedir=jld.perframedir;
+      self.file.stfeatures=jld.stfeatures;
       self.labelGraphicParams=jld.labelGraphicParams;
       self.trxGraphicParams=jld.trxGraphicParams;
       if isnonempty(jld.landmark_params) ,
@@ -598,7 +599,7 @@ classdef Macguffin < handle
         vid = fopen('version.txt','r');
         vv = textscan(vid,'%s');
         fclose(vid);
-        self.version = vv{1};
+        self.version = vv{1}{1};
     end
     
     function modernize(self,dowarn)
