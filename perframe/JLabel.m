@@ -2888,6 +2888,8 @@ set(handles.menu_classifier_compareFrames, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode&&~data.isST));  
 set(handles.menu_classifier_ethogram, ...
     'Enable',onIff(classifierExists&&~inGroundTruthingMode&&data.isST)); 
+set(handles.menu_classifier_labelgram, ...
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode&&data.isST)); 
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
@@ -10618,4 +10620,19 @@ ethogram_plot(expdirs,{jabname},maxendframe);
 ClearStatus(handles);
 
 
+% --------------------------------------------------------------------
+function menu_classifier_labelgram_Callback(hObject, eventdata, handles)
 
+assert(handles.data.isST);
+
+SetStatus(handles,'Saving..');
+menu_file_save_Callback(hObject,eventdata,handles);
+
+SetStatus(handles,'Opening labelgram..');
+expdirs = handles.data.expdirs;
+jabname = handles.data.everythingFileNameAbs;
+endframesperexp = handles.data.endframes_per_exp;
+maxendframe = cellfun(@max,endframesperexp);
+maxendframe = max(maxendframe);
+labels_plot(expdirs,{jabname},maxendframe);
+ClearStatus(handles);

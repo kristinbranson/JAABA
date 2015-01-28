@@ -1,6 +1,10 @@
 function [boutmat,line_names] = ethogram_plot_core(hfig,labels,T0,T1,expdirs,behaviornames,jabfiles,varargin)
 % [boutmat,line_names] = ethogram_plot_core(hfig,labels,expdirs,T0,T1,behaviornames,jabfiles,p1,v1,...)
 %
+% labels: nexps x nsamps x nbehs label array. 0s and 1s are plotted as
+% none and behavior-present, respectively. -1's may also be supplied, which
+% are plotted as negative-behavior (faded color).
+%
 % Optional PVs:
 %
 % Input arg jabfiles are used only to enable click-on-bout-to-open-in-JAABA.
@@ -37,14 +41,18 @@ else
     0.2500    0.2500    0.2500];
   behaviorcolors = BEH_COLORS;
 end
+nobehaviorcolors = behaviorcolors + 0.67*(1-behaviorcolors); % gray transform
 yrad = 1/nbehaviors;
 xl = [T0-10,T1+10];
 
-h = cell(nexps,nbehaviors);
+h = cell(nexps,nbehaviors); % patch handles; we keep track of these but ends up unused
+hNo = cell(nexps,nbehaviors);
 hlegend = nan(1,nbehaviors);
 boutmat = cell(nexps,nbehaviors); 
 isfirst = true;
 for j = 1:nbehaviors,
+  behclr = behaviorcolors(j,:);
+  nobehclr = nobehaviorcolors(j,:);
   for i = 1:nexps,
     
     if trialdividers && j==1
@@ -58,35 +66,27 @@ for j = 1:nbehaviors,
     
     [starts,ends] = get_interval_ends(labels(i,:,j)>0);
     boutmat{i,j} = [starts(:) ends(:)];
-    ends = ends-0.5;
-    starts = starts-0.5;
-    nbouts = numel(starts);
-    if nbouts == 0,
-      continue;
-    end    
-    x = [starts;starts;ends;ends;starts]+T0-1;
-%     if doautomarks
-      y = i+yrad*[1;0.5;0.5;1;1]+yrad*(j-1);
-%     else
-      y = i+yrad*[0;1;1;0;0]+yrad*(j-1);
-%     end
-    
-    xx = x;
-    yy = repmat(y,[1 nbouts]);
-    h{i,j} = patch(xx,yy,-1*ones(size(xx)),behaviorcolors(j,:),...
-      'EdgeColor','none','MarkerFaceColor',behaviorcolors(j,:),'FaceAlpha',0.3,...
-      'HitTest','off');
-    
-    if isnan(hlegend(j)),
-      hlegend(j) = h{i,j}(1);
+       
+    % pos behaviors
+    if numel(starts)>0
+      h{i,j} = hlpPatch(starts,ends,i,j,yrad,T0,behclr,{'FaceAlpha',0.4});
+      if isnan(hlegend(j)),
+        hlegend(j) = h{i,j}(1);
+      end
     end
+    
+    % negative behaviors
+    [starts,ends] = get_interval_ends(labels(i,:,j)<0);
+    if numel(starts)>0
+      hNo{i,j} = hlpPatch(starts,ends,i,j,yrad,T0,nobehclr,{'FaceAlpha',0.4});
+    end
+    
   end
 end
 
 line_names = cell(1,nexps);
 for i = 1:nexps,
-  [~,fname,~] = fileparts(expdirs{i});
-  line_names{i} = fname;
+  [~,line_names{i}] = myfileparts(expdirs{i});
 end
 legend(hlegend(~isnan(hlegend)),behaviornames(~isnan(hlegend)));
 yoffset = (nbehaviors-1)/nbehaviors/2;
@@ -132,13 +132,27 @@ if pulldownselect
   set(ax,'Units','normalized');
   axpos = get(ax,'Position');
   set(ax,'Units',tmpunits);
-  uicontrol('style','popupmenu','String',expdirs,'fontsize',7,'units','normalized',...
+  
+  selections = [{'<all exps>'};expdirs(:)];
+  uicontrol('style','popupmenu','String',selections,'fontsize',7,'units','normalized',...
     'position',[axpos(1) 0.955 axpos(3) 0.02],'callback',@(zS,zE)cbkExpZoom(zS,ax));
   uicontrol('style','text','String','Experiment zoom: ','fontweight','bold','horizontalalignment','right',...
     'units','normalized','position',[axpos(1)-0.2 0.95 0.2 0.02],'backgroundcolor',get(hfig,'color'));
 end
   
 set(ax,'ButtonDownFcn',@(src,evt)cbkAxBDF(src));
+
+function hPatch = hlpPatch(starts,ends,i,j,yrad,T0,clr,patchArgs)
+nbouts = numel(starts);
+ends = ends-0.5;
+starts = starts-0.5;
+x = [starts;starts;ends;ends;starts]+T0-1;
+y = i+yrad*[0;1;1;0;0]+yrad*(j-1);
+xx = x;
+yy = repmat(y,[1 nbouts]);
+hPatch = patch(xx,yy,-1*ones(size(xx)),clr,...
+  'MarkerFaceColor',clr,'HitTest','off','EdgeColor','none',patchArgs{:});
+
 
 function cbkExpZoom(src,ax)
 gdata = guidata(ax);
@@ -148,7 +162,11 @@ str = get(src,'String');
 str = str{val};
 
 expnum = find(strcmp(str,gdata.expdirs));
-ylim(ax,[expnum-gdata.EXPZOOMPLUSMINUS expnum+gdata.EXPZOOMPLUSMINUS+1]);
+if isempty(expnum)
+  ylim(ax,'auto');
+else
+  ylim(ax,[expnum-gdata.EXPZOOMPLUSMINUS expnum+gdata.EXPZOOMPLUSMINUS+1]);
+end
 
 function cbkAxBDF(ax)
 
