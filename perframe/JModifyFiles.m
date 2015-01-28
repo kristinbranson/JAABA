@@ -286,13 +286,24 @@ if isempty(v),
   return;
 end
 
+tfYesAllPressed = false;
 v = sort(v,'descend');
 for ndx = 1:numel(v)
   if data.haslabels(v(ndx))
-    qstr = sprintf('Experiment:%d %s has labels. Remove it?',v(ndx),data.expnames{v(ndx)});
-    res = questdlg(qstr,'Remove experiment?','Yes','No','No');
-    if strcmp(res,'Yes')
-      data.RemoveExpDirs(v(ndx));
+    if tfYesAllPressed
+      res = 'Yes';
+    else
+      qstr = sprintf('Experiment:%d %s has labels. Remove it?',v(ndx),data.expnames{v(ndx)});
+      res = questdlg(qstr,'Remove experiment?','No','Yes','Yes to all','No');
+    end
+    switch res
+      case 'Yes'
+        data.RemoveExpDirs(v(ndx));
+      case 'Yes to all'
+        data.RemoveExpDirs(v(ndx));
+        tfYesAllPressed = true;
+      case 'No'
+        % none
     end
   else
     data.RemoveExpDirs(v(ndx));
