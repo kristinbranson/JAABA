@@ -22,7 +22,7 @@ L = zeros(1,0);
 % Accumulate features and labels into X and L
 for expi = 1:numel(expdirs)
   ftrsfname = fullfile(expdirs{expi},'features.mat');
-  assert(exist(ftrsfname,'file')==2,'Missing features.mat file.');
+  assert(exist(ftrsfname,'file')==2,'Missing features.mat file ''%s''.',ftrsfname);
   S = load(ftrsfname);
   
   for fly = 1:numel(labels(expi).flies)

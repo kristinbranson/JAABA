@@ -453,6 +453,78 @@ classdef Labels
       labelsComb = Labels.initTimelineTimestamps(labelsComb,realbehnames);
     end
     
+    function m = labelMatrix(labels,T0,T1,behNames)
+      % labels: labels array
+      % T0,T1: scalar doubles
+      % behNames: cellstr
+      %
+      % m: numel(labels) x nsamp x numel(behNames), nsamp=T0-T1+1. 1/-1 for
+      % beh and no-beh, resp.
+      %
+      % Currently, bouts for all flies/targets within an experiment are
+      % superimposed (only because the expected usage is in ST mode).
+      
+      % AL: in JAABA, could go Labels->LabelsShort->LabelsIdx to implement
+      % this transformation.
+      
+      Labels.verifyLabels(labels);
+      
+      nExp = numel(labels);
+      nBeh = numel(behNames);
+      nFrm = T1-T0+1;
+      off = 1-T0;
+      m = zeros(nExp,nFrm,nBeh);
+      
+      nobehNames = Labels.noneOrNoBehaviorNames(behNames);
+      behnobeh = [behNames(:) nobehNames(:)];
+      
+      for iExp = 1:nExp
+        L = labels(iExp);
+        for iFly = 1:numel(L.flies)
+          
+          tts = L.timelinetimestamp{iFly};
+          fns = fieldnames(tts);
+          tf = ismember(behNames,fns);
+          if ~all(tf)
+            warning('Labels:behNotPresent','Exp %d, behaviors not present in labels timelinetimestamp: %s',...
+              iExp,civilizedStringFromCellArrayOfStrings(behNames(~tf)));
+          end
+          
+          for iBout = 1:numel(L.names{iFly})
+            t0 = L.t0s{iFly}(iBout);
+            t1 = L.t1s{iFly}(iBout);
+            name = L.names{iFly}{iBout};
+            if t0>T1 || t1<T0
+              continue;
+            end
+            tf = strcmp(name,behnobeh);
+            if nnz(tf)==0
+              continue;
+            end
+            assert(nnz(tf)==1,'Label ''%s'' matches multiple reference labels.',name);
+            [iTL,behOrNo] = find(tf);
+            
+            t0 = max(T0,t0);
+            t1 = min(T1+1,t1);
+            idx = t0+off:t1-1+off;
+            if behOrNo==1 % positive behavior
+              if any(m(iExp,idx,iTL)<0)
+                warning('Labels:conflictingLabels','Conflicting labels across flies for exp %d, fly %d, bout %d (%s).',...
+                  iExp,iFly,iBout,name);
+              end
+              m(iExp,idx,iTL) = 1;
+            else % no-beh
+              if any(m(iExp,idx,iTL)>0)
+                warning('Labels:conflictingLabels','Conflicting labels across flies for exp %d, fly %d, bout %d (%s).',...
+                  iExp,iFly,iBout,name);
+              end
+              m(iExp,idx,iTL) = -1;
+            end
+          end
+        end
+      end
+    end
+    
     function labelsShort = labelsShort()
       % labelsShort constructor
       labelsShort = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],...
@@ -595,6 +667,18 @@ classdef Labels
     function nobeh = noBehaviorName(beh)
       assert(~strncmp(beh,'No_',3),'Behavior starts with ''No_''.');
       nobeh = ['No_' beh];
+    end
+    
+    function nobehnames = noneOrNoBehaviorNames(behnames)
+      % Semi-dup of behnames2labelnames
+      
+      assert(iscellstr(behnames));
+      n = numel(behnames);
+      if n==1
+        nobehnames = {'None'};
+      else
+        nobehnames = cellfun(@Labels.noBehaviorName,behnames,'uni',0);
+      end
     end
     
     function lblnames = behnames2labelnames(behnames)
