@@ -210,6 +210,29 @@ if ismac,
   
 end
 
+if isunix && ~ismac
+  vid = fopen(fullfile(jaabaRootDirName,'perframe','version.txt'),'r');
+  vv = textscan(vid,'%s');
+  fclose(vid);
+  vv = vv{1}{1};
+  outdirname = sprintf('JAABA_LINUX_%s',vv);
+  if ~exist(outdirname,'dir')
+    mkdir(outdirname);
+  end
+  copyfile('JAABA',outdirname);
+  copyfile('JAABAPlot',outdirname);
+  copyfile('PrepareJAABAData',outdirname);
+  copyfile('run_JAABA.sh',outdirname);
+  copyfile('run_JAABAPlot.sh',outdirname);
+  copyfile('run_PrepareJAABAData.sh',outdirname);
+  copyfile(fullfile(jaabaRootDirName,'LICENSE.txt'),outdirname);
+  copyfile(fullfile(jaabaRootDirName,'README.txt'),outdirname);
+  copyfile(fullfile(jaabaRootDirName,'misc','javasysmon-0.3.4.jar'),outdirname);
+  copyfile(fullfile(jaabaRootDirName,'perframe','JAABAParCompProfile.settings'),outdirname);
+  
+  
+end
+
 fprintf('Done Building\n');
 
 
