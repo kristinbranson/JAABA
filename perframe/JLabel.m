@@ -4583,7 +4583,11 @@ for i = indicesOfPreviewAxes,
                min([movie_maxx+ps,xs+zoom_fly_radius(1)])];
     newylim = [max([movie_miny-ps,ys-zoom_fly_radius(2)]), ...
                min([movie_maxy+ps,ys+zoom_fly_radius(2)])];
-    set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);    
+    try
+      set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);    
+     catch ME,
+%       warndlg('Could not zoom to the current fly:%s',ME.message);
+    end
   end
 end
 
