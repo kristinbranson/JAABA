@@ -56,17 +56,19 @@ classdef JLabelData < matlab.mixin.Copyable
     % elements as there are frames in the current track, which gives the
     % value of that per-frame feature for that frame, for the current
     % experiment and target.  --ALT, Apr 10 2013
+    % 
+    % perframedata is common to all classifiers.
     perframedata
     
     % A feature lexicon is the universe of possible features available.
-    % The features used when training a classifier for a particular
-    % behavior are a subset of the feature lexicon, and the features
-    % used by a particular trained classifier will be a further subset.
-    % Each possible feature lexicon has a name, such as 'flies', or
-    % 'vivek_mice'
+    % This is common to all classifiers. The features used when training
+    % a classifier for a particular behavior are a subset of the feature
+    % lexicon, and the features used by a particular trained classifier
+    % will be a further subset. Each possible feature lexicon has a name,
+    % such as 'flies', or 'vivek_mice'
     featureLexiconName
     
-    % The actual feature lexicon itself.  Note that we should not assume
+    % The actual feature lexicon itself. Note that we should not assume
     % the feature lexicon exactly matches the feature lexicon named
     % featureLexiconName in the global config files.  That's because the
     % user may have modified the featureLexicon for this everything file.
@@ -81,6 +83,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % windowdata holds computed and cached window features
     % windowdata(iCls).X
     % ...
+    % Future optimization: window data computation for multiple
+    % classifiers 
     windowdata
 
     % predictdata stores predictions.  It is cell array, with as many
@@ -136,13 +140,14 @@ classdef JLabelData < matlab.mixin.Copyable
     % fastPredict(iCls).<etc>
     fastPredict
         
-    % constant: radius of window data to compute at a time
+    % constant: radius of window data to compute at a time. Currently
+    % shared by all classifiers.
     windowdatachunk_radius
     predictwindowdatachunk_radius
     % total number of experiments
     %nexps = 0;  % this is now a dependent property
     
-    % labels struct array
+    % labels struct array. See also Labels.m
     % labels(expi) is the labeled data for experiment expi
     % labels(expi).t0s are the start frames of all labeled sequences for
     % experiment expi
@@ -165,10 +170,10 @@ classdef JLabelData < matlab.mixin.Copyable
     % frame t of the movie. labelidx(i) == 0 corresponds to
     % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
     % labelnames{labelidx{i})
+    % See Labels.m
     labelidx
     labelidx_off
     
-    %labelsLoadedFromClassifier = false;
     % first frame that all flies currently selected are tracked
     t0_curr
     % last frame that all flies currently selected are tracked
@@ -196,7 +201,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % names of behaviors, corresponding to labelidx
     labelnames        
         
-    % number of behaviors, including 'none'.
+    % number of behaviors, including 'none' or <no-behaviors>.
     % AL: Better name is nlabels
     nbehaviors
   end  
@@ -289,12 +294,14 @@ classdef JLabelData < matlab.mixin.Copyable
     % last-used path for loading experiments
     expdefaultpath
 
+    % windowfeaturesparams{iCls} is:
     % struct from curperframefns->[structs containing window feature parameters]
     % Each field holds the parameters for a single per-frame feature in the
     % feature vocabulary, with the field name being the per-frame feature
     % name. Score features are included in the feature vocabulary.
     windowfeaturesparams
     
+    % windowfeaturescellparams{iCls} is:
     % struct from curperframefns->[cell array of window feature parameters]
     % parameters of window features, represented as a cell array of
     % parameter name, parameter value, so that it can be input to
@@ -320,13 +327,14 @@ classdef JLabelData < matlab.mixin.Copyable
                     % the lexicon that are actually calculated for
                     % each frame, plus the scores-as-input feature
                     % names.  I would call this the the 'subdialect'.
-                    % --ALT, Apr 5, 2013
+                    % --ALT, Apr 5, 2013. Common to all classifiers.
     curperframefns  % The list of all per-frame feature names
                     % that are enabled, i.e. used for used for classifier 
                     % training.  This is a subset of allperframefns, and will 
                     % include a subset of the score features (but the
                     % subset might be the empty set).  I would 
-                    % call this the 'vocabulary'.  --ALT, May 18, 2013
+                    % call this the 'vocabulary'.  --ALT, May 18, 2013.
+                    % Indexed by classifier, ie curperframefns{iCls}.
       % Thus curperframefns is the subset of allperframefns that are enabled.                    
       
     % units for perframedata
@@ -2841,6 +2849,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)  %#ok
+      % ALXXX appears no callsites
       for ndx = 1:numel(obj.nflies_per_exp(expi))
         [success,msg,dist] = obj.ComputeBagFeatures(expi,ndx,obj.fastPredict.curF);
         obj.fastPredictBag.dist{expi}{ndx} = dist;
