@@ -379,11 +379,23 @@ classdef JLabelData < matlab.mixin.Copyable
     setstatusfn
     clearstatusfn
     
-    % data for show similar frames.
+    % Show similar frames
+    % These have not been updated for multiple classifiers.
+    % SimilarFrames/Bagging functionality should all be asserted to run
+    % only on single-classifier projects.
     frameFig 
     distMat 
     bagModels
     fastPredictBag 
+    % fastPredictBag.classifier
+    % fastPredictBag.windowfeaturescellparams
+    % fastPredictBag.wfs
+    % fastPredictBag.pffs
+    % fastPredictBag.ts
+    % fastPredictBag.tempname
+    % fastPredictBag.curF
+    % fastPredictBag.dist{expi}{fly}
+    % fastPredictBag.trainDist
 
     confThresholds % nclassifiers-by-2 array
     
@@ -1581,7 +1593,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
       perframefile = obj.GetPerframeFiles(expi);
-      for iCls = clsIdx(:)'      
+      for iCls = clsIdx(:)'
         % There is at least one frame in t0:t1 that does not have a
         % current prediction. We
         % are going to predict on all frames in [t0,t1] even though some may
@@ -2065,7 +2077,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     end  % method
       
-    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
+    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc,iCls)
     % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
     % Computes a chunk of windowdata near frame t for experiment expi and
     % flies flies. if mode is 'start', then the chunk will start at t. if
@@ -2087,24 +2099,24 @@ classdef JLabelData < matlab.mixin.Copyable
     % To predict over the whole movie we use forceCalc which
     % forces the function to recalculate all the features even though they
     % were calculated before.
-      
-    %ALXXX EXTENDED. Called only by SimilarFrames, Bagging
+
+      % MERGESTUPDATED
     
       success = false; msg = '';  %#ok
       
-      if ~exist('mode','var'), mode = 'center'; end
-      if ~exist('forceCalc','var'), forceCalc = false; end
+      if ~exist('mode','var') || isempty(mode), mode = 'center'; end
+      if ~exist('forceCalc','var') || isempty(forceCalc), forceCalc = false; end
       
       % Check if the features have been configured.
       % I really don't like this.  The JLabelData is pretty close to being a
       % model in the MVC sense.  As such, it shouldn't be creating a view.
       % Not clear to me what the best way to fix this is, though.
       % --ALT, Feb 4, 2013
-      if isempty(fieldnames(obj.windowfeaturesparams))
-        figureJLabel=findall(0,'tag','figure_JLabel');
-        figureSelectFeatures=SelectFeatures(figureJLabel);
+      if isempty(fieldnames(obj.windowfeaturesparams{iCls}))
+        figureJLabel = findall(0,'tag','figure_JLabel');
+        figureSelectFeatures = SelectFeatures(figureJLabel);
         uiwait(figureSelectFeatures);
-        if isempty(fieldnames(obj.windowfeaturesparams))
+        if isempty(fieldnames(obj.windowfeaturesparams{iCls}))
           error('No features selected!');
         end
       end
@@ -2138,8 +2150,8 @@ classdef JLabelData < matlab.mixin.Copyable
       off = 1-t0;
       n = t1-t0+1;
       docompute = true(1,n);
-      if ~isempty(obj.windowdata.exp) && ~forceCalc,
-        tscomputed = obj.windowdata.t(obj.FlyNdx(expi,flies));
+      if ~isempty(obj.windowdata(iCls).exp) && ~forceCalc,
+        tscomputed = obj.windowdata(iCls).t(obj.FlyNdx(expi,flies,iCls));
         tscomputed = tscomputed(tscomputed >= t0 & tscomputed <= t1);
         docompute(tscomputed+off) = false;
       end
@@ -2159,19 +2171,19 @@ classdef JLabelData < matlab.mixin.Copyable
       
       %       try
       
-      curperframefns = obj.curperframefns;
+      curperframefns = obj.curperframefns{iCls};
       allperframefns = obj.allperframefns;
       perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
       perframedata_all = obj.perframedata;
       perframefile = obj.GetPerframeFiles(expi);
       x_curr_all = cell(1,numel(curperframefns));
       feature_names_all = cell(1,numel(curperframefns));
-      windowfeaturescellparams = obj.windowfeaturescellparams;
+      windowfeaturescellparams = obj.windowfeaturescellparams{iCls};
       
       % loop through per-frame fields to check that they exist.
       % ALTODO: factor this out, see createPreLoadWindowDataObj
       for j = 1:numel(curperframefns),
-        fn = curperframefns{j};        
+        fn = curperframefns{j};
         
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
@@ -2211,8 +2223,6 @@ classdef JLabelData < matlab.mixin.Copyable
             msg = sprintf('Cannot compute window data for %s ',obj.expnames{expi});
             return;
           end
-
-          
         end
         
       end
@@ -2243,11 +2253,10 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         
         x_curr_all{j} = single(x_curr);
-        feature_names_all{j} = feature_names_curr;
-        
+        feature_names_all{j} = feature_names_curr;        
       end
       
-      feature_names=cell(1,numel(curperframefns));
+      feature_names = cell(1,numel(curperframefns));
       for j = 1:numel(curperframefns),
         fn = curperframefns{j};
         x_curr = x_curr_all{j};
@@ -2267,10 +2276,10 @@ classdef JLabelData < matlab.mixin.Copyable
         X(:,end+1:end+size(x_curr,1)) = x_curr';
         % add the feature names
         if nargout>5
-          feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); %#ok<AGROW>
+          feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); 
         end
       end
-      feature_names=[feature_names{:}];
+      feature_names = [feature_names{:}];
       %       catch ME,
       %         msg = getReport(ME);
       %         return;
@@ -2278,7 +2287,7 @@ classdef JLabelData < matlab.mixin.Copyable
       %X = single(X);
       success = true;
      
-    end  % method    
+    end
    
     % ---------------------------------------------------------------------
     function initWindowData(obj)
@@ -2743,7 +2752,10 @@ classdef JLabelData < matlab.mixin.Copyable
 
     % ---------------------------------------------------------------------
     function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
-    % Use the fast feature computation to find the bag features..
+    % Use the fast feature computation to find the bag features.
+    
+    % MERGESTOK
+    
       success = true; msg = '';
       featureFileName = sprintf('%s_%s_%d',obj.fastPredictBag.tempname,obj.expnames{curexp},curfly);
       if exist(featureFileName,'file'),
@@ -2755,12 +2767,9 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus(sprintf('Computing distance to fly %d in exp:%s',curfly,obj.expnames{curexp}));
       perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(curexp,curfly);
       perframefile = obj.GetPerframeFiles(curexp);
-
       
       T0 = obj.GetTrxFirstFrame(curexp,curfly);
       T1 = obj.GetTrxEndFrame(curexp,curfly);
-      
-      
       
       perframedata_cur = obj.perframedata;
       windowfeaturescellparams = obj.fastPredictBag.windowfeaturescellparams;
@@ -2842,6 +2851,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = ComputeBagDistFly(obj,expi,fly)
+      % MERGESTOK
       [success,msg,dist] = obj.ComputeBagFeatures(expi,fly,obj.fastPredictBag.curF);
       obj.fastPredictBag.dist{expi}{fly} = dist;
     end
@@ -2849,7 +2859,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)  %#ok
-      % ALXXX appears no callsites
+      % AL: no callsites?
       for ndx = 1:numel(obj.nflies_per_exp(expi))
         [success,msg,dist] = obj.ComputeBagFeatures(expi,ndx,obj.fastPredict.curF);
         obj.fastPredictBag.dist{expi}{ndx} = dist;
@@ -2859,7 +2869,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir)  %#ok
+    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir) %#ok
+      % MERGEST OK
 
       nextT = []; distT = [];
       switch dir
@@ -2888,6 +2899,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function has = HasDistance(obj,expi,flies)
+      % MERGEST OK
       has = ~(isempty(obj.bagModels) || ...
           isempty(obj.fastPredictBag.dist) || ...
           numel(obj.fastPredictBag.dist)<expi || ...
@@ -2899,21 +2911,25 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function ComputeBagDistanceTraining(obj)
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
+      
       if isempty(obj.fastPredictBag.trainDist)
-        dX = zeros(size(obj.windowdata.X,1),numel(obj.bagModels));
+        dX = zeros(size(obj.windowdata(ICLS).X,1),numel(obj.bagModels));
         for ndx = 1:numel(obj.bagModels)
           curWk = obj.bagModels(ndx);
-          dd = obj.windowdata.X(:,curWk.dim)*curWk.dir;
+          dd = obj.windowdata(ICLS).X(:,curWk.dim)*curWk.dir;
           tt = curWk.tr*curWk.dir;
           dX(:,ndx) = sign( (dd>tt)-0.5 )*curWk.alpha;
-          
         end
         
         dist = sum(abs(dX - repmat(obj.fastPredictBag.curF,[size(dX,1) 1])),2);
         
         obj.fastPredictBag.trainDist = dist;
       end
-    end  % method
+    end
     
     
     % ---------------------------------------------------------------------
@@ -8971,34 +8987,45 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function DoFastBagging(obj)
       
-      assert(false,'ALXXX EXPANDED');
+      % MERGEST UPDATED
+      
+      % AL: Looks a lot like DoBagging
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
       
       obj.StoreLabelsForCurrentAnimal();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success, warning(msg);return;end
+      if ~success, 
+        warning(msg);
+        return;
+      end
 
-      islabeled = obj.windowdata.labelidx_new ~= 0;
+      islabeled = obj.windowdata(ICLS).labelidx_new ~= 0;
 
-      if ~any(islabeled),                        return; end
-      if ~strcmp(obj.classifiertype,'boosting'); return; end
-      if isempty(obj.classifier), obj.Train;             end
+      if ~any(islabeled),                              return; end
+      if ~strcmp(obj.classifiertype{ICLS},'boosting'); return; end
+      if isempty(obj.classifier{ICLS}), obj.Train;             end
 
-      if isempty(obj.windowdata.binVals),
-        obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params,'deterministic',obj.deterministic);
+      if isempty(obj.windowdata(ICLS).binVals),
+        obj.windowdata(ICLS).binVals = findThresholds(...
+          obj.windowdata(ICLS).X(islabeled,:),...
+          obj.classifier_params{ICLS},'deterministic',obj.deterministic);
       end
       
-      bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
+      bins = findThresholdBins(obj.windowdata(ICLS).X(islabeled,:),...
+        obj.windowdata(ICLS).binVals);
 
-      bmodel = fastBag(obj.windowdata.X(islabeled,:),...
-        obj.windowdata.labelidx_new(islabeled),... %LABELIDX
-        obj.windowdata.binVals,bins,obj.classifier_params,obj);
+      bmodel = fastBag(obj.windowdata(ICLS).X(islabeled,:),...
+        obj.windowdata(ICLS).labelidx_new(islabeled),...
+        obj.windowdata(ICLS).binVals,bins,obj.classifier_params{ICLS},obj);
       
       obj.bagModels = bmodel;
 %       obj.bagModels = obj.classifier;
 
       obj.SetStatus('Computing parameters for fast distance computation..');
       % Find the parameters for fast prediction.
-      feature_names = obj.windowdata.featurenames;
+      feature_names = obj.windowdata(ICLS).featurenames;
       
       % which features are actually used
       dims = [obj.bagModels(:).dim];
@@ -9027,7 +9054,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.fastPredictBag.windowfeaturescellparams = windowfeaturescellparams;
       obj.fastPredictBag.wfs = feature_names;
       obj.fastPredictBag.pffs = pffs;
-      obj.fastPredictBag.ts = obj.classifierTS;
+      obj.fastPredictBag.ts = obj.classifierTS(ICLS);
       obj.fastPredictBag.tempname = tempname;
  
       features_names_sel = {};
@@ -9036,8 +9063,7 @@ classdef JLabelData < matlab.mixin.Copyable
           windowfeaturescellparams.(pffs{ndx}){:});
         feature_names_curr = cellfun(@(x) [{pffs{ndx}},x],curf,'UniformOutput',false);  %#ok
         features_names_sel = [features_names_sel,feature_names_curr]; %#ok<AGROW>
-      end
-      
+      end      
       
       ttt = tic;
       wfidx = nan(1,numel(feature_names));
@@ -9052,7 +9078,7 @@ classdef JLabelData < matlab.mixin.Copyable
         curidx = dims==dims(j);
         matched(curidx) = true;
         wfidx(curidx) = idxcurr;
-        if(mod(j,100)==0)
+        if (mod(j,100)==0)
           telapsed = toc(ttt);
           obj.SetStatus('Indexing the feature names ... %d%% done: Time Remaining:%ds',...
             round(nnz(matched)/numel(matched)*100),round(telapsed/nnz(matched)*(numel(matched)-nnz(matched))));
@@ -9076,21 +9102,26 @@ classdef JLabelData < matlab.mixin.Copyable
 %       end
 
       obj.fastPredictBag.wfidx = wfidx;
-
       
       obj.fastPredictBag.dist = cell(1,obj.nexps);
-      obj.ClearStatus();
-      
-    end  % method
+      obj.ClearStatus();      
+    end
     
 
     % ---------------------------------------------------------------------
     function [success,msg] = SetCurrentFlyForBag(obj,exp,fly,t)
+      % Initializes/sets .fastPredictBag.
+      
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
+      
       obj.fastPredictBag.curexp = exp;
       obj.fastPredictBag.fly = fly;
       obj.fastPredictBag.t = t;
       
-      [success,msg,t0,t1,X] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true);
+      [success,msg,t0,t1,X] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true,ICLS);
       
       curX = X((t0:t1)==t,:);
       curF = zeros(1,numel(obj.bagModels));
@@ -9106,21 +9137,27 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     function [success,msg] = UnsetCurrentFlyForBag(obj)
-      success=true;
-      msg='';
+      % Clears .fastPredictBag.
+      
+      %MERGEST OK
+      
+      success = true;
+      msg = '';
       obj.fastPredictBag.curexp = [];
       obj.fastPredictBag.fly = [];
       obj.fastPredictBag.t = [];
       obj.fastPredictBag.dist = {};
       obj.fastPredictBag.trainDist = {};
       obj.fastPredictBag.curF = [];
-      
     end
 
     
     % ---------------------------------------------------------------------
     function dist = GetDistance(obj,expi,flies)
-      %ALXXX EXPANDED
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
       
       if obj.HasDistance(expi,flies)
         obj.ComputeBagDistanceTraining();
@@ -9133,9 +9170,9 @@ classdef JLabelData < matlab.mixin.Copyable
         distNorm = median(obj.fastPredictBag.trainDist);
         T0 = obj.firstframes_per_exp{expi}(flies);
         T1 = obj.endframes_per_exp{expi}(flies);
-        dist = nan(1, T1- T0 +1);
-        idx = obj.FlyNdx(expi,flies);
-        t = obj.windowdata.t(idx);
+        dist = nan(1,T1-T0+1);
+        idx = obj.FlyNdx(expi,flies,ICLS);
+        t = obj.windowdata(ICLS).t(idx);
         dist(t-T0+1) = obj.fastPredictBag.trainDist(idx);
         dist = dist/distNorm;
         dist(dist>1) = 1;
@@ -9143,24 +9180,26 @@ classdef JLabelData < matlab.mixin.Copyable
         T0 = obj.firstframes_per_exp{expi}(flies);
         T1 = obj.endframes_per_exp{expi}(flies);
         dist = nan(1, T1- T0 +1);
-      end
-      
+      end      
     end
     
     
     % ---------------------------------------------------------------------
     function [nextT, distT] = NextClosestBagFly(obj,dir,curt,expi,flies,curV,ignore,jumpList,jumpRestrict)
       
-      assert(false,'ALXXX EXPANDED');
-            
-      nextT = []; distT =[];
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
+
+      nextT = []; distT = [];
       if  isempty(obj.fastPredictBag.dist) || ...
           isempty(obj.fastPredictBag.dist{expi}) || ...
          numel(obj.fastPredictBag.dist{expi})<flies || ...
-         isempty(obj.fastPredictBag.dist{expi}{flies}) 
+         isempty(obj.fastPredictBag.dist{expi}{flies})
         [success,msg] = obj.ComputeBagDistFly(expi,flies);
         if ~success,
-          uiwait(warndlg(msg)); 
+          uiwait(warndlg(msg));
           return;
         end
       end
@@ -9183,20 +9222,21 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       if strcmp(jumpRestrict,'behavior')
-        obj.PredictFast(expi,flies,T0,T1); %ALXXX API
-        dist(obj.predictdata{expi}{flies}.cur < 0) = inf;
+        obj.PredictFast(expi,flies,T0,T1,ICLS);
+        dist(obj.predictdata{expi}{flies}(ICLS).cur < 0) = inf;
       elseif strcmp(jumpRestrict,'none')
-        obj.PredictFast(expi,flies,T0,T1); %ALXXX API
-        dist(obj.predictdata{expi}{flies}.cur > 0) = inf;        
+        obj.PredictFast(expi,flies,T0,T1,ICLS);
+        dist(obj.predictdata{expi}{flies}(ICLS).cur > 0) = inf;
       end
       
-      [nextT, distT] = obj.FindNextClosest(dist,curV,dir);
-      nextT= nextT+T0-1;
+      [nextT,distT] = obj.FindNextClosest(dist,curV,dir);
+      nextT = nextT+T0-1;
     end
     
     
     % ---------------------------------------------------------------------
     function [bestnextT,bestdistT,bestfly] = NextClosestBagExp(obj,dir,curt,expi,flies,ignore,jumpList,jumpRestrict)
+      % MERGEST OK
       
       bestnextT = []; bestfly = [];
       switch dir
@@ -9225,7 +9265,7 @@ classdef JLabelData < matlab.mixin.Copyable
       curV = obj.fastPredictBag.dist{expi}{flies}(curt-T0+1);
       
       for fly = 1:obj.nflies_per_exp(expi)
-        [nextT, distT] = obj.NextClosestBagFly(dir,curt,expi,fly,curV,ignore,jumpList,jumpRestrict);
+        [nextT,distT] = obj.NextClosestBagFly(dir,curt,expi,fly,curV,ignore,jumpList,jumpRestrict);
         if strcmp(dir,'next')
           if distT < bestdistT
             bestdistT = distT;
@@ -9237,11 +9277,9 @@ classdef JLabelData < matlab.mixin.Copyable
             bestdistT = distT;
             bestnextT = nextT;
             bestfly = fly;
-          end
-          
+          end          
         end
-      end
-      
+      end      
     end
     
     
@@ -9249,7 +9287,10 @@ classdef JLabelData < matlab.mixin.Copyable
     function [nextT, distT, fly, exp ] = ...
         NextClosestBagTraining(obj,jtype,curT,curExp,curFly,ignore,jumpList,jumpRestrict)
       
-      %ALXXX EXPANDED
+      %MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
       
       nextT = []; distT = []; fly = []; exp = [];
       
@@ -9257,7 +9298,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       dist = obj.fastPredictBag.trainDist;
       
-      curndx = find(obj.FlyNdx(curExp,curFly) & obj.windowdata.t == curT);
+      curndx = find(obj.FlyNdx(curExp,curFly,ICLS) & obj.windowdata(ICLS).t == curT);
       if isempty(curndx)
         curV = 0;
       else
@@ -9266,12 +9307,12 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Ignore close by bouts to previously seen examples
       for ndx = 1:numel(jumpList)
-        idx = obj.FlyNdx(jumpList(ndx).exp,jumpList(ndx).fly) & ...
-              (abs(obj.windowdata.t - jumpList(ndx).t)<=ignore );
+        idx = obj.FlyNdx(jumpList(ndx).exp,jumpList(ndx).fly,ICLS) & ...
+              (abs(obj.windowdata(ICLS).t - jumpList(ndx).t)<=ignore );
         dist(idx) = inf;
       end
       
-      labels = obj.windowdata.labelidx_new; %LABELIDX
+      labels = obj.windowdata(ICLS).labelidx_new;
       if strcmp(jumpRestrict,'behavior')
         dist(labels ~= 1) = inf;
       elseif strcmp(jumpRestrict,'none')
@@ -9301,42 +9342,50 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       if ~isempty(nextNdx)
-        fly = obj.windowdata.flies(nextNdx);
-        exp = obj.windowdata.exp(nextNdx);
-        nextT = obj.windowdata.t(nextNdx);
+        fly = obj.windowdata(ICLS).flies(nextNdx);
+        exp = obj.windowdata(ICLS).exp(nextNdx);
+        nextT = obj.windowdata(ICLS).t(nextNdx);
       end
     end
     
     
     % ---------------------------------------------------------------------
     function DoBagging(obj)
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
       
       obj.StoreLabelsForCurrentAnimal();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success, warning(msg);return;end
+      if ~success,
+        warning(msg);
+        return;
+      end
       
-      islabeled = obj.windowdata.labelidx_new ~= 0;
+      islabeled = obj.windowdata(ICLS).labelidx_new ~= 0;
       
-      if ~any(islabeled),                        return; end
-      if ~strcmp(obj.classifiertype,'boosting'); return; end
-      if isempty(obj.classifier), obj.Train;             end
+      if ~any(islabeled),                              return; end
+      if ~strcmp(obj.classifiertype{ICLS},'boosting'); return; end
+      if isempty(obj.classifier{ICLS}), obj.Train;             end
       
-      bouts = obj.getLabeledBouts(); %ALXXX API change
+      bouts = obj.getLabeledBouts(ICLS);
       
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
-      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params,'deterministic',obj.deterministic);
+      obj.windowdata(ICLS).binVals = ...
+        findThresholds(obj.windowdata(ICLS).X(islabeled,:),obj.classifier_params{ICLS},'deterministic',obj.deterministic);
       
-      [obj.bagModels, obj.distMat] =...
-        doBaggingBouts( obj.windowdata.X, ...
-        obj.windowdata.labelidx_new,obj,... %LABELIDX
-        obj.windowdata.binVals,...
-        obj.classifier_params,bouts);
+      [obj.bagModels,obj.distMat] = ...
+        doBaggingBouts(obj.windowdata(ICLS).X, ...
+        obj.windowdata(ICLS).labelidx_new,obj, ...
+        obj.windowdata(ICLS).binVals,...
+        obj.classifier_params{ICLS},bouts);
       
-      obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
-      obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
-      obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
-      obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled); %LABELIDX
+      obj.windowdata(ICLS).distNdx.exp = obj.windowdata(ICLS).exp(islabeled);
+      obj.windowdata(ICLS).distNdx.flies = obj.windowdata(ICLS).flies(islabeled);
+      obj.windowdata(ICLS).distNdx.t = obj.windowdata(ICLS).t(islabeled);
+      obj.windowdata(ICLS).distNdx.labels = obj.windowdata(ICLS).labelidx_new(islabeled);
       
       obj.ClearStatus();
     end
@@ -9344,21 +9393,27 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function SimilarFrames(obj,curTime,JLabelHandles)
+      
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
+      
       if isempty(obj.frameFig) || ~ishandle(obj.frameFig),
         obj.InitSimilarFrames(JLabelHandles),
       end
       
-      distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
-        (obj.windowdata.distNdx.flies == obj.flies) & ...
-        (obj.windowdata.distNdx.t == curTime) ,1);
+      distNdx = find( (obj.windowdata(ICLS).distNdx.exp == obj.expi) & ...
+        (obj.windowdata(ICLS).distNdx.flies == obj.flies) & ...
+        (obj.windowdata(ICLS).distNdx.t == curTime),1);
       
-      windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
-        (obj.windowdata.flies == obj.flies) & ...
-        (obj.windowdata.t == curTime) ,1);      
+      windowNdx = find( (obj.windowdata(ICLS).exp == obj.expi) & ...
+        (obj.windowdata(ICLS).flies == obj.flies) & ...
+        (obj.windowdata(ICLS).t == curTime),1);
       
       if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
-        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime);
+        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime,[],[],ICLS);
 
         curX = curX(curTime-t0+1,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
@@ -9386,9 +9441,9 @@ classdef JLabelData < matlab.mixin.Copyable
       dist2train = nanmean(diffMat,2)*200;
       [rr,rrNdx] = sort(dist2train,'ascend');
       
-      if~outOfTraining
-        rr = rr(2:end);  %#ok
-        curEx = rrNdx(1); rrNdx = rrNdx(2:end);  %#ok
+      if ~outOfTraining
+        rr = rr(2:end); %#ok
+        curEx = rrNdx(1); rrNdx = rrNdx(2:end); %#ok
       else
         curEx = [];  %#ok
       end
@@ -9397,10 +9452,9 @@ classdef JLabelData < matlab.mixin.Copyable
       % This looks complicated then it should be.
       % DEBUG: find values of actual labels 
      
-      trainLabels =  obj.windowdata.distNdx.labels;
+      trainLabels = obj.windowdata(ICLS).distNdx.labels;
       allPos = rrNdx(trainLabels(rrNdx)>1.5);
-      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
-      
+      allNeg = rrNdx(trainLabels(rrNdx)<1.5);      
       
       curP = zeros(1,5);
       curN = zeros(1,5);
@@ -9409,18 +9463,18 @@ classdef JLabelData < matlab.mixin.Copyable
         if count>4; break; end;
         isClose = 0;
         if ~outOfTraining && ...
-          obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
-           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
-           abs( obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex) )<5,
+          obj.windowdata(ICLS).exp(windowNdx) == obj.windowdata(ICLS).distNdx.exp(ex) && ...
+           obj.windowdata(ICLS).flies(windowNdx) == obj.windowdata(ICLS).distNdx.flies(ex) && ...
+           abs( obj.windowdata(ICLS).t(windowNdx) - obj.windowdata(ICLS).distNdx.t(ex) )<5,
            continue; 
         end
         
         for used = curP(1:count)
-          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
-             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
-             abs( obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex) )<5,
-             isClose = 1; 
-             break; 
+          if obj.windowdata(ICLS).distNdx.exp(used) == obj.windowdata(ICLS).distNdx.exp(ex) && ...
+             obj.windowdata(ICLS).distNdx.flies(used) == obj.windowdata(ICLS).distNdx.flies(ex) && ...
+             abs( obj.windowdata(ICLS).distNdx.t(used) - obj.windowdata(ICLS).distNdx.t(ex) )<5,
+             isClose = 1;
+             break;
           end
         end
         
@@ -9434,16 +9488,16 @@ classdef JLabelData < matlab.mixin.Copyable
         if count>4; break; end;
         isClose = 0;
         if ~outOfTraining && ...
-          obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
-           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
-           abs(obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5,
+          obj.windowdata(ICLS).exp(windowNdx) == obj.windowdata(ICLS).distNdx.exp(ex) && ...
+           obj.windowdata(ICLS).flies(windowNdx) == obj.windowdata(ICLS).distNdx.flies(ex) && ...
+           abs(obj.windowdata(ICLS).t(windowNdx) - obj.windowdata(ICLS).distNdx.t(ex))<5,
            continue; 
         end
         
         for used = curN(1:count)
-          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
-             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
-             abs(obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5,
+          if obj.windowdata(ICLS).distNdx.exp(used) == obj.windowdata(ICLS).distNdx.exp(ex) && ...
+             obj.windowdata(ICLS).distNdx.flies(used) == obj.windowdata(ICLS).distNdx.flies(ex) && ...
+             abs(obj.windowdata(ICLS).distNdx.t(used) - obj.windowdata(ICLS).distNdx.t(ex))<5,
              isClose = 1; 
              break; 
           end
@@ -9459,12 +9513,12 @@ classdef JLabelData < matlab.mixin.Copyable
       varForSSF.curFrame.curTime = curTime;
       
       for k = 1:4
-        varForSSF.posFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));
-        varForSSF.posFrames(k).flyNum = obj.windowdata.distNdx.flies(curP(k));
-        varForSSF.posFrames(k).curTime = obj.windowdata.distNdx.t(curP(k));
-        varForSSF.negFrames(k).expNum = obj.windowdata.distNdx.exp(curN(k));
-        varForSSF.negFrames(k).flyNum = obj.windowdata.distNdx.flies(curN(k));
-        varForSSF.negFrames(k).curTime = obj.windowdata.distNdx.t(curN(k));
+        varForSSF.posFrames(k).expNum = obj.windowdata(ICLS).distNdx.exp(curP(k));
+        varForSSF.posFrames(k).flyNum = obj.windowdata(ICLS).distNdx.flies(curP(k));
+        varForSSF.posFrames(k).curTime = obj.windowdata(ICLS).distNdx.t(curP(k));
+        varForSSF.negFrames(k).expNum = obj.windowdata(ICLS).distNdx.exp(curN(k));
+        varForSSF.negFrames(k).flyNum = obj.windowdata(ICLS).distNdx.flies(curN(k));
+        varForSSF.negFrames(k).curTime = obj.windowdata(ICLS).distNdx.t(curN(k));
       end
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end  % method
