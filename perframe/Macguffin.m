@@ -354,7 +354,7 @@ classdef Macguffin < handle
         % convert all 'None's to No_<beh> in labels
         lbls = m(i).labels;
         if numel(behs)==1 && strcmpi(nobehs{1},'none')
-          lbls = Labels.renameBehavior(lbls,nobehs{1},Labels.noBehaviorName(behs{1}),behs{1},behs{1});
+          lbls = Labels.renameBehaviorRaw(lbls,nobehs{1},Labels.noBehaviorName(behs{1}));
         end
         alllabels{i} = lbls;
       end
