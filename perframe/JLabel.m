@@ -10076,49 +10076,37 @@ return
 
 % --------------------------------------------------------------------
 function menu_file_change_behavior_name_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_change_target_type (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-behaviorName = handles.data.getBehaviorName();
-ChangeBehaviorNameDialog(behaviorName,handles.figure_JLabel);
-return
-
-
-% -------------------------------------------------------------------------
-function changeBehaviorNameDone(figureJLabel,newBehaviorName)
-
-% get handles
-handles=guidata(figureJLabel);
-
-% if new same as old, do nothing
-data=handles.data;  % a ref
-if isequal(newBehaviorName,data.getBehaviorName())
-  return
+behs = handles.data.getBehaviorNames();
+newbehs = inputdlg(behs,'Change behavior names',1,behs,'on');
+if isempty(newbehs) ... % cancel 
+  || isequal(behs,newbehs)
+  return;
 end
-  
-% Update the status, change the pointer to the watch
-SetStatus(handles,'Changing behavior name...');
 
-% Set the behavior name in JLabelData
-data.setBehaviorName(newBehaviorName);
+behs = behs(:);
+tfDiff = ~strcmp(behs,newbehs);
+behs = behs(tfDiff);
+newbehs = newbehs(tfDiff);
 
-% % Note that we now need saving
-% handles.data.needsave=true;
+SetStatus(handles,sprintf('Changing %d behavior name(s)...',numel(behs)));
+try
+  for i = 1:numel(behs)
+    handles.data.renameBehavior(behs{i},newbehs{i});
+  end
+catch ME
+  % roll back
+  for j = i-1:-1:1
+    handles.data.renameBehavior(newbehs{j},behs{j});
+  end
+  error('JLabel:renameBehavior','Error renaming ''%s'' -> ''%s'': %s',...
+    behs{i},newbehs{i},ME.message);
+end
 
-% Update the names on the labeling buttons
 handles = UpdateLabelButtons(handles);
-
-% Update the plots
-%UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
-%UpdatePlots(handles);
-
-% Done, set status message to cleared message, pointer to normal
 syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
+guidata(handles.figure_JLabel,handles);
 
 uiwait(helpdlg('You have changed the behavior name. You may want to change the score file name.','Change score file name'));
 
@@ -10232,15 +10220,6 @@ if isempty(newsfn) ... % cancel
 end
 
 handles.data.setScoreFileName(newsfn); % throws
-
-%SetStatus(handles,'Changing score file name...');
-
-% Update the names on the labeling buttons
-%handles = UpdateLabelButtons(handles);
-
-% Done, set status message to cleared message, pointer to normal
-%syncStatusBarTextWhenClear(handles);
-%ClearStatus(handles);
 
 % -------------------------------------------------------------------------
 function menu_classifier_compareFrames_Callback(hObject,eventdata,handles)

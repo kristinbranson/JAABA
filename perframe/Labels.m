@@ -294,36 +294,56 @@ classdef Labels
        end
     end
     
-    function labels = renameBehavior(labels,behOld,behNew,realbehOld,realbehNew)
-      % behOld: old label
-      % realbehOld: "real behavior" corresponding to behOld (for real
-      % behavior labels, will be same as behOld)
-      % behNew: new label
-      % realbehNew: etc
+    function labels = renameBehavior(labels,behOld,behNew,nobehOld,nobehNew)
+      % behOld: old behaviorname
+      % behNew: new "
+      % nobehOld: old no-behaviorname
+      % nobehNew: new "
+      %
+      % This renames behOld->behNew and nobehOld->nobehNew throughout
+      % labels. It also updates the fieldnames of timelinetimestamps. The
+      % values of timelinetimestamps (eg the timestamps themselves) are not
+      % modified.
+      %
+      % This does not do error checking, behOld should be present in
+      % timelinetimestamps etc.
       
-      % AL 20140910: This works in the one current callsite, where None is
-      % renamed to No_<beh>, but this method is broken for other use cases 
-      % b/c you typically need to rename the behavior and its No-behavior 
-      % labels simultaneously. (Doing one then the other currently fires 
-      % the assert about the timelinetimestamp etc)
-            
       for iExp = 1:numel(labels)
         for iFly = 1:numel(labels(iExp).flies)
           % rename bout lbls
-          tf = strcmp(labels(iExp).names{iFly},behOld);
-          labels(iExp).names{iFly}(tf) = {behNew};
+          tf1 = strcmp(labels(iExp).names{iFly},behOld);
+          tf2 = strcmp(labels(iExp).names{iFly},nobehOld);
+          labels(iExp).names{iFly}(tf1) = {behNew};
+          labels(iExp).names{iFly}(tf2) = {nobehNew};
           
           % rename timelinetimestamp
-          timelineTS = labels(iExp).timelinetimestamp{iFly};
-          if strcmp(realbehOld,realbehNew)
+          if strcmp(behOld,behNew)
             % no operation necessary
           else
-            assert(isfield(timelineTS,realbehOld));
-            assert(~isfield(timelineTS,realbehNew));
-            val = timelineTS.(realbehOld);
-            timelineTS.(realbehNew) = val;
-            labels(iExp).timelinetimestamp{iFly} = rmfield(timelineTS,realbehOld);
+            timelineTS = labels(iExp).timelinetimestamp{iFly};
+            assert(isfield(timelineTS,behOld));
+            assert(~isfield(timelineTS,behNew));
+            val = timelineTS.(behOld);
+            timelineTS.(behNew) = val;
+            labels(iExp).timelinetimestamp{iFly} = rmfield(timelineTS,behOld);
           end
+        end
+      end      
+    end
+      
+    function labels = renameBehaviorRaw(labels,behOld,behNew)
+      % behOld: old label
+      % behNew: new label
+      %
+      % Replace label behOld with behNew throughout labels. behOld/behNew
+      % may represent either real behaviors or no-behaviors.
+      % WARNING: timelinetimestamps are unmodified. See
+      % Lables.renameBehavior for a safer rename method.
+
+      for iExp = 1:numel(labels)
+        for iFly = 1:numel(labels(iExp).flies)
+          tf = strcmp(labels(iExp).names{iFly},behOld);
+          labels(iExp).names{iFly}(tf) = {behNew};
         end
       end
     end
@@ -475,8 +495,9 @@ classdef Labels
       off = 1-T0;
       m = zeros(nExp,nFrm,nBeh);
       
-      nobehNames = Labels.noneOrNoBehaviorNames(behNames);
-      behnobeh = [behNames(:) nobehNames(:)];
+      behnobeh = Labels.behnames2labelnames(behNames);
+      behnobeh = reshape(behnobeh,nBeh,2); 
+      %behnobeh = [behNames(:) nobehNames(:)];
       
       for iExp = 1:nExp
         L = labels(iExp);
@@ -669,15 +690,11 @@ classdef Labels
       nobeh = ['No_' beh];
     end
     
-    function nobehnames = noneOrNoBehaviorNames(behnames)
-      % Semi-dup of behnames2labelnames
-      
-      assert(iscellstr(behnames));
-      n = numel(behnames);
-      if n==1
-        nobehnames = {'None'};
+    function n = noneOrNoBehaviorName(beh,nCls)
+      if nCls==1
+        n = 'None';
       else
-        nobehnames = cellfun(@Labels.noBehaviorName,behnames,'uni',0);
+        n = Labels.noBehaviorName(beh);
       end
     end
     
@@ -685,7 +702,7 @@ classdef Labels
       % Augment behavior names with no-behavior names to get full set of
       % labelnames
       
-      lblnames = behnames(:)';      
+      lblnames = behnames(:)';
       nbeh = numel(behnames);
       switch nbeh
         case 1 % classic/singleBehavior
