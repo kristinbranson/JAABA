@@ -3572,8 +3572,10 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function result=isValidBehaviorName(behaviorName)
-      result=~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once'));
+    function result = isValidBehaviorName(behaviorName)
+      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
+        isvarname(behaviorName); 
+      % AL: second condition because labels.timelinetimestamp, see Labels.m
     end
 
     
@@ -4001,41 +4003,59 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function setBehaviorName(obj,behaviorName)
-      % ALTODO: See Labels.renameBehavior
-      % Set the behavior name, a string
+    function renameBehavior(obj,oldBeh,newBeh)
+      % oldBeh/newBeh: char, old/new behavior name
+      %
+      % This method operates atomically for now, eg if there is a throw it
+      % will occur before obj is modified.
+    
+      % Substance here is to update .labelnames, .labels, .labelidx,
+      % .otherModeLabelsEtc.labels.
       
-      if JLabelData.isValidBehaviorName(behaviorName),
-        oldbehaviorname = obj.labelnames{1};
-        obj.labelnames = {behaviorName 'None'};
-        obj.nbehaviors = 2;
-        obj.needsave=true;
-        
-        % ALTODO: see Labels.renameBehavior
-        for expi = 1:obj.nexps
-          for flynum = 1:numel(obj.labels(expi).flies)
-            for bnum = 1:numel(obj.labels(expi).names{flynum})
-              if strcmp(obj.labels(expi).names{flynum}{bnum},oldbehaviorname),
-                obj.labels(expi).names{flynum}{bnum} = behaviorName;
-              end
-              
-            end
-            
-          end
-          
-        end
-        
-      else
-        error('JLabelData:invalidBehaviorName','Invalid behavior name');
+      assert(ischar(oldBeh) && ischar(newBeh));
+
+      iCls = find(strcmp(oldBeh,obj.classifiernames));
+      if ~isscalar(iCls)
+        error('JLabelData:behaviorNotPresent',...
+          'Behavior ''%s'' is not present in the project.',oldBeh);
       end
+      if strcmp(newBeh,oldBeh)
+        % no change
+        return;
+      end
+      if ~JLabelData.isValidBehaviorName(newBeh)
+        error('JLabelData:invalidBehaviorName',...
+          '''%s'' is an invalid behavior name.',newBeh);
+      end
+      if any(strcmp(newBeh,obj.labelnames))
+        error('JLabelData:duplicateName',...
+          'The project already contains a behavior with name ''%s''.',newBeh);
+      end
+      
+      % update .labelnames, .labels, .labelidx
+      nCls = obj.nclassifiers;
+      oldNoBeh = obj.labelnames{iCls+nCls};
+      newNoBeh = Labels.noneOrNoBehaviorName(newBeh,nCls);
+      assert(isequal(obj.labelidx.labelnames,obj.labelnames));
+      obj.labelnames{iCls} = newBeh;
+      obj.labelnames{iCls+nCls} = newNoBeh;
+      obj.labelidx.labelnames = obj.labelnames;
+      obj.labels = Labels.renameBehavior(obj.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
+      
+      if ~isempty(obj.otherModeLabelsEtc.labels)
+        warning('JLabelData:untestedCodepath',...
+          'Untested functionality: Updating other-mode labels.');
+          obj.otherModeLabelsEtc.labels = Labels.renameBehavior(...
+            obj.otherModeLabelsEtc.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
+      end
+      
+      obj.needsave = true;        
     end
         
         
     % ---------------------------------------------------------------------
-    function behaviorName = getBehaviorName(obj)
-      % Get the behavior name, a string
-      % ALXXX EXTENDED
-      behaviorName = obj.labelnames{1};
+    function n = getBehaviorNames(obj)
+      n = obj.classifiernames;
     end
     
     function tf = isBehaviorName(obj,name)
@@ -5674,7 +5694,7 @@ classdef JLabelData < matlab.mixin.Copyable
         % check the behavior name
         if isfield(S,'behaviorName')
           if ~strcmp(S.behaviorName,behNames{i})
-            warning('LoadScores:possibleBehaviorMismatch',...
+            warningNoTrace('LoadScores:possibleBehaviorMismatch',...
               'Possible behavior mismatch. Behavior name in score file: %s. Expected: %s.',S.behaviorName,behNames{i});
           end
         end
@@ -6189,9 +6209,12 @@ classdef JLabelData < matlab.mixin.Copyable
         if importlabels % Change the names
           assert(numel(Q.x.behaviors.names)==2);
           origBehName = Q.x.behaviors.names{1};
+          origNoBehName = Q.x.behaviors.names{2};
+          assert(strcmpi(origNoBehName,'none'));
           newBehName = obj.labelnames{1};
-          labels = Labels.renameBehavior(labels,origBehName,newBehName,...
-            origBehName,newBehName);
+          newNoBehName = obj.labelnames{2};
+          assert(strcmpi(newNoBehName,'none'));
+          labels = Labels.renameBehavior(labels,origBehName,newBehName,origNoBehName,newNoBehName);
         end
         
         curexp = find(strcmp(expdirname,obj.expdirs));
