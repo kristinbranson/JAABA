@@ -7308,18 +7308,23 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
 
+function [tfsuccess,sfn] = hlpGetScoreFiles(jldata,expi,uiFcn)
+% Prompt user to specify score files for all classifiers/behaviors
+%
+% uiFcn: function handle, eg uigetfile or uiputfile
+% tfsuccess: if true, scorefiles returned in sfn as cellstr of full paths. 
+%   If false, sfn indeterminate
 
-% --------------------------------------------------------------------
-function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
+nCls = jldata.nclassifiers;
+behs = jldata.classifiernames;
+expname = jldata.expnames{expi};
+scoredir = jldata.defaultpath;
 
-nCls = handles.data.nclassifiers;
-behs = handles.data.classifiernames;
-expname = handles.data.expnames{handles.data.expi};
-scoredir = handles.data.defaultpath;
+tfsuccess = false;
 sfn = cell(nCls,1);
 for i = 1:nCls
   tstring = sprintf('Scores file for %s: %s',expname,behs{i});
-  [fname,pname,~] = uigetfile('*.mat',tstring,scoredir);
+  [fname,pname,~] = uiFcn('*.mat',tstring,scoredir);
   if ~fname
     % user canceled
     return; 
@@ -7327,8 +7332,18 @@ for i = 1:nCls
   sfn{i} = fullfile(pname,fname);
   scoredir = pname;
 end
-handles.data.LoadScores(handles.data.expi,sfn);
 
+tfsuccess = true;
+
+
+% --------------------------------------------------------------------
+function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
+
+[tfsuccess,sfn] = hlpGetScoreFiles(handles.data,handles.data.expi,@uigetfile);
+if ~tfsuccess
+  return;
+end
+handles.data.LoadScores(handles.data.expi,sfn);
 hlpImport(handles);
 
 
@@ -8116,17 +8131,15 @@ function menu_classifier_classifyCurrentMovieSaveNew_Callback(hObject, eventdata
 
 assert(~handles.data.isST,'ST unsupported.');
 
-expi = handles.data.expi;
-fspec = fullfile(handles.data.expdirs{expi},'*.mat'); 
-[fname,pname] = uiputfile(fspec);
-if fname==0,
+[tfsuccess,sfn] = hlpGetScoreFiles(handles.data,handles.data.expi,@uiputfile);
+if ~tfsuccess
   return;
 end
 try
-  handles.data.PredictSaveMovie(handles.data.expi,fullfile(pname,fname));
+  handles.data.PredictSaveMovie(handles.data.expi,sfn);
 catch excp
   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
-end  % try/catch
+end
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -8266,20 +8279,17 @@ function menu_classifier_classifyall_new_Callback(hObject, eventdata, handles)
 
 assert(~handles.data.isST,'ST unsupported.');
 
-fileNameAsCellArray = inputdlg('Save scores to file name:','Scores File Name?');
-if isempty(fileNameAsCellArray),
-  return
-else
-  fileName=fileNameAsCellArray{1};
-  if isempty(fileName)
-    return
-  end
+sfn = handles.data.GetFileName('scores');
+newsfn = inputdlg(sfn,'Score filenames',1,sfn,'on');
+if isempty(newsfn)
+  return;
 end
+
 try
   for ndx = 1:handles.data.nexps
-    thisExpDirName=handles.data.expdirs{ndx};
-    thisScoreFileName=fullfile(thisExpDirName,fileName);
-    handles.data.PredictSaveMovie(ndx,thisScoreFileName);
+    exp = handles.data.expdirs{ndx};
+    expsfn = cellfun(@(x)fullfile(exp,x),newsfn,'uni',0);
+    handles.data.PredictSaveMovie(ndx,expsfn);
   end
 catch excp
   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
