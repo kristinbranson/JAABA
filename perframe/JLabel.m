@@ -7311,11 +7311,22 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 % --------------------------------------------------------------------
 function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
-tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
-defaultPath = handles.data.defaultpath;
-[fname,pname,~] = uigetfile('*.mat',tstring,defaultPath);
-if ~fname; return; end;
-sfn = fullfile(pname,fname);
+
+nCls = handles.data.nclassifiers;
+behs = handles.data.classifiernames;
+expname = handles.data.expnames{handles.data.expi};
+scoredir = handles.data.defaultpath;
+sfn = cell(nCls,1);
+for i = 1:nCls
+  tstring = sprintf('Scores file for %s: %s',expname,behs{i});
+  [fname,pname,~] = uigetfile('*.mat',tstring,scoredir);
+  if ~fname
+    % user canceled
+    return; 
+  end
+  sfn{i} = fullfile(pname,fname);
+  scoredir = pname;
+end
 handles.data.LoadScores(handles.data.expi,sfn);
 
 hlpImport(handles);
