@@ -144,8 +144,6 @@ classdef JLabelData < matlab.mixin.Copyable
     % shared by all classifiers.
     windowdatachunk_radius
     predictwindowdatachunk_radius
-    % total number of experiments
-    %nexps = 0;  % this is now a dependent property
     
     % labels struct array. See also Labels.m
     % labels(expi) is the labeled data for experiment expi
@@ -237,13 +235,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % parameters to learning the classifier. struct fields depend on type of classifier.
     % 1-by-nclassifiers cell
     classifier_params
-    
-    % stuff cached during prediction
-    %predict_cache
-    
-    % % name of file containing config parameters
-    % configfilename = '';
-    
+        
     % constant: files per experiment directory
     %filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
     filetypes
@@ -400,7 +392,7 @@ classdef JLabelData < matlab.mixin.Copyable
     confThresholds % nclassifiers-by-2 array
     
     % Retrain properly
-    doUpdate 
+    doUpdate % ALTODO: does not appear to be used
     
     % Ground truthing or not
     gtMode        % Seems like it would make sense to not have
@@ -418,7 +410,7 @@ classdef JLabelData < matlab.mixin.Copyable
     balancedGTSuggestions
     GTSuggestionMode
     
-    cacheSize
+    cacheSize % ALTODO comments suggests obsolete
     savewindowdata % 1-by-nclassifiers double
     loadwindowdata % 1-by-nclassifiers double. 
     
@@ -593,7 +585,6 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifierTS = zeros(1,0); 
       self.trainstats = cell(1,0);
       self.classifier_params = cell(1,0);
-      %self.predict_cache = struct;
       self.filetypes = {'movie','trx','perframedir','clipsdir','scores','stfeatures'};
       self.moviefilename = 0;
       self.trxfilename = 0;
