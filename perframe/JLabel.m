@@ -1862,15 +1862,6 @@ return
 % -------------------------------------------------------------------------
 function handles = UpdateTimelineImages(handles)
 
-% Note: this function directly accesses handles.data.labelidx,
-% handles.data.predictedidx for speed, so make sure we've preloaded the
-% right experiment, flies
-% REMOVED!
-
-% if handles.data.expi ~= handles.data.expi || ~all(handles.data.flies == handles.data.flies),
-%   handles.data.Preload(handles.data.expi,handles.data.flies);
-% end
-
 %MERGESTUPDATED
 
 jldata = handles.data;
