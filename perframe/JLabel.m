@@ -3233,17 +3233,6 @@ if ~proceed,
 end
 handles=guidata(hObject);
 
-% if ~isempty(handles.data) && handles.data.NeedSaveProject(),
-%   res = questdlg(['Current window features do not match the ones in the project file.'...
-%       'Update the project file with the current window features?'],...
-%       'Update?','Yes','No','Cancel','Yes');
-%   if strcmpi(res,'Yes')
-%     menu_file_save_project_Callback(hObject,eventdata,handles);
-%   elseif strcmpi(res,'Cancel');
-%     return;
-%   end
-% end  
-
 if ~isempty(handles.guidata.movie_fid) && ...
     handles.guidata.movie_fid > 1 && ~isempty(fopen(handles.guidata.movie_fid)),
   fclose(handles.guidata.movie_fid);
@@ -8303,15 +8292,15 @@ end
 return
 
 
-% --------------------------------------------------------------------
-function menu_file_save_project_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_project (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.data.SaveProject();
-set(handles.menu_file_save_project,'Enable','off');
-return
-
+% % --------------------------------------------------------------------
+% function menu_file_save_project_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_save_project (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% handles.data.SaveProject();
+% set(handles.menu_file_save_project,'Enable','off');
+% return
+% 
 
 % --------------------------------------------------------------------
 function menu_help_Callback(hObject, eventdata, handles)
@@ -9019,33 +9008,6 @@ return
 
 
 % -------------------------------------------------------------------------
-% function setLabelingMode(figureJLabel,modeString)
-% handles=guidata(figureJLabel);
-% data=handles.data;  % a ref, or empty
-% if isempty(data)
-%   error('JLabel.dataIsEmpty','JLabel data is currently empty');  %#ok
-% else
-%   switch modeString,
-%     case 'Advanced',
-%       data.SetAdvancedMode(true);
-%       data.SetGTMode(false);
-%     case 'Normal'
-%       data.SetAdvancedMode(false);
-%       data.SetGTMode(false);
-%     case 'Ground Truthing',
-%       data.SetAdvancedMode(false);
-%       data.SetGTMode(true);
-%     case 'Ground Truthing Advanced',
-%       data.SetAdvancedMode(true);
-%       data.SetGTMode(true);
-%   end 
-%   data.SetMode();
-% end
-% 
-% return
-
-
-% -------------------------------------------------------------------------
 function data=getJLabelData(figureJLabel)
 
 handles=guidata(figureJLabel);
@@ -9244,20 +9206,6 @@ if ~proceed,
   return;
 end
 handles = guidata(hObject);  % re-load handles, may have changed
-
-% % Check if any of the project things have changed, and if so, see if user
-% % wants to save.  (How should this work in the context of the everything
-% % files?)
-% if ~isempty(handles.data) && handles.data.NeedSaveProject(),
-%   res = questdlg(['Current window features do not match the ones in the project file.'...
-%       'Update the project file with the current window features?'],...
-%       'Update?','Yes','No','Cancel','Yes');
-%   if strcmpi(res,'Yes')
-%     menu_file_save_project_Callback(hObject,eventdata,handles);
-%   elseif strcmpi(res,'Cancel');
-%     return;
-%   end    
-% end  
 
 % Unset the current movie
 handles=UnsetCurrentMovie(handles);
