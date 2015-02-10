@@ -476,15 +476,19 @@ classdef JLabelData < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   methods  % getters and setters need to be in a methods block with no access specifiers
+    
     function v = get.nclassifiers(self)
       v = self.ntimelines;
     end
+    
     function v = get.classifiernames(self)
       v = self.labelnames(1:self.nclassifiers);
     end
+    
     function v = get.nobehaviornames(self)
       v = self.labelnames(self.nclassifiers+1:end);
     end
+    
     function v = get.iCls2LblNames(self)
       lblnames = self.labelnames;
       iCls2iLbl = self.iCls2iLbl;
@@ -495,37 +499,20 @@ classdef JLabelData < matlab.mixin.Copyable
       % Get the names of all the experiments for the current GT mode
       expDirNames = self.expdirs;
       expnames = cellfun(@fileBaseName,expDirNames,'UniformOutput',false);
-    end
-    
-%     function set.expnames(self,newValue)  %#ok
-%       % Do nothing, b/c now we just compute expnames when we need it 
-%       % Eventually this method should go away, and all calls to it also.
-%       warning('Trying to set JLabelData.expnames');
-%     end    
+    end    
     
     function nexps = get.nexps(self)
       % Get the number of experiments for the current GT mode
       nexps = length(self.expdirs);
     end
     
-%     function set.nexps(self,newValue)  %#ok
-%       % Do nothing, b/c now we just compute nexps when we need it 
-%       % Eventually this method should go away, and all calls to it also.
-%       warning('Trying to set JLabelData.nexps');
-%     end
-
-    function nTargetsInCurrentExp=get.nTargetsInCurrentExp(self)
+    function nTargetsInCurrentExp = get.nTargetsInCurrentExp(self)
       if self.nexps>0 && ~isempty(self.expi) && self.expi~=0 ,
         nTargetsInCurrentExp=self.nflies_per_exp(self.expi);
       else
         nTargetsInCurrentExp=[];
       end
-    end
-    
-%     function set.nTargetsInCurrentExp(self,newValue)  %#ok
-%       % do nothing---this property is read-only
-%       warning('Trying to set JLabelData.nTargetsInCurrentExp');
-%     end
+    end    
     
     function ismovie = get.ismovie(self)
       % Get whether the movie file name is set
@@ -1384,87 +1371,14 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.UpdatePredictedIdx();
       end
       
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function SetTrainingData(obj,trainingdata)  %#ok
-    % SetTrainingData(obj,trainingdata)
-    % Sets the labelidx_cur of windowdata based on the input training data.
-    % This reflects the set of labels the classifier was last trained on. 
-      return;
-%       for i = 1:numel(trainingdata),
-%         [ism,labelidx] = ismember(trainingdata(i).names,obj.labelnames);
-%         if any(~ism),
-%           tmp = unique(trainingdata(i).names(~ism));
-%           error('Unknown labels %s',sprintf('%s ',tmp{:})); %#ok<SPERR>
-%         end
-%         isexp = obj.windowdata.exp == i;
-%         for j = 1:numel(trainingdata(i).t0s),
-%           t0 = trainingdata(i).t0s(j);
-%           t1 = trainingdata(i).t1s(j);
-%           l = labelidx(j);
-%           flies = trainingdata(i).flies(j,:);
-%           isflies = isexp & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
-%           ist = isflies & obj.windowdata.t >= t0 & obj.windowdata.t < t1;
-%           if nnz(ist) ~= (t1-t0),
-%             uiwait(warndlg('Labels in the classifier do not match the training data'));
-%           end
-%           obj.windowdata.labelidx_cur(ist) = l;
-%         end
-%       end
-    end  % method
-
-    
-%    % ---------------------------------------------------------------------
-%    function trainingdata = SummarizeTrainingData(obj)
-%    % trainingdata = SummarizeTrainingData(obj)
-%    % Summarize labelidx_cur into trainingdata, which is similar to the
-%    % form of labels.
-%      
-%      trainingdata = struct('t0s',{},'t1s',{},'names',{},'flies',{});
-%      waslabeled = obj.windowdata.labelidx_cur;
-%      for expi = 1:obj.nexps,
-%        trainingdata(expi) = struct('t0s',[],'t1s',[],'names',{{}},'flies',[]);
-%        isexp = waslabeled & obj.windowdata.exp == expi;
-%        if ~any(isexp),
-%          continue;
-%        end
-%        fliess = unique(obj.windowdata.flies(isexp,:),'rows');
-%        for fliesi = 1:size(fliess,1),
-%          flies = fliess(fliesi,:);
-%          isflies = isexp & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
-%          labelidxs = setdiff(unique(obj.windowdata.labelidx_cur(isflies)),0);
-%          for labelidxi = 1:numel(labelidxs),
-%            labelidx = labelidxs(labelidxi);
-%            islabel = isflies & labelidx == obj.windowdata.labelidx_cur;
-%            ts = sort(obj.windowdata.t(islabel));
-%            breaks = find(ts(1:end-1)+1~=ts(2:end));
-%            t1s = ts(breaks)+1;
-%            t0s = ts(breaks+1);
-%            t0s = [ts(1);t0s];%#ok<AGROW>
-%            t1s = [t1s;ts(end)+1];%#ok<AGROW>
-%            n = numel(t0s);
-%            trainingdata(expi).t0s(end+1:end+n,1) = t0s;
-%            trainingdata(expi).t1s(end+1:end+n,1) = t1s;
-%            trainingdata(expi).names(end+1:end+n,1) = repmat(obj.labelnames(labelidx),[%1,n]);
-%            trainingdata(expi).flies(end+1:end+n,:) = repmat(flies,[n,1]);
-%          end
-%        end
-%      end
-%    end  % method
-
-    
+    end    
+   
+        
     % ---------------------------------------------------------------------
     function FindFastPredictParams(obj)
       obj.fastPredict = Predict.fastPredictInit(obj.fastPredict,...
         obj.classifier,obj.classifierTS,{obj.windowdata.featurenames}); 
     end
-    
-    % ---------------------------------------------------------------------
-    %function FindWfidx(obj,iCls,feature_names)
-    %  obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(obj.fastPredict(iCls),feature_names);     
-    %end
     
     
     % ---------------------------------------------------------------------
@@ -3937,37 +3851,6 @@ classdef JLabelData < matlab.mixin.Copyable
 % Configuration settings.
 
     % ---------------------------------------------------------------------
-
-%     function [success,msg] = SetConfigFileName(obj,configfilename)
-%       % [success,msg] = SetConfigFileName(obj,configfilename)
-%       % Set and read config file.
-%       % Reads the XML config file, then sets all the file names and paths.
-%       % I think this currently needs to be called before experiments, labels
-%       % are loaded in, as locations of files, behaviors can be modified by
-%       % this step.
-%       % labelnames, nbehaviors are also set by the config file. If not
-%       % included explicitly, the 'None' behavior is added. 'None' is put at
-%       % the end of the behavior list.
-%       
-%       success = false;
-%       msg = '';
-%       if ~ischar(configfilename),
-%         return;
-%       end
-%       %       try
-%       [~,~,ext] = fileparts(configfilename);
-%       if strcmp(ext,'.xml'),
-%         configParams = ReadXMLConfigParams(configfilename);
-%       else
-%         configParams = load(configfilename);
-%       end
-%       
-%       [success,msg] = setProjectParams(obj,configParams,configfilename);
-%       
-%     end
-
-
-    % ---------------------------------------------------------------------
     function basicParams = getBasicParamsStruct(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
@@ -4097,82 +3980,6 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
     
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetLabelFileName(obj,labelfilename)
-%     % [success,msg] = SetLabelFileName(obj,labelfilename)
-%     % set the name of the label file within the experiment directory. this
-%     % does not currently update labelidx, and probably should not be called
-%     % once an experiment is open. 
-%       
-%       success = false;
-%       msg = 'Error in JLabelData.SetLabelFileName()';
-% 
-%       if ischar(labelfilename),
-%         if ischar(obj.labelfilename) && strcmp(labelfilename,obj.labelfilename),
-%           success = true;
-%           return;
-%         end
-% 
-%         % reload labels from file
-%         for expi = 1:obj.nexps,
-%           [success1,msg] = obj.LoadLabelsFromFile(expi);
-%           if ~success1,
-%             return;
-%           end
-%         end
-%         
-%         obj.labelfilename = labelfilename;
-%         [success,msg] = obj.UpdateStatusTable('label');   
-%       else
-%         
-%       end
-%       
-%     end
-
-        
-%     % ---------------------------------------------------------------------
-%     function setGTLabelsFromStructForAllExps(self,gtLabelsForAll)
-%       nExps=length(self.gtExpDirNames);
-%       for expi = 1:nExps,
-%         self.loadGTLabelsFromStructForOneExp(expi,gtLabelsForAll(expi));
-%         %self.gt_labelfilename = 0;
-%         self.UpdateStatusTable('gt_label');   
-%       end
-%     end
-
-    
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetGTLabelFileName(obj,gt_labelfilename)
-%     % [success,msg] = SetGTLabelFileName(obj,labelfilename)
-%     % set the name of the *ground truth* label file within the experiment directory. this
-%     % does not currently update labelidx, and probably should not be called
-%     % once an experiment is open. 
-% 
-%       success = false;
-%       msg = '';
-% 
-%       if ischar(gt_labelfilename),
-%         if ischar(obj.gt_labelfilename) && strcmp(gt_labelfilename,obj.gt_labelfilename),
-%           success = true;
-%           return;
-%         end
-% 
-%         % reload labels from file
-%         for expi = 1:obj.nexps,
-%           [success1,msg] = obj.LoadLabelsFromFile(expi);
-%           if ~success1,
-%             return;
-%           end
-%         end
-%         
-%         obj.gt_labelfilename = gt_labelfilename;
-%         [success,msg] = obj.UpdateStatusTable('gt_label');   
-%       end
-%       
-%     end
-    
 
     % ---------------------------------------------------------------------
     function scoreFileName = getScoreFileName(obj)
@@ -4234,308 +4041,6 @@ classdef JLabelData < matlab.mixin.Copyable
         drawnow;
       end
     end  % method
-
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetClassifierType(obj,classifiertype)
-% 
-%       success = true;
-%       msg = '';
-%       
-%       % TODO: retrain classifier if necessary
-%       if strcmpi(classifiertype,obj.classifiertype),
-%         return;
-%       end
-%       
-%       obj.classifiertype = classifiertype;
-%       
-%     end
-    
-
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = LoadLabelsFromExternalFile(obj,expdir,labelfilename)
-%       
-%       success = false; msg = '';
-%       if ~exist(labelfilename,'file'),
-%         msg = sprintf('Label file %s does not exist',labelfilename);
-%         return;
-%       end
-%       expi = find(strcmp(expdir,obj.expdirs),1);
-%       if isempty(expi),
-%         msg = sprintf('Experiment %s not loaded in',expdir);
-%         return;
-%       end
-% 
-%       obj.SetStatus('Loading labels for %s from %s',obj.expdirs{expi},labelfilename);
-%       
-%       %         try
-%       loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-%       
-%       if obj.IsGTMode(),
-%         obj.gt_labels(expi).t0s = loadedlabels.t0s;
-%         obj.gt_labels(expi).t1s = loadedlabels.t1s;
-%         obj.gt_labels(expi).names = loadedlabels.names;
-%         obj.gt_labels(expi).flies = loadedlabels.flies;
-%         obj.gt_labels(expi).off = loadedlabels.off;
-%         obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-%         obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-%         
-%         if iscell(loadedlabels.timestamp)
-%           obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
-%         else
-%           for ndx = 1:numel(loadedlabels.flies)
-%             nBouts = numel(loadedlabels.t0s{ndx});
-%             if isempty(loadedlabels.timestamp)
-%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
-%             else
-%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-%             end
-%           end
-%         end
-%         
-%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-%           obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
-%           obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
-%         else
-%           obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-%           obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-%         end
-%         
-%       else
-%         
-%         obj.labels(expi).t0s = loadedlabels.t0s;
-%         obj.labels(expi).t1s = loadedlabels.t1s;
-%         obj.labels(expi).names = loadedlabels.names;
-%         obj.labels(expi).flies = loadedlabels.flies;
-%         obj.labels(expi).off = loadedlabels.off;
-%         obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-%         obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-%         if iscell(loadedlabels.timestamp)
-%           obj.labels(expi).timestamp = loadedlabels.timestamp;
-%         else
-%           for ndx = 1:numel(loadedlabels.flies)
-%             nBouts = numel(loadedlabels.t0s{ndx});
-%             if isempty(loadedlabels.timestamp)
-%               obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
-%             else
-%               obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-%             end
-%           end
-%         end
-%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-%           obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
-%           obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
-%         else
-%           obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-%           obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-%         end
-%         
-%       end
-%         %         catch ME,
-%         %           msg = getReport(ME);
-%         %           obj.ClearStatus();
-%         %           return;
-%         %         end
-%       
-%       obj.ClearStatus();
-%       success = true;
-%       
-%     end
-    
-
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = LoadLabelsFromFile(obj,expi)
-%     % [success,msg] = LoadLabelsFromFile(obj,expi)
-%     % If the label file exists, this function loads labels for experiment
-%     % expi into obj.labels. Otherwise, it sets the labels to be empty. This
-%     % does not currently update the windowdata and labelidx (TODO). 
-%       
-%       %success = false;
-%       msg = '';
-%       labelfilename = obj.GetFile('label',expi);
-%       
-%       % if the labelfilename is zero, it means we're using the new
-%       % "everything" file, and we shouldn't load labels from the experiment
-%       % dir.
-%       if ischar(labelfilename) && exist(labelfilename,'file'),
-% 
-%         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
-%         
-%         %         try
-%         loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-%         obj.labels(expi).t0s = loadedlabels.t0s;
-%         obj.labels(expi).t1s = loadedlabels.t1s;
-%         obj.labels(expi).names = loadedlabels.names;
-%         obj.labels(expi).flies = loadedlabels.flies;
-%         obj.labels(expi).off = loadedlabels.off;
-%         obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-%         obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-%         if iscell(loadedlabels.timestamp)
-%           obj.labels(expi).timestamp = loadedlabels.timestamp;
-%         else
-%           for ndx = 1:numel(loadedlabels.flies)
-%             nBouts = numel(loadedlabels.t0s{ndx});
-%             if isempty(loadedlabels.timestamp)
-%               obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
-%             else
-%               obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-%             end
-%           end
-%         end
-%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-%           obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
-%           obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
-%         else
-%           obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-%           obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));    % all the labeled frames. 
-%         end
-%         %         catch ME,
-%         %           msg = getReport(ME);
-%         %           obj.ClearStatus();
-%         %           return;
-%         %         end
-%         
-%         obj.ClearStatus();
-%         
-%       else
-%         
-%         obj.labels(expi).t0s = {};
-%         obj.labels(expi).t1s = {};
-%         obj.labels(expi).names = {};
-%         obj.labels(expi).flies = [];
-%         obj.labels(expi).off = [];
-%         obj.labels(expi).timestamp = {};
-%         obj.labels(expi).imp_t0s = {};
-%         obj.labels(expi).imp_t1s = {};
-%         obj.labelstats(expi).nflies_labeled = 0;
-%         obj.labelstats(expi).nbouts_labeled = 0;
-% 
-%       end
-%       
-%       % TODO: update windowdata
-%       
-%       success = true;
-%       
-%     end
-    
-    
-%     % ---------------------------------------------------------------------
-%     function loadGTLabelsFromStructForOneExp(self,expi,gtLabels)
-%       % Load the GT labels for a single experiment into self.
-%             
-%       self.SetStatus('Loading GT labels for %s',self.expdirs{expi});
-% 
-%       self.gt_labels(expi).t0s = gtLabels.t0s;
-%       self.gt_labels(expi).t1s = gtLabels.t1s;
-%       self.gt_labels(expi).names = gtLabels.names;
-%       self.gt_labels(expi).flies = gtLabels.flies;
-%       self.gt_labels(expi).off = gtLabels.off;
-%       self.gt_labelstats(expi).nflies_labeled = size(gtLabels.flies,1);
-%       self.gt_labelstats(expi).nbouts_labeled = numel([gtLabels.t0s{:}]);
-%       if iscell(gtLabels.timestamp)
-%         self.gt_labels(expi).timestamp = gtLabels.timestamp;
-%       else
-%         for ndx = 1:numel(gtLabels.flies)
-%           nBouts = numel(gtLabels.t0s{ndx});
-%           if isempty(gtLabels.timestamp)
-%             self.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
-%           else
-%             self.gt_labels(expi).timestamp{ndx}(1:nBouts) = gtLabels.timestamp;
-%           end
-%         end
-%       end
-%       if isfield(gtLabels,'imp_t0s');
-%         self.gt_labels(expi).imp_t0s = gtLabels.imp_t0s;
-%         self.gt_labels(expi).imp_t1s = gtLabels.imp_t1s;
-%       else
-%         self.gt_labels(expi).imp_t0s = cell(1,numel(gtLabels.flies));
-%         self.gt_labels(expi).imp_t1s = cell(1,numel(gtLabels.flies));
-%       end
-% 
-%       self.ClearStatus();
-%     end
- 
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = LoadGTLabelsFromFile(obj,expi)
-%     % [success,msg] = LoadGTLabelsFromFile(obj,expi)
-%     % If the label file exists, this function loads labels for experiment
-%     % expi into obj.gt_labels. Otherwise, it sets the gt_labels to be empty. This
-%     % does not currently update the windowdata and labelidx (TODO). 
-%       
-%       %success = false; 
-%       msg = '';
-%       
-%       labelfilename = obj.GetFile('gt_label',expi);
-% 
-%       % if the labelfilename is zero, it means we're using the new
-%       % "everything" file, and we shouldn't load labels from the experiment
-%       % dir.
-%       if ischar(labelfilename) && exist(labelfilename,'file'),
-%         
-%         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
-%         
-%         %         try
-%         loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-%         obj.gt_labels(expi).t0s = loadedlabels.t0s;
-%         obj.gt_labels(expi).t1s = loadedlabels.t1s;
-%         obj.gt_labels(expi).names = loadedlabels.names;
-%         obj.gt_labels(expi).flies = loadedlabels.flies;
-%         obj.gt_labels(expi).off = loadedlabels.off;
-%         obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-%         obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-% 
-%         if iscell(loadedlabels.timestamp)
-%           obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
-%         else
-%           for ndx = 1:numel(loadedlabels.flies)
-%             nBouts = numel(loadedlabels.t0s{ndx});
-%             if isempty(loadedlabels.timestamp)
-%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
-%             else
-%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-%             end
-%           end
-%         end
-%         
-%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-%           obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
-%           obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
-%         else
-%           obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-%           obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-%         end
-%         %         catch ME,
-%         %           msg = getReport(ME);
-%         %           obj.ClearStatus();
-%         %           return;
-%         %         end
-%         
-%         obj.ClearStatus();
-%         
-%       else
-%         
-%         obj.gt_labels(expi).t0s = {};
-%         obj.gt_labels(expi).t1s = {};
-%         obj.gt_labels(expi).names = {};
-%         obj.gt_labels(expi).flies = [];
-%         obj.gt_labels(expi).off = [];
-%         obj.gt_labels(expi).timestamp = {};
-%         obj.gt_labels(expi).imp_t0s = {};
-%         obj.gt_labels(expi).imp_t1s = {};
-%         obj.gt_labelstats(expi).nflies_labeled = 0;
-%         obj.gt_labelstats(expi).nbouts_labeled = 0;
-%       end
-%       
-%       % TODO: update windowdata
-%       
-%       success = true;
-%       
-%     end
-    
 
     % ---------------------------------------------------------------------
     function [success,msg] = SetPerFrameDir(obj,perframedir)
@@ -4634,39 +4139,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     end
     
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetRootOutputDir(obj,rootoutputdir)
-%     % [success,msg] = SetRootOutputDir(obj,rootoutputdir)
-%     % sets the root directory for outputing files. currently, it does not
-%     % update labels, etc. or recheck for the existence of all the required
-%     % files. (TODO)
-%       
-%       success = true;
-%       msg = '';
-%       if ischar(rootoutputdir),
-%         if ischar(obj.rootoutputdir) && strcmp(obj.rootoutputdir,rootoutputdir),
-%           success = true;
-%           return;
-%         end
-%         if ~exist(rootoutputdir,'file'),
-%           msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',...
-%             rootoutputdir);
-%           success = false;
-%           return;
-%         end
-%         obj.rootoutputdir = rootoutputdir;
-%         for i = 1:obj.nexps,
-%           obj.outexpdirs{i} = fullfile(rootoutputdir,obj.expnames{i});
-%         end
-%         % TODO: check all files are okay, remove bad experiments
-%         
-%         [success,msg] = obj.UpdateStatusTable();
-%       end
-%       
-%     end    
-
-    
+        
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetClassifierFileName(self,classifierfilename,varargin)
 %     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
@@ -4881,150 +4354,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       obj.FindFastPredictParams();
 %     end  % setClassifierParamsOld() method
 
-    
-%     % ---------------------------------------------------------------------
-%     function setLabelsAndClassifier(self, ...
-%                                     everythingParams)
-%       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-%       % Sets the name of the classifier file. If the classifier file exists,
-%       % it loads the data stored in the file. This involves removing all the
-%       % experiments and data currently loaded, setting the config file,
-%       % setting all the file names set in the config file, setting the
-%       % experiments to be those listed in the classifier file, clearing all
-%       % the previously computed window data and computing the window data for
-%       % all the labeled frames.
-%       
-%       % % new-style everything files don't use classifier file names
-%       % self.classifierfilename = 0;
-% 
-%       % Update the status bar
-%       self.SetStatus('Loading classifier and labels...');
-% 
-%       % remove all experiments, if presents
-%       self.RemoveExpDirs(1:self.nexps);
-% 
-% %       % set movie
-% %       [success,msg] = self.SetMovieFileName(everythingParams.file.moviefilename);
-% %       if ~success,error(msg);end
-% %       
-% %       % trx
-% %       [success,msg] = self.SetTrxFileName(everythingParams.file.trxfilename);
-% %       if ~success,error(msg);end
-% % 
-% %       % perframedir
-% %       [success,msg] = self.SetPerFrameDir(everythingParams.file.perframedir);
-% %       if ~success,error(msg);end
-% %       
-% %       % clipsdir
-% %       [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
-% %       if ~success,error(msg);end
-% 
-%       % load the feature names
-%       %self.windowdata.featurenames = everythingParams.featurenames;
-% 
-%       % set experiment directories
-%       [success,msg] = ...
-%         self.SetExpDirs(everythingParams.expdirs);
-%       if ~success,error(msg); end
-%       
-%       % Update the status table
-%       [success,msg] = self.UpdateStatusTable();
-%       if ~success, error(msg); end
-% 
-% %       % update cached data  -- original location (does nothing)
-% %       [success,msg] = self.PreLoadPeriLabelWindowData();
-% %       if ~success,error(msg);end   
-%       
-%       % set the labels
-%       self.setLabelsFromStructForAllExps(everythingParams.labels);
-% 
-%       % set the GT labels
-%       self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
-% 
-%       % Preload the first track of the first video, which sets the current
-%       % experiment and track to experiment 1, track 1
-%       if (self.nexps>0)
-%         self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
-%         [success1,msg1] = self.setCurrentTarget(1,1);
-%         if ~success1,
-%           msg = sprintf('Error getting basic trx info: %s',msg1);
-%           self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
-%           uiwait(warndlg(msg));
-%           self.RemoveExpDirs(1:obj.nexps);
-%           self.ClearStatus();
-%           return;
-%         end
-%       end
-%                   
-%       % Read certain fields out of the classifier, setting them in self
-%       self.classifier = everythingParams.classifier.params;
-%       self.classifiertype = everythingParams.classifier.type;
-%       self.classifierTS = everythingParams.classifier.timeStamp;
-%       self.windowdata.scoreNorm = everythingParams.classifier.scoreNorm;
-%       self.confThresholds = everythingParams.classifier.confThresholds;
-%       if isfield(everythingParams,'postprocessparams')
-%         self.postprocessparams = everythingParams.classifier.postProcessParams;
-%       end
-%       
-%       % Read the per-frame features to be used by a classifier
-%       windowFeaturesParams=everythingParams.classifier.windowFeaturesParams;
-%       %windowFeaturesCellParams= ...
-%       %  JLabelData.convertParams2CellParams(windowFeaturesParams);
-%       self.setWindowFeaturesParamsRaw(windowFeaturesParams);
-%       %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
-%       %self.windowfeaturescellparams= ...
-%       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
-%       %self.curperframefns=fieldnames(self.windowfeaturesparams);
-%       self.basicFeatureTable=everythingParams.classifier.basicFeatureTable;
-%       self.maxWindowRadiusCommonCached=everythingParams.classifier.maxWindowRadiusCommonCached;
-%       
-%       % Set the window feature names
-%       feature_names = {};
-%       for j = 1:numel(self.curperframefns),
-%         fn = self.curperframefns{j};
-%         [~,feature_names_curr_proto] = ComputeWindowFeatures([0,0],...
-%                                                              self.windowfeaturescellparams.(fn){:});
-%         feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
-%         feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-%       end
-%       self.windowdata.featurenames = feature_names;
-%       
-%       % Read the classifier_params field out of the classifier.  This
-%       % contains things like the number of iterations used for training,
-%       % the number of folds used for cross-validation, etc.
-%       self.classifier_params=everythingParams.classifier.trainingParams;
-%       
-%       % update cached data
-%       [success,msg] = self.PreLoadPeriLabelWindowData();
-%       if ~success,error(msg);end   
-%       
-%       % predict for all loaded examples
-%       self.PredictLoaded();
-% 
-%       % SetTrainingData() does nothing
-%       % % set labelidx_cur
-%       % self.SetTrainingData(everythingParams.trainingdata);
-% 
-%       % make sure inds is ordered correctly
-%       if ~isempty(self.classifier),
-%         switch self.classifiertype,
-%           case 'ferns',
-%             waslabeled = self.windowdata.labelidx_cur ~= 0;
-%             self.classifier.inds = self.predict_cache.last_predicted_inds(waslabeled,:);
-%         end
-%       end
-% 
-%       % clear the cached per-frame, trx data
-%       self.ClearCachedPerExpData();
-% 
-%       % Set the status bar back to the default message
-%       self.ClearStatus();
-%       
-%       % No idea what this does -- ALT, Mar 5, 2013
-%       self.FindFastPredictParams();
-%     end  % setLabelsAndClassifier() method
-
-    
+        
     % ---------------------------------------------------------------------
     function setAllLabels(self, ...
                           everythingParams)
@@ -5208,129 +4538,7 @@ classdef JLabelData < matlab.mixin.Copyable
       %self.PreLoadPeriLabelWindowData();  % do we need to do this?
     end  
 
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
-% 
-%       success = false;
-%       msg = '';
-%       
-%       obj.classifierfilename = classifierfilename;
-%       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
-% %         try
-% 
-%           loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
-% 
-%           if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
-%             success = false;
-%             msg = ['Label files specified for the project doesn''t match the labelfiles '...
-%               'used to train the classifier. Not loading the classifier'];
-%             return;
-%           end
-%           
-%           obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
-% 
-%           % remove all experiments
-%           % obj.RemoveExpDirs(1:obj.nexps);
-% 
-%           % set config file
-% %           if ~strcmp(obj.configfilename,'configfilename'),
-% %             obj.SetConfigFileName(loadeddata.configfilename);
-% %           end
-% 
-%           % set movie
-%           [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
-%           if ~success,error(msg);end
-% 
-%           % trx
-%           [success,msg] = obj.SetTrxFileName(loadeddata.trxfilename);
-%           if ~success,error(msg);end
-%       
-%           % label
-%           [success,msg] = obj.SetLabelFileName(loadeddata.labelfilename);
-%           if ~success,error(msg);end
-%       
-%           % perframedir
-%           [success,msg] = obj.SetPerFrameDir(loadeddata.perframedir);
-%           if ~success,error(msg);end
-% 
-%           % clipsdir
-%           [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
-%           if ~success,error(msg);end
-% 
-%           % featureparamsfilename
-% %           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
-% %           if ~success,error(msg);end
-% 
-%           % load actual window features params instead of filename.
-%           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
-%               'basicFeatureTable','maxWindowRadiusCommonCached'}))
-%             loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
-%             loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
-%             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-%                   isequal(obj.maxWindowRadiusCommonCached,loadeddata.maxWindowRadiusCommonCached)),
-%                 str = sprintf('Window feature parameters in the configuration file');
-%                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
-%                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
-%                 uiwait(warndlg(str));
-%                 obj.setWindowFeaturesParams(loadeddata.windowfeaturesparams,...
-%                   loadeddata.basicFeatureTable,...
-%                   loadeddata.maxWindowRadiusCommonCached,false);
-%             else
-%               obj.MoveCurPredictionsToOld();
-%               
-%               obj.windowdata.scoreNorm = [];
-%               % To later find out where each example came from.
-%               
-%               %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
-%               
-%               obj.FindFastPredictParams();
-%               obj.PredictLoaded();
-% 
-%             end
-%           end
-%           
-%           if ~isfield(loadeddata,'featurenames')
-%             feature_names = {};
-%             for j = 1:numel(obj.curperframefns),
-%               fn = obj.curperframefns{j};
-%               [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
-%                 obj.windowfeaturescellparams.(fn){:});
-%               feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
-%               feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-%             end
-%             obj.windowdata.featurenames = feature_names;
-%           else
-%             obj.windowdata.featurenames = loadeddata.featurenames;
-%           end
-%           
-%           % rootoutputdir
-% %           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
-% %           if ~success,error(msg); end
-% 
-%           [success,msg] = obj.UpdateStatusTable();
-%           if ~success, error(msg); end
-%                          
-% 
-%           obj.classifier = loadeddata.classifier;
-%           obj.classifiertype = loadeddata.classifiertype;
-%           obj.classifierTS = loadeddata.classifierTS;
-%           obj.classifier_params = loadeddata.classifier_params;
-%           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
-%           obj.confThresholds = loadeddata.confThresholds;
-%           obj.classifierfilename = filename;
-%           paramFields = fieldnames(loadeddata.classifier_params);
-%           for ndx = 1:numel(paramFields)
-%             obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
-%           end
-%           % obj.ClearCachedPerExpData();
-%           obj.ClearStatus();
-%           obj.FindFastPredictParams();
-%  
-%       end
-%     end
-
-    
+        
     % ---------------------------------------------------------------------
     function [success,msg] = SetExpDirs(obj,expdirs)
     % Changes what experiments are currently being used for this
@@ -5376,89 +4584,6 @@ classdef JLabelData < matlab.mixin.Copyable
       end
 
     end
-
-
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
-%         sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-%     % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
-%     % Changes what experiments are currently being used for this
-%     % classifier. This function calls RemoveExpDirs to remove all current
-%     % experiments not in expdirs, then calls AddExpDirs to add the new
-%     % experiment directories. 
-% 
-%       success = false;
-%       msg = '';
-%       
-%       if isnumeric(expdirs),
-%         return;
-%       end
-%       
-%       if nargin < 2,
-%         error('Usage: obj.SetExpDirs(expdirs,[outexpdirs],[nflies_per_exp])');
-%       end
-%       
-%       isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
-%       isnflies = nargin > 3 && ~isempty(nflies_per_exp);
-%       issex = nargin > 4 && ~isempty(sex_per_exp);
-%       isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
-%       isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
-%       isendframes = nargin > 7 && ~isempty(endframes_per_exp);
-%       
-%       % check inputs
-%       
-%       % sizes must match
-%       if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
-%         error('expdirs and outexpdirs do not match size');
-%       end
-%       if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
-%         error('expdirs and nflies_per_exp do not match size');
-%       end
-%       
-%       oldexpdirs = obj.expdirs;
-%       
-%       % remove oldexpdirs
-%       
-%       [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
-%       if ~success1,
-%         return;
-%       end
-% 
-%       % add new expdirs
-%       idx = find(~ismember(expdirs,oldexpdirs));
-%       success = true;
-%       for i = idx,
-%         params = cell(1,nargin-1);
-%         params{1} = expdirs{i};
-%         if isoutexpdirs,
-%           params{2} = outexpdirs{i};
-%         end
-%         if isnflies,
-%           params{3} = nflies_per_exp(i);
-%         end
-%         if issex,
-%           params{4} = sex_per_exp{i};
-%         end
-%         if isfracsex,
-%           params{5} = frac_sex_per_exp{i};
-%         end
-%         if isfirstframes,
-%           params{6} = firstframes_per_exp{i};
-%         end
-%         if isendframes,
-%           params{7} = endframes_per_exp{i};
-%         end
-%         [success1,msg1] = obj.AddExpDir(params{:});
-%         success = success && success1;
-%         if isempty(msg),
-%           msg = msg1;
-%         else
-%           msg = sprintf('%s\n%s',msg,msg1);
-%         end        
-%       end
-% 
-%     end
-    
     
     
 % Saving and loading    
@@ -5745,24 +4870,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end
     
-    %----------------------------------------------------------------------
-%     function SaveClassifier(obj)
-%     % SaveClassifier(obj)
-%     % This function saves the current classifier to the file
-%     % obj.classifierfilename. It first constructs a struct representing the
-%     % training data last used to train the classifier, then adds all the
-%     % data described in obj.classifiervars.       
-%       
-%       try
-%         s=obj.saveableClassifier;  %#ok
-%         save(obj.classifierfilename,'-struct','s');
-%       catch ME,
-%         errordlg(getReport(ME),'Error saving classifier to file');
-%       end      
-%       
-%     end
-
-
+    
     %----------------------------------------------------------------------
     function [labels,gtLabels]=getLabelsAndGTLabels(self)
       % Returns a single structure containing all the labels, suitable for
@@ -5789,136 +4897,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
         
     end
-
-    
-%     %----------------------------------------------------------------------
-%     function SaveLabels(obj,expis)
-%     % SaveLabels(obj,expis)
-%     % For each experiment in expis, save the current set of labels to file.
-%     % A backup of old labels is made if they exist and stored in
-%     % <labelfilename>~
-%     
-%       if isempty(obj.labels), return; end
-%     
-%       if nargin<2
-%         expis = 1:obj.nexps;
-%       end
-%       
-% %       if obj.labelsLoadedFromClassifier,
-% %         res = questdlg(['Labels were loaded from the classifier. Saving the'...
-% %           ' labels will overwrite the current labels. Overwrite?'],...
-% %           'Overwrite Current Labels?','Yes','No','Cancel','No');
-% %         if ~strcmpi(res,'Yes'), return, end
-% %       end
-%       
-%       % store labels in labelidx
-%       obj.StoreLabelsAndPreLoadWindowData();
-%       
-%       for i = expis,
-%         
-%         
-%         lfn = GetFile(obj,'label',i,true);
-%         obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
-% 
-%         didbak = false;
-%         if exist(lfn,'file'),
-%           [didbak,msg] = copyfile(lfn,[lfn,'~']);
-%           if ~didbak,
-%             warning('Could not create backup of %s: %s',lfn,msg);  
-%           end
-%         end
-% 
-%         t0s = obj.labels(i).t0s; %#ok<NASGU>
-%         t1s = obj.labels(i).t1s; %#ok<NASGU>
-%         names = obj.labels(i).names; %#ok<NASGU>
-%         flies = obj.labels(i).flies; %#ok<NASGU>
-%         off = obj.labels(i).off; %#ok<NASGU>
-%         timestamp = obj.labels(i).timestamp; %#ok<NASGU>
-%         imp_t0s = obj.labels(i).imp_t0s; %#ok<NASGU>
-%         imp_t1s = obj.labels(i).imp_t1s; %#ok<NASGU>
-%         
-%         version = obj.version; %#ok<NASGU>
-%         try
-%           save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
-%         catch ME,
-%           if didbak,
-%             [didundo,msg] = copyfile([lfn,'~'],lfn);
-%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
-%           end
-%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-%         end
-%       end
-% 
-%       
-%       [success,msg] = obj.UpdateStatusTable('label');
-%       if ~success,
-%         error(msg);
-%       end
-% 
-%       obj.ClearStatus();
-%     end
-
-
-%     %----------------------------------------------------------------------    
-%     function SaveGTLabels(obj,expis)
-%     % SaveGTLabels(obj,expis)
-%     % For each experiment in expis, save the current set of labels to file.
-%     % A backup of old labels is made if they exist and stored in
-%     % <labelfilename>~
-% 
-%       if isempty(obj.gt_labels), return; end
-%       
-%       if nargin<2
-%         expis = 1:obj.nexps;
-%       end
-%       
-%       % store labels in labelidx
-%       obj.StoreLabelsAndPreLoadWindowData();
-%       
-%       for i = expis,
-% 
-%         lfn = GetFile(obj,'gt_label',i,true);
-%         obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
-% 
-%         didbak = false;
-%         if exist(lfn,'file'),
-%           [didbak,msg] = copyfile(lfn,[lfn,'~']);
-%           if ~didbak,
-%             warning('Could not create backup of %s: %s',lfn,msg); %#ok<WNTAG>
-%           end
-%         end
-% 
-%         t0s = obj.gt_labels(i).t0s; %#ok<NASGU>
-%         t1s = obj.gt_labels(i).t1s; %#ok<NASGU>
-%         names = obj.gt_labels(i).names; %#ok<NASGU>
-%         flies = obj.gt_labels(i).flies; %#ok<NASGU>
-%         off = obj.gt_labels(i).off; %#ok<NASGU>
-%         timestamp = obj.gt_labels(i).timestamp; %#ok<NASGU>
-%         imp_t0s = obj.gt_labels(i).imp_t0s; %#ok<NASGU>
-%         imp_t1s = obj.gt_labels(i).imp_t1s; %#ok<NASGU>
-%         
-%         version = obj.version; %#ok<NASGU>
-%         try
-%           save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
-%         catch ME,
-%           if didbak,
-%             [didundo,msg] = copyfile([lfn,'~'],lfn);
-%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
-%           end
-%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-%         end
-%       end
-% 
-%       
-%       [success,msg] = obj.UpdateStatusTable('gt_label');
-%       if ~success,
-%         error(msg);
-%       end
-% 
-%       obj.ClearStatus();
-%     end
-
-
+   
     
 % Experiment handling
 
@@ -6814,131 +5793,6 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end
 
-    
-%     % ---------------------------------------------------------------------    
-%     function [success,msg] = setFeatureLexiconAndTargetSpeciesCustom(obj,featureLexicon,animalType)
-%       % This sets the feature lexicon to the given one, and stores a
-%       % featureLexiconName of 'custom'.
-%       
-%       % Store the lexicon-associated stuff in obj
-%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,'custom');
-%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
-%       
-%       % Set the animal type
-%       obj.targettype=animalType;
-%     end  % method
-
-    
-%     % ---------------------------------------------------------------------    
-%     function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon)
-%       % This sets the feature lexicon to the given one, and stores a
-%       % featureLexiconName of 'custom'.
-%       
-%       % Store the lexicon-associated stuff in obj
-%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
-%     end  % method
-
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
-%       featureConfigFileName = deployedRelative2Global(featureConfigFileName);      
-%       obj.featureConfigFile = featureConfigFileName;
-%       featureLexicon = ReadXMLParams(featureConfigFileName);
-%       [success,msg]=obj.setFeatureLexicon(featureLexicon);
-%     end
-    
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
-%     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
-%     % Sets the name of the file describing the features to use to
-%     % featureparamsfilename. These parameters are read in. Currently, the
-%     % window data and classifier, predictions are not changed. (TODO)
-% 
-%     success = false;
-%       msg = '';
-%       
-%       if ischar(obj.featureparamsfilename) && strcmp(featureparamsfilename,obj.featureparamsfilename),
-%         success = true;
-%         return;
-%       end
-%       
-%       if obj.nexps > 0,
-%         msg = 'Currently, feature params file can only be changed when no experiments are loaded';
-%         return;
-%       end
-%       
-%       if ~exist(featureparamsfilename,'file'),
-%         success = true; 
-%         msg = '';
-%         return;
-%       end
-% 
-%       
-% %       try
-%         [windowfeaturesparams,~,basicFeatureTable,maxWindowRadiusCommonCached] = ...
-%           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
-%         % 2nd return above used to be windowfeaturescellparams
-% %       catch ME,
-% %         msg = sprintf('Error reading feature parameters file %s: %s',...
-% %           params.featureparamsfilename,getReport(ME));
-% %         return;
-% %       end
-%       windowfeaturesparams = JLabelData.convertTransTypes2Cell(windowfeaturesparams);
-%       %windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
-% 
-%       obj.setWindowFeaturesParamsRaw(windowfeaturesparams);
-%       obj.featureparamsfilename = featureparamsfilename;
-%       obj.basicFeatureTable = basicFeatureTable;
-%       obj.maxWindowRadiusCommonCached = maxWindowRadiusCommonCached;
-%       success = true;
-%     end
-    
-    
-%     % ---------------------------------------------------------------------
-%     function setWindowFeaturesParamsRaw(obj,windowFeaturesParams)
-%       obj.windowfeaturesparams = windowFeaturesParams;
-%       windowFeaturesCellParams= ...
-%         JLabelData.convertParams2CellParams(windowFeaturesParams);
-%       obj.windowfeaturescellparams = windowFeaturesCellParams;
-%       obj.curperframefns = fieldnames(windowFeaturesParams);
-%     end  
-    
-    
-    % ---------------------------------------------------------------------
-%     function ret = NeedSaveProject(obj)
-%       ret = obj.savewindowfeatures;
-%     end
-%     
-%     function ResetSaveProject(obj)
-%       obj.savewindowfeatures = false;
-%     end
-
-    %----------------------------------------------------------------------
-    
-%     function SaveProject(obj)
-%       configfilename = obj.configfilename;
-%       [~,~,ext] = fileparts(configfilename);
-%       if strcmp(ext,'.xml'),
-%         uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
-%         return;
-%       end
-%       windowfeatures = struct();
-%       windowfeatures.windowfeaturesparams = obj.windowfeaturesparams;
-%       windowfeatures.windowfeaturescellparams = obj.windowfeaturescellparams;
-%       windowfeatures.basicFeatureTable = obj.basicFeatureTable;
-%       windowfeatures.maxWindowRadiusCommonCached=obj.maxWindowRadiusCommonCached;  %#ok<STRNU>
-%       if exist(configfilename,'file')
-%         [didbak,msg] = copyfile(configfilename,[configfilename '~']);
-%         if ~didbak,
-%           warning('Could not create backup of %s: %s',configfilename,msg);  
-%         end
-%       end
-%       
-%       save(configfilename,'windowfeatures','-append');
-%       %obj.ResetSaveProject();
-%     end
-    
     
     % ---------------------------------------------------------------------
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
@@ -8121,7 +6975,6 @@ classdef JLabelData < matlab.mixin.Copyable
         windowFeaturesParams = repmat({windowFeaturesParams},1,obj.nclassifiers);
       end
             
-      % obj.setWindowFeaturesParamsRaw(params);
       obj.windowfeaturesparams = windowFeaturesParams;
       obj.windowfeaturescellparams = cellfun(...
         @JLabelData.convertParams2CellParams,windowFeaturesParams,'uni',0);
@@ -10228,25 +9081,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   % Random stuff
-
-    
-    % ---------------------------------------------------------------------
-    % function specifyEverythingFileNameFromUser(self,fileNameAbs)
-    %   self.everythingFileName=fileNameAbs;
-    %   self.userHasSpecifiedEverythingFileName=true;
-    % end
-    
-    
-    % ---------------------------------------------------------------------
-    % function saveEverything(self,fileNameAbs)
-    %   s=struct;
-    %   s.featureLexicon=self.featureLexicon;
-    %   s.saveableClassifier=self.getSaveableClassifier();
-    %   [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
-    %   s.configParams=self.getConfigParams();  %#ok
-    %   save(fileNameAbs,'-struct','s');
-    % end
-
     
     % ---------------------------------------------------------------------    
     function cs = getClassifierStuff(self)
@@ -10274,54 +9108,6 @@ classdef JLabelData < matlab.mixin.Copyable
         cs(iCls,1) = ClassifierStuff(csArgs{:});
       end
     end
-      
-    
-%     % ---------------------------------------------------------------------
-%     function projectParams=getProjectParams(self)
-%       projectParams=struct();
-%       projectParams.behaviors.type=self.targettype;
-%       projectParams.behaviors.names=self.labelnames;
-%       projectParams.behaviors.labelcolors=self.labelcolors;
-%       projectParams.behaviors.unknowncolor=self.unknowncolor;
-%       projectParams.file=struct();
-%       projectParams.file.moviefilename=self.moviefilename;
-%       projectParams.file.trxfilename=self.trxfilename;
-%       projectParams.file.scorefilename=self.scorefilename;
-%       projectParams.file.clipsdir=self.clipsdir;                  
-%       projectParams.file.perframedir=self.perframedir;                  
-%       projectParams.scoresinput = self.scoreFeatures ;
-%       projectParams.labels=self.labelGraphicParams;
-%       projectParams.trx=self.trxGraphicParams;
-%     end  % method
-  
-    
-%     % ---------------------------------------------------------------------
-%     function initEverything(self,everythingParams)  % this should really be private
-%       if isfield(everythingParams,'configParams')
-%         self.SetConfigParams(everythingParams.configParams);
-%       end
-%     end
-    
-
-%     % ---------------------------------------------------------------------
-%     function setLabelingMode(self,modeString)
-%       switch modeString,
-%         case 'Advanced',
-%           self.SetAdvancedMode(true);
-%           self.SetGTMode(false);
-%         case 'Normal'
-%           self.SetAdvancedMode(false);
-%           self.SetGTMode(false);
-%         case 'Ground Truthing',
-%           self.SetAdvancedMode(false);
-%           self.SetGTMode(true);
-%         case 'Ground Truthing Advanced',
-%           self.SetAdvancedMode(true);
-%           self.SetGTMode(true);
-%       end
-%       self.SetMode();
-%     end
-
 
     % ---------------------------------------------------------------------
     function tf = getPerFrameFeatureSetIsNonEmpty(self)
@@ -10917,7 +9703,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
     
     
-    
     function isRandom = getColorAssignment(self)
       if isfield(self.trxGraphicParams,'assignment') && ...
           strcmp(self.trxGraphicParams.assignment,'static')
@@ -11050,4 +9835,3 @@ classdef JLabelData < matlab.mixin.Copyable
   end
 
 end % End class
-
