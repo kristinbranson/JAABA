@@ -1688,62 +1688,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-% Evaluating performance
-    
-
-    % ---------------------------------------------------------------------
-    function errorRates = createConfMat(obj,iCls,scores,modLabels)
-      % iCls: classifier index
-      % scores: vector 
-      % modLabels: label vector for scores with values as follows:
-      %   1: lbl1+important
-      %   2: lbl1+notimportant
-      %   3: lbl2+important
-      %   4: lbl2+notimportant
-      % errorRates: .numbers, .frac: 4x3 arrays. rows are labeled:
-      %   row1: lbl1+important
-      %   row2: lbl1+any, ie lbl1+(important or notimportant)
-      %   row3: lbl2+important
-      %   row4: lbl2+any
-      
-      %MERGESTUPDATED
-      
-      % AL: This method is a little awkward in that the original intent 
-      % appears to have been to handle more than two labels/behaviors;
-      % for now we are explicitly specifying a classifier index and
-      % assuming only two label/behavior types in modLabels.      
-      
-      assert(isvector(scores) && isvector(modLabels) ...
-        && numel(scores)==numel(modLabels));
-      
-      scoreNorm = obj.windowdata(iCls).scoreNorm;
-      if isempty(scoreNorm) || isnan(scoreNorm)
-        scoreNorm = 0;
-      end
-      confThresholds = obj.confThresholds(iCls,:);
-    
-      NBEH = 2;
-      confMat = zeros(2*NBEH,3);
-      for ndx = 1:2*NBEH
-        if mod(ndx,2)
-          curIdx = modLabels==ndx;
-        else
-          % either ndx or ndx-1; or lblN for both important and
-          % nonimportant
-          curIdx = modLabels>(ndx-1.5) & modLabels<(ndx+0.5);
-        end
-        confMat(ndx,1) = nnz( scores(curIdx)>= (confThresholds(1)*scoreNorm)); 
-        confMat(ndx,2) = nnz(-scores(curIdx)<  (confThresholds(2)*scoreNorm) & ...
-                              scores(curIdx)<  (confThresholds(1)*scoreNorm) );
-        confMat(ndx,3) = nnz(-scores(curIdx)>= (confThresholds(2)*scoreNorm));
-      end
-      
-      errorRates = struct();
-      errorRates.numbers = confMat;
-      errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
-    end
-
-    
     % ---------------------------------------------------------------------
     function bouts = getLabeledBouts(obj,iCls)
     % Find window data for labeled bouts.
@@ -7361,6 +7305,62 @@ classdef JLabelData < matlab.mixin.Copyable
         
   end
   
+  methods (Access=private) % Evaluating performance
+    
+    % ---------------------------------------------------------------------
+    function errorRates = createConfMat(obj,iCls,scores,modLabels)
+      % iCls: classifier index
+      % scores: vector 
+      % modLabels: label vector for scores with values as follows:
+      %   1: lbl1+important
+      %   2: lbl1+notimportant
+      %   3: lbl2+important
+      %   4: lbl2+notimportant
+      % errorRates: .numbers, .frac: 4x3 arrays. rows are labeled:
+      %   row1: lbl1+important
+      %   row2: lbl1+any, ie lbl1+(important or notimportant)
+      %   row3: lbl2+important
+      %   row4: lbl2+any
+      
+      %MERGESTUPDATED
+      
+      % AL: This method is a little awkward in that the original intent 
+      % appears to have been to handle more than two labels/behaviors;
+      % for now we are explicitly specifying a classifier index and
+      % assuming only two label/behavior types in modLabels.      
+      
+      assert(isvector(scores) && isvector(modLabels) ...
+        && numel(scores)==numel(modLabels));
+      
+      scoreNorm = obj.windowdata(iCls).scoreNorm;
+      if isempty(scoreNorm) || isnan(scoreNorm)
+        scoreNorm = 0;
+      end
+      confThresholds = obj.confThresholds(iCls,:);
+    
+      NBEH = 2;
+      confMat = zeros(2*NBEH,3);
+      for ndx = 1:2*NBEH
+        if mod(ndx,2)
+          curIdx = modLabels==ndx;
+        else
+          % either ndx or ndx-1; or lblN for both important and
+          % nonimportant
+          curIdx = modLabels>(ndx-1.5) & modLabels<(ndx+0.5);
+        end
+        confMat(ndx,1) = nnz( scores(curIdx)>= (confThresholds(1)*scoreNorm)); 
+        confMat(ndx,2) = nnz(-scores(curIdx)<  (confThresholds(2)*scoreNorm) & ...
+                              scores(curIdx)<  (confThresholds(1)*scoreNorm) );
+        confMat(ndx,3) = nnz(-scores(curIdx)>= (confThresholds(2)*scoreNorm));
+      end
+      
+      errorRates = struct();
+      errorRates.numbers = confMat;
+      errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
+    end
+
+  end
+  
   methods % Show similar frames
     
     % ---------------------------------------------------------------------
@@ -8359,7 +8359,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
   end
-  
+    
   methods % Ground truthing
 
     % ---------------------------------------------------------------------
