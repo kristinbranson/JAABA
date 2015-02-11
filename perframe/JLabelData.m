@@ -37,8 +37,7 @@ classdef JLabelData < matlab.mixin.Copyable
   properties (SetAccess=private, GetAccess=public)
     expi  % currently selected experiment
     flies  % currently selected flies
-  end  % properties which are read-only to outsiders
-  
+  end
   
   % -----------------------------------------------------------------------
   properties (Access=public) 
@@ -520,11 +519,10 @@ classdef JLabelData < matlab.mixin.Copyable
       % ismovie=~isempty(self.moviefilename) && self.openmovie;
     end
     
-  %end  % methods block
-  
-  % ALTODO: This access=private is there for a reason, why is it commented out
+  end
+    
   % -----------------------------------------------------------------------
-  %methods (Access=private)
+  methods %(Access=private)ALTODO: Should this block be private
     % ---------------------------------------------------------------------
     function initialize(self)
       % Set all properties to the state they should have just after the
@@ -839,7 +837,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg]=loadPerframeData(obj,expi,indicesOfTargets)
+    function [success,msg] = loadPerframeData(obj,expi,indicesOfTargets)
       % Loads the per-frame features for experiment expi and target
       % iTarget into obj.perframedata and obj.perframeunits      
       
@@ -1083,8 +1081,7 @@ classdef JLabelData < matlab.mixin.Copyable
         rethrow(excp);
       end
         
-    end  % method
-    
+    end  % method    
     
 
     % ---------------------------------------------------------------------
@@ -7828,25 +7825,7 @@ classdef JLabelData < matlab.mixin.Copyable
       newError = obj.createConfMat(iCls,orderedScores,modLabels);
       newError.classifierfilename = classifierfilename;      
     end
-    
-%     % ---------------------------------------------------------------------
-%     function ROCCurve(obj,JLabelHandle)
-%     % This now shows histogram, apt naming be damned.
-%     
-%       if isempty(obj.classifier),
-%           uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
-%           return;
-%       end
-%       curNdx = obj.windowdata.labelidx_new~=0;
-%       curLabels = obj.windowdata.labelidx_new(curNdx);
-%       modLabels = ((curLabels==1)-0.5)*2;
-% 
-%       curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
-%       
-%       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
-%       
-%     end
-    
+        
   end
   
   methods % Show similar frames
@@ -9114,13 +9093,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % tf: nclassifiers-by-1 logical vec, true iff the current set of 
       % per-frame features in use is non-empty, i.e. contains at least one per-frame feature.
       tf = ~cellfun(@isempty,self.curperframefns);
-    end
-    
-    % ---------------------------------------------------------------------
-    function classifierExists = getClassifierExists(self)      
-      classifierExists = ~isempty(self.classifier);      
-    end
-    
+    end   
     
 %     % ---------------------------------------------------------------------
 %     function atLeastOneNormalLabelExists=getAtLeastOneNormalLabelExists(self)
