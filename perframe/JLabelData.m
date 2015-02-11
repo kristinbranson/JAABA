@@ -2647,200 +2647,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
       obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
     end
-    
-    
-% Show similar frames
-
-
-    % ---------------------------------------------------------------------
-    function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
-    % Use the fast feature computation to find the bag features.
-    
-    % MERGESTOK
-    
-      success = true; msg = '';
-      featureFileName = sprintf('%s_%s_%d',obj.fastPredictBag.tempname,obj.expnames{curexp},curfly);
-      if exist(featureFileName,'file'),
-        load(featureFileName,'dX'),
-        dist = sum(abs(dX - repmat(curF,[size(dX,1) 1]))); %#ok<NODEF>
-        return;
-      end
-      
-      obj.SetStatus(sprintf('Computing distance to fly %d in exp:%s',curfly,obj.expnames{curexp}));
-      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(curexp,curfly);
-      perframefile = obj.GetPerframeFiles(curexp);
-      
-      T0 = obj.GetTrxFirstFrame(curexp,curfly);
-      T1 = obj.GetTrxEndFrame(curexp,curfly);
-      
-      perframedata_cur = obj.perframedata;
-      windowfeaturescellparams = obj.fastPredictBag.windowfeaturescellparams;
-      pffs = obj.fastPredictBag.pffs;
-      allperframefns = obj.allperframefns;
-
-      X_all = [];
-      for t0 = T0:(2*obj.predictwindowdatachunk_radius):T1
-       t1 = min(T1,t0+2*obj.predictwindowdatachunk_radius-1)-T0+1;
-       
-       % for the parfor loop.
-       x_curr_all = cell(1,numel(pffs));
-       X = []; fnames = {};
-       parfor j = 1:numel(pffs),
-         
-         fn = pffs{j};
-         
-         ndx = find(strcmp(fn,allperframefns));
-         if perframeInMemory,
-           perframedata = perframedata_cur{ndx};  %#ok
-         else
-           perframedata = load(perframefile{ndx});  %#ok
-           perframedata = perframedata.data{curfly(1)};  %#ok
-         end
-         
-         t11 = min(t1,numel(perframedata));
-         [x_curr,curf] = ...
-           ComputeWindowFeatures(perframedata,...
-           windowfeaturescellparams.(fn){:},'t0',t0-T0+1,'t1',t11);  %#ok
-         fnames{j} = curf;
-         if t11 < t1,
-           x_curr(:,end+1:end+t1-t11) = nan;
-         end
-         
-         x_curr_all{j} = single(x_curr);
-       end
-       
-       allFeatures = {};
-       for j = 1:numel(pffs),
-         fn = pffs{j};
-         x_curr = x_curr_all{j};
-         % add the window data for this per-frame feature to X
-         nold = size(X,1);
-         nnew = size(x_curr,2);
-         if nold > nnew,
-           warning(['Number of examples for per-frame feature %s does not '...
-             'match number of examples for previous features'],fn);
-           x_curr(:,end+1:end+nold-nnew) = nan;
-         elseif nnew > nold && ~isempty(X),
-           warning(['Number of examples for per-frame feature %s does not '...
-             'match number of examples for previous features'],fn);
-           X(end+1:end+nnew-nold,:) = nan;
-         end
-         X = [X,x_curr']; %#ok<AGROW>
-         jj = fnames{j};
-         feature_names_curr = cellfun(@(x) [{pffs{j}},x],jj,'UniformOutput',false);  %#ok
-
-         allFeatures = [allFeatures,feature_names_curr];  %#ok
-       end
-       
-       X_all = [X_all;X];  %#ok
-      end
-     
-      X_all = X_all(:,obj.fastPredictBag.wfidx);
-      
-      dX = zeros(size(X_all,1),numel(obj.fastPredictBag.classifier));
-      for ndx = 1:numel(obj.fastPredictBag.classifier)
-        curWk = obj.fastPredictBag.classifier(ndx);
-        dd = X_all(:,curWk.dim)*curWk.dir;
-        tt = curWk.tr*curWk.dir;
-        dX(:,ndx) = sign( (dd>tt)-0.5 )*curWk.alpha;
-        
-      end
-     save(featureFileName,'dX');
-     dist = sum(abs(dX - repmat(curF,[size(dX,1) 1])),2);
-     obj.ClearStatus();
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = ComputeBagDistFly(obj,expi,fly)
-      % MERGESTOK
-      [success,msg,dist] = obj.ComputeBagFeatures(expi,fly,obj.fastPredictBag.curF);
-      obj.fastPredictBag.dist{expi}{fly} = dist;
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)  %#ok
-      % AL: no callsites?
-      for ndx = 1:numel(obj.nflies_per_exp(expi))
-        [success,msg,dist] = obj.ComputeBagFeatures(expi,ndx,obj.fastPredict.curF);
-        obj.fastPredictBag.dist{expi}{ndx} = dist;
-      end
-      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir) %#ok
-      % MERGEST OK
-
-      nextT = []; distT = [];
-      switch dir
-        case 'next'
-          
-          if max(dist) > curV,
-            tt = dist-curV;
-            tt(tt<=0) = inf;
-            [~,nextT] = min(tt);
-            distT = dist(nextT);
-          end
-          
-        case 'prev'
-
-          if min(dist) < curV,
-            tt = dist-curV;
-            tt(tt>=0) = -inf;
-            [~,nextT] = max(tt);
-            distT = dist(nextT);
-          end
-        
-      end
-      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function has = HasDistance(obj,expi,flies)
-      % MERGEST OK
-      has = ~(isempty(obj.bagModels) || ...
-          isempty(obj.fastPredictBag.dist) || ...
-          numel(obj.fastPredictBag.dist)<expi || ...
-          isempty(obj.fastPredictBag.dist{expi}) || ...
-         numel(obj.fastPredictBag.dist{expi})<flies || ...
-         isempty(obj.fastPredictBag.dist{expi}{flies})); 
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function ComputeBagDistanceTraining(obj)
-      % MERGEST UPDATED
-      
-      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
-      ICLS = 1;
-      
-      if isempty(obj.fastPredictBag.trainDist)
-        dX = zeros(size(obj.windowdata(ICLS).X,1),numel(obj.bagModels));
-        for ndx = 1:numel(obj.bagModels)
-          curWk = obj.bagModels(ndx);
-          dd = obj.windowdata(ICLS).X(:,curWk.dim)*curWk.dir;
-          tt = curWk.tr*curWk.dir;
-          dX(:,ndx) = sign( (dd>tt)-0.5 )*curWk.alpha;
-        end
-        
-        dist = sum(abs(dX - repmat(obj.fastPredictBag.curF,[size(dX,1) 1])),2);
-        
-        obj.fastPredictBag.trainDist = dist;
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function InitSimilarFrames(obj, HJLabel)
-      obj.frameFig = showSimilarFrames;
-      showSimilarFrames('SetJLabelData',obj.frameFig,obj,HJLabel);
-      showSimilarFrames('CacheTracksLabeled',obj.frameFig);
-      showSimilarFrames('add_prep_list', obj.frameFig);
-    end
 
     
     % ---------------------------------------------------------------------
@@ -8095,6 +7901,200 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end  % method
+    
+  end
+  
+  methods (Access=private) % Show similar frames
+    
+    % ---------------------------------------------------------------------
+    function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
+      % Use the fast feature computation to find the bag features.
+      
+      % MERGESTOK
+      
+      success = true; msg = '';
+      featureFileName = sprintf('%s_%s_%d',obj.fastPredictBag.tempname,obj.expnames{curexp},curfly);
+      if exist(featureFileName,'file'),
+        load(featureFileName,'dX'),
+        dist = sum(abs(dX - repmat(curF,[size(dX,1) 1]))); %#ok<NODEF>
+        return;
+      end
+      
+      obj.SetStatus(sprintf('Computing distance to fly %d in exp:%s',curfly,obj.expnames{curexp}));
+      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(curexp,curfly);
+      perframefile = obj.GetPerframeFiles(curexp);
+      
+      T0 = obj.GetTrxFirstFrame(curexp,curfly);
+      T1 = obj.GetTrxEndFrame(curexp,curfly);
+      
+      perframedata_cur = obj.perframedata;
+      windowfeaturescellparams = obj.fastPredictBag.windowfeaturescellparams;
+      pffs = obj.fastPredictBag.pffs;
+      allperframefns = obj.allperframefns;
+      
+      X_all = [];
+      for t0 = T0:(2*obj.predictwindowdatachunk_radius):T1
+        t1 = min(T1,t0+2*obj.predictwindowdatachunk_radius-1)-T0+1;
+        
+        % for the parfor loop.
+        x_curr_all = cell(1,numel(pffs));
+        X = []; fnames = {};
+        parfor j = 1:numel(pffs),
+          
+          fn = pffs{j};
+          
+          ndx = find(strcmp(fn,allperframefns));
+          if perframeInMemory,
+            perframedata = perframedata_cur{ndx};  %#ok
+          else
+            perframedata = load(perframefile{ndx});  %#ok
+            perframedata = perframedata.data{curfly(1)};  %#ok
+          end
+          
+          t11 = min(t1,numel(perframedata));
+          [x_curr,curf] = ...
+            ComputeWindowFeatures(perframedata,...
+            windowfeaturescellparams.(fn){:},'t0',t0-T0+1,'t1',t11);  %#ok
+          fnames{j} = curf;
+          if t11 < t1,
+            x_curr(:,end+1:end+t1-t11) = nan;
+          end
+          
+          x_curr_all{j} = single(x_curr);
+        end
+        
+        allFeatures = {};
+        for j = 1:numel(pffs),
+          fn = pffs{j};
+          x_curr = x_curr_all{j};
+          % add the window data for this per-frame feature to X
+          nold = size(X,1);
+          nnew = size(x_curr,2);
+          if nold > nnew,
+            warning(['Number of examples for per-frame feature %s does not '...
+              'match number of examples for previous features'],fn);
+            x_curr(:,end+1:end+nold-nnew) = nan;
+          elseif nnew > nold && ~isempty(X),
+            warning(['Number of examples for per-frame feature %s does not '...
+              'match number of examples for previous features'],fn);
+            X(end+1:end+nnew-nold,:) = nan;
+          end
+          X = [X,x_curr']; %#ok<AGROW>
+          jj = fnames{j};
+          feature_names_curr = cellfun(@(x) [{pffs{j}},x],jj,'UniformOutput',false);  %#ok
+          
+          allFeatures = [allFeatures,feature_names_curr];  %#ok
+        end
+        
+        X_all = [X_all;X];  %#ok
+      end
+      
+      X_all = X_all(:,obj.fastPredictBag.wfidx);
+      
+      dX = zeros(size(X_all,1),numel(obj.fastPredictBag.classifier));
+      for ndx = 1:numel(obj.fastPredictBag.classifier)
+        curWk = obj.fastPredictBag.classifier(ndx);
+        dd = X_all(:,curWk.dim)*curWk.dir;
+        tt = curWk.tr*curWk.dir;
+        dX(:,ndx) = sign( (dd>tt)-0.5 )*curWk.alpha;
+        
+      end
+      save(featureFileName,'dX');
+      dist = sum(abs(dX - repmat(curF,[size(dX,1) 1])),2);
+      obj.ClearStatus();
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = ComputeBagDistFly(obj,expi,fly)
+      % MERGESTOK
+      [success,msg,dist] = obj.ComputeBagFeatures(expi,fly,obj.fastPredictBag.curF);
+      obj.fastPredictBag.dist{expi}{fly} = dist;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)  %#ok
+      % AL: no callsites?
+      for ndx = 1:numel(obj.nflies_per_exp(expi))
+        [success,msg,dist] = obj.ComputeBagFeatures(expi,ndx,obj.fastPredict.curF);
+        obj.fastPredictBag.dist{expi}{ndx} = dist;
+      end
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir) %#ok
+      % MERGEST OK
+      
+      nextT = []; distT = [];
+      switch dir
+        case 'next'
+          
+          if max(dist) > curV,
+            tt = dist-curV;
+            tt(tt<=0) = inf;
+            [~,nextT] = min(tt);
+            distT = dist(nextT);
+          end
+          
+        case 'prev'
+          
+          if min(dist) < curV,
+            tt = dist-curV;
+            tt(tt>=0) = -inf;
+            [~,nextT] = max(tt);
+            distT = dist(nextT);
+          end
+          
+      end
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function has = HasDistance(obj,expi,flies)
+      % MERGEST OK
+      has = ~(isempty(obj.bagModels) || ...
+        isempty(obj.fastPredictBag.dist) || ...
+        numel(obj.fastPredictBag.dist)<expi || ...
+        isempty(obj.fastPredictBag.dist{expi}) || ...
+        numel(obj.fastPredictBag.dist{expi})<flies || ...
+        isempty(obj.fastPredictBag.dist{expi}{flies}));
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function ComputeBagDistanceTraining(obj)
+      % MERGEST UPDATED
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      ICLS = 1;
+      
+      if isempty(obj.fastPredictBag.trainDist)
+        dX = zeros(size(obj.windowdata(ICLS).X,1),numel(obj.bagModels));
+        for ndx = 1:numel(obj.bagModels)
+          curWk = obj.bagModels(ndx);
+          dd = obj.windowdata(ICLS).X(:,curWk.dim)*curWk.dir;
+          tt = curWk.tr*curWk.dir;
+          dX(:,ndx) = sign( (dd>tt)-0.5 )*curWk.alpha;
+        end
+        
+        dist = sum(abs(dX - repmat(obj.fastPredictBag.curF,[size(dX,1) 1])),2);
+        
+        obj.fastPredictBag.trainDist = dist;
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function InitSimilarFrames(obj,HJLabel)
+      obj.frameFig = showSimilarFrames;
+      showSimilarFrames('SetJLabelData',obj.frameFig,obj,HJLabel);
+      showSimilarFrames('CacheTracksLabeled',obj.frameFig);
+      showSimilarFrames('add_prep_list', obj.frameFig);
+    end
     
   end
   
