@@ -2841,280 +2841,7 @@ classdef JLabelData < matlab.mixin.Copyable
       showSimilarFrames('CacheTracksLabeled',obj.frameFig);
       showSimilarFrames('add_prep_list', obj.frameFig);
     end
-    
-    
-    
-% Ground truthing functions.    
 
-    % ---------------------------------------------------------------------
-    function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
-      % Set obj.randomGTSuggestions, obj.GTSuggestionMode
-      %
-      % This is currently public, but seems like maybe it should be private, 
-      % and get called when callers actually query
-      % self.randomGTSuggestions, or something.  -- ALT, Apr 19, 2013
-      
-      % MERGEST OK
-      
-      success = false; 
-      msg = '';
-      
-      % Do nothing if we already have suggestions with the same settings for
-      % all the experiments.
-      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp)
-        recompute = true; 
-      else
-        recompute = false;
-        for endx = 1:obj.nexps
-          prevperexp = 0;
-          
-          for fndx = 1:obj.nflies_per_exp(endx)
-            if isempty(obj.randomGTSuggestions{endx}(fndx).start);
-              continue;
-            end
-            prevperfly = obj.randomGTSuggestions{endx}(fndx).end - ...
-              obj.randomGTSuggestions{endx}(fndx).start+1;
-            if (prevperfly ~= perfly)
-              recompute = true;
-              break; % AL: Ideally breaks out of both loops, not just inner?
-            end
-            prevperexp = prevperexp+1;
-          end
-          
-          if prevperexp ~= perexp
-            recompute = true;
-          end          
-        end
-      end
-      if ~recompute
-        obj.GTSuggestionMode = 'Random';
-        return;
-      end
-      
-      for endx = 1:obj.nexps
-        % AL: appears to be the wrong initialization, don't we want
-        % repmat(...,1,obj.nflies_per_exp(endx)?
-        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
-        
-        validflies = find( (obj.endframes_per_exp{endx} - ...
-          obj.firstframes_per_exp{endx})>perfly );
-        if numel(validflies)<perexp
-          msg = sprintf('Experiment %s does not have %d flies with more than %d frames',...
-            obj.expnames{endx},perexp,perfly);
-          success = false;
-          return;
-        end
-        permuteValid = validflies(randperm(numel(validflies)));
-        randFlies = permuteValid(1:perexp);
-        
-        for fndx = 1:obj.nflies_per_exp(endx)
-          if any(fndx == randFlies)
-              first = obj.firstframes_per_exp{endx}(fndx);
-              last = obj.endframes_per_exp{endx}(fndx);
-              suggestStart = first + round( (last-first-perfly)*rand(1));
-              obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
-              obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
-          else
-              obj.randomGTSuggestions{endx}(fndx).start = [];
-              obj.randomGTSuggestions{endx}(fndx).end = [];              
-          end
-        end        
-      end
-      success = true;
-      obj.GTSuggestionMode = 'Random';      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
-      % Set obj.balancedGTSuggestions, obj.GTSuggestionMode
-      %
-      % Suggest frames such that half the suggested frames are predicted
-      % positive and half are negative.
-      % Excludes frames that have normal labels.
-      
-      % MERGEST OK
-      
-      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
-      
-      success = true; msg = '';
-      
-      if ~obj.HasLoadedScores(1)
-        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
-      end
-      
-      jabparams = load(obj.everythingFileNameAbs,'-mat');
-      assert(numel(jabparams.x.classifierStuff==1),'Unsupported for multiple classifiers.');
-      frames2exclude = cell(1,obj.nexps);
-      for ndx = numel(jabparams.x.expDirNames)
-        matchingGtexp = find(strcmp(jabparams.x.expDirNames{ndx},obj.expdirs));
-        if isempty(matchingGtexp), continue; end
-        frames2exclude{matchingGtexp} = jabparams.x.labels(ndx);
-      end
-      
-      numpos = 0;
-      numneg = 0;
-      for expi = 1:obj.nexps,
-        for flies = 1:obj.nflies_per_exp(expi)
-          numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
-          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
-        end
-      end
-      poswt = numneg/(numneg+numpos);
-      negwt = numpos/(numneg+numpos);
-      
-      int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
-      obj.balancedGTSuggestions = {};
-      for endx = 1:obj.nexps
-        obj.SetStatus('Couting predictions on experiment%d',endx);
-        for flies = 1:obj.nflies_per_exp(endx)
-          if ~obj.predictdata{endx}{flies}.loaded_valid(1),
-            msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
-              obj.expnames{endx});
-            success = false;
-            return;
-          end
-          
-          curt = obj.predictdata{endx}{flies}.t;
-          if numel(curt)<intsize; continue; end
-          numT = numel(curt)-intsize+1;
-          int.exp(1,end+1:end+numT) = endx;
-          int.flies(1,end+1:end+numT) = flies;
-          int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
-          curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
-          
-          cumwt = cumsum(curwt);
-          sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
-          sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
-
-          if ~isempty(frames2exclude{endx}) && any(frames2exclude{endx}.flies == flies)
-            
-            fndx = find(frames2exclude{endx}.flies == flies);
-            labeledF = false(size(curwt));
-            for bndx = 1:numel(frames2exclude{endx}.t0s{fndx})
-              tStart = frames2exclude{endx}.off(fndx);
-              curt0 = max(1, frames2exclude{endx}.t0s{fndx}(bndx)-intsize + tStart );
-              curt1 = min(numel(sumwt),frames2exclude{endx}.t1s{fndx}(bndx)+intsize +tStart);
-              labeledF(curt0:curt1-1) = true;
-            end
-            
-            sumwt(labeledF) = 0;
-          end
-          
-          int.wt(1,end+1:end+numT) = sumwt;
-          
-        end
-      end
-      
-      obj.balancedGTSuggestions = [];
-      for ndx = 1:numint
-        obj.SetStatus('Finding interval %d to label',ndx);
-        
-        % weight sampling was off by 1
-        % fixed 20140331 by KB
-        
-        % old sampling
-        %cumwt = cumsum(int.wt)/sum(int.wt);
-        cumwt = cumsum([0,int.wt(1:end-1)])/sum(int.wt);
-        intlocs = rand;
-        locsSel = find(cumwt<=intlocs,1,'last');
-        
-        if isempty(locsSel), locsSel = numel(cumwt); end
-        expi = int.exp(locsSel);
-        flies = int.flies(locsSel);
-        tStart = int.tStart(locsSel);
-        obj.balancedGTSuggestions(ndx).start = tStart;
-        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
-        obj.balancedGTSuggestions(ndx).exp = expi;
-        obj.balancedGTSuggestions(ndx).flies = flies;
-        
-        % Removing intervals that overlap
-        overlap = int.exp == int.exp(locsSel) & ...
-                        int.flies == int.flies(locsSel) & ...
-                        abs( int.tStart-int.tStart(locsSel))<=intsize;
-        int.exp(overlap) = [];
-        int.flies(overlap) = [];
-        int.tStart(overlap) = [];
-        int.wt(overlap) = [];
-      end
-      
-      obj.GTSuggestionMode = 'Balanced';
-      
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SuggestLoadedGT(obj,filename)
-      %MERGEST OK
-      
-      success = false; %#ok<NASGU>
-      msg = '';
-      fid = fopen(filename);
-      if fid < 0,
-        msg = sprintf('Could not open file %s for reading',filename);
-      end
-      dat = cell(0,4);
-      missingexps = {};
-      while true,
-        s = fgetl(fid);
-        if ~ischar(s),
-          break;
-        end
-        s = strtrim(s);
-        m = regexp(s,'^exp:(.*),fly:(.*),start:(.*),end:(.*)','tokens','once');
-        if isempty(m),
-          continue;
-        end
-        if isempty(m{3}) || isempty(m{4}),
-          continue;
-        end
-        curexp = find(strcmp(m{1},obj.expnames));
-        if isempty(curexp)
-          if ~any(strcmp(m{1},missingexps))
-            missingexps{end+1} = m{1}; %#ok<AGROW>
-          end
-          continue;
-        end
-        dat{end+1,1} = curexp; %#ok<AGROW>
-        dat(end,2:4) = cellfun(@(x) str2double(x),m(2:end),'UniformOutput',false);
-      end
-      
-      if ~isempty(missingexps)
-        expstring = '';
-        for ii = 1:numel(missingexps),
-          expstring = [expstring ' ' missingexps{ii}]; %#ok<AGROW>
-        end
-        uiwait(warndlg(sprintf(...
-          'Experiments:%s are not currently loaded. Not loading the GT suggestions for these experiments',...
-          expstring)));        
-      end
-      
-      dat = cell2mat(dat);
-      fclose(fid);
-      expi = dat(:,1); fly = dat(:,2); t0s = dat(:,3); t1s = dat(:,4);
-      for curexpi = 1:obj.nexps
-        for ndx = 1:obj.nflies_per_exp(curexpi)
-          loc = ismember(fly,ndx) & ismember(expi,curexpi);
-          if ~any(loc),
-            obj.loadedGTSuggestions{curexpi}(ndx).start = 1;
-            obj.loadedGTSuggestions{curexpi}(ndx).end = 0;
-          else
-            obj.loadedGTSuggestions{curexpi}(ndx).start = t0s(loc);
-            obj.loadedGTSuggestions{curexpi}(ndx).end = t1s(loc);
-          end
-        end
-      end
-      obj.GTSuggestionMode = 'Imported';
-      success = true;
-    end  % method
-
-    
-    % ---------------------------------------------------------------------
-    function SuggestThresholdGT(obj,threshold)
-      obj.thresholdGTSuggestions = threshold;
-      obj.GTSuggestionMode = 'Threshold';
-    end  % method
-    
     
     % ---------------------------------------------------------------------
     function tf = HasLoadedScores(obj,iCls)
@@ -8633,7 +8360,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods % Ground truthing.
+  methods % Ground truthing
 
     % ---------------------------------------------------------------------
     function [success,msg] = setGTSuggestionMode(obj,modeString,varargin)
@@ -8939,6 +8666,279 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end
+  
+  methods (Access=private) % Ground truthing
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
+      % Set obj.randomGTSuggestions, obj.GTSuggestionMode
+      %
+      % This is currently public, but seems like maybe it should be private,
+      % and get called when callers actually query
+      % self.randomGTSuggestions, or something.  -- ALT, Apr 19, 2013
+      
+      % MERGEST OK
+      
+      success = false;
+      msg = '';
+      
+      % Do nothing if we already have suggestions with the same settings for
+      % all the experiments.
+      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp)
+        recompute = true;
+      else
+        recompute = false;
+        for endx = 1:obj.nexps
+          prevperexp = 0;
+          
+          for fndx = 1:obj.nflies_per_exp(endx)
+            if isempty(obj.randomGTSuggestions{endx}(fndx).start);
+              continue;
+            end
+            prevperfly = obj.randomGTSuggestions{endx}(fndx).end - ...
+              obj.randomGTSuggestions{endx}(fndx).start+1;
+            if (prevperfly ~= perfly)
+              recompute = true;
+              break; % AL: Ideally breaks out of both loops, not just inner?
+            end
+            prevperexp = prevperexp+1;
+          end
+          
+          if prevperexp ~= perexp
+            recompute = true;
+          end
+        end
+      end
+      if ~recompute
+        obj.GTSuggestionMode = 'Random';
+        return;
+      end
+      
+      for endx = 1:obj.nexps
+        % AL: appears to be the wrong initialization, don't we want
+        % repmat(...,1,obj.nflies_per_exp(endx)?
+        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
+        
+        validflies = find( (obj.endframes_per_exp{endx} - ...
+          obj.firstframes_per_exp{endx})>perfly );
+        if numel(validflies)<perexp
+          msg = sprintf('Experiment %s does not have %d flies with more than %d frames',...
+            obj.expnames{endx},perexp,perfly);
+          success = false;
+          return;
+        end
+        permuteValid = validflies(randperm(numel(validflies)));
+        randFlies = permuteValid(1:perexp);
+        
+        for fndx = 1:obj.nflies_per_exp(endx)
+          if any(fndx == randFlies)
+            first = obj.firstframes_per_exp{endx}(fndx);
+            last = obj.endframes_per_exp{endx}(fndx);
+            suggestStart = first + round( (last-first-perfly)*rand(1));
+            obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
+            obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+          else
+            obj.randomGTSuggestions{endx}(fndx).start = [];
+            obj.randomGTSuggestions{endx}(fndx).end = [];
+          end
+        end
+      end
+      success = true;
+      obj.GTSuggestionMode = 'Random';
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      % Set obj.balancedGTSuggestions, obj.GTSuggestionMode
+      %
+      % Suggest frames such that half the suggested frames are predicted
+      % positive and half are negative.
+      % Excludes frames that have normal labels.
+      
+      % MERGEST OK
+      
+      assert(obj.nclassifiers==1,'Unsupported for multiple classifiers.');
+      
+      success = true; msg = '';
+      
+      if ~obj.HasLoadedScores(1)
+        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+      end
+      
+      jabparams = load(obj.everythingFileNameAbs,'-mat');
+      assert(numel(jabparams.x.classifierStuff==1),'Unsupported for multiple classifiers.');
+      frames2exclude = cell(1,obj.nexps);
+      for ndx = numel(jabparams.x.expDirNames)
+        matchingGtexp = find(strcmp(jabparams.x.expDirNames{ndx},obj.expdirs));
+        if isempty(matchingGtexp), continue; end
+        frames2exclude{matchingGtexp} = jabparams.x.labels(ndx);
+      end
+      
+      numpos = 0;
+      numneg = 0;
+      for expi = 1:obj.nexps,
+        for flies = 1:obj.nflies_per_exp(expi)
+          numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
+          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
+        end
+      end
+      poswt = numneg/(numneg+numpos);
+      negwt = numpos/(numneg+numpos);
+      
+      int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
+      obj.balancedGTSuggestions = {};
+      for endx = 1:obj.nexps
+        obj.SetStatus('Couting predictions on experiment%d',endx);
+        for flies = 1:obj.nflies_per_exp(endx)
+          if ~obj.predictdata{endx}{flies}.loaded_valid(1),
+            msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
+              obj.expnames{endx});
+            success = false;
+            return;
+          end
+          
+          curt = obj.predictdata{endx}{flies}.t;
+          if numel(curt)<intsize; continue; end
+          numT = numel(curt)-intsize+1;
+          int.exp(1,end+1:end+numT) = endx;
+          int.flies(1,end+1:end+numT) = flies;
+          int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
+          curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
+          
+          cumwt = cumsum(curwt);
+          sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
+          sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
+          
+          if ~isempty(frames2exclude{endx}) && any(frames2exclude{endx}.flies == flies)
+            
+            fndx = find(frames2exclude{endx}.flies == flies);
+            labeledF = false(size(curwt));
+            for bndx = 1:numel(frames2exclude{endx}.t0s{fndx})
+              tStart = frames2exclude{endx}.off(fndx);
+              curt0 = max(1, frames2exclude{endx}.t0s{fndx}(bndx)-intsize + tStart );
+              curt1 = min(numel(sumwt),frames2exclude{endx}.t1s{fndx}(bndx)+intsize +tStart);
+              labeledF(curt0:curt1-1) = true;
+            end
+            
+            sumwt(labeledF) = 0;
+          end
+          
+          int.wt(1,end+1:end+numT) = sumwt;
+          
+        end
+      end
+      
+      obj.balancedGTSuggestions = [];
+      for ndx = 1:numint
+        obj.SetStatus('Finding interval %d to label',ndx);
+        
+        % weight sampling was off by 1
+        % fixed 20140331 by KB
+        
+        % old sampling
+        %cumwt = cumsum(int.wt)/sum(int.wt);
+        cumwt = cumsum([0,int.wt(1:end-1)])/sum(int.wt);
+        intlocs = rand;
+        locsSel = find(cumwt<=intlocs,1,'last');
+        
+        if isempty(locsSel), locsSel = numel(cumwt); end
+        expi = int.exp(locsSel);
+        flies = int.flies(locsSel);
+        tStart = int.tStart(locsSel);
+        obj.balancedGTSuggestions(ndx).start = tStart;
+        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+        obj.balancedGTSuggestions(ndx).exp = expi;
+        obj.balancedGTSuggestions(ndx).flies = flies;
+        
+        % Removing intervals that overlap
+        overlap = int.exp == int.exp(locsSel) & ...
+          int.flies == int.flies(locsSel) & ...
+          abs( int.tStart-int.tStart(locsSel))<=intsize;
+        int.exp(overlap) = [];
+        int.flies(overlap) = [];
+        int.tStart(overlap) = [];
+        int.wt(overlap) = [];
+      end
+      
+      obj.GTSuggestionMode = 'Balanced';
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SuggestLoadedGT(obj,filename)
+      %MERGEST OK
+      
+      success = false; %#ok<NASGU>
+      msg = '';
+      fid = fopen(filename);
+      if fid < 0,
+        msg = sprintf('Could not open file %s for reading',filename);
+      end
+      dat = cell(0,4);
+      missingexps = {};
+      while true,
+        s = fgetl(fid);
+        if ~ischar(s),
+          break;
+        end
+        s = strtrim(s);
+        m = regexp(s,'^exp:(.*),fly:(.*),start:(.*),end:(.*)','tokens','once');
+        if isempty(m),
+          continue;
+        end
+        if isempty(m{3}) || isempty(m{4}),
+          continue;
+        end
+        curexp = find(strcmp(m{1},obj.expnames));
+        if isempty(curexp)
+          if ~any(strcmp(m{1},missingexps))
+            missingexps{end+1} = m{1}; %#ok<AGROW>
+          end
+          continue;
+        end
+        dat{end+1,1} = curexp; %#ok<AGROW>
+        dat(end,2:4) = cellfun(@(x) str2double(x),m(2:end),'UniformOutput',false);
+      end
+      
+      if ~isempty(missingexps)
+        expstring = '';
+        for ii = 1:numel(missingexps),
+          expstring = [expstring ' ' missingexps{ii}]; %#ok<AGROW>
+        end
+        uiwait(warndlg(sprintf(...
+          'Experiments:%s are not currently loaded. Not loading the GT suggestions for these experiments',...
+          expstring)));        
+      end
+      
+      dat = cell2mat(dat);
+      fclose(fid);
+      expi = dat(:,1); fly = dat(:,2); t0s = dat(:,3); t1s = dat(:,4);
+      for curexpi = 1:obj.nexps
+        for ndx = 1:obj.nflies_per_exp(curexpi)
+          loc = ismember(fly,ndx) & ismember(expi,curexpi);
+          if ~any(loc),
+            obj.loadedGTSuggestions{curexpi}(ndx).start = 1;
+            obj.loadedGTSuggestions{curexpi}(ndx).end = 0;
+          else
+            obj.loadedGTSuggestions{curexpi}(ndx).start = t0s(loc);
+            obj.loadedGTSuggestions{curexpi}(ndx).end = t1s(loc);
+          end
+        end
+      end
+      obj.GTSuggestionMode = 'Imported';
+      success = true;
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function SuggestThresholdGT(obj,threshold)
+      obj.thresholdGTSuggestions = threshold;
+      obj.GTSuggestionMode = 'Threshold';
+    end
+    
+end
     
   methods
     
