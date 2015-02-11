@@ -833,43 +833,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.clearClassifierProper();
 
       obj.needsave = true;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = loadPerframeData(obj,expi,indicesOfTargets)
-      % Loads the per-frame features for experiment expi and target
-      % iTarget into obj.perframedata and obj.perframeunits      
-      
-      % Test for various degenerate cases 
-      if isempty(indicesOfTargets)
-        success=true;  msg='';
-        return
-      end
-      iTarget=indicesOfTargets(1);
-      if isempty(expi) || ~((1<=expi)&&(expi<=obj.nexps))
-        success=true;  msg='';
-        return
-      end        
-      % If we got here, expi and iTarget are non-degenerate
-      perframeFileNameList = obj.GetPerframeFiles(expi);
-      nPerframeFeatures=numel(obj.allperframefns);
-      obj.perframedata=cell(1,nPerframeFeatures);
-      obj.perframeunits=cell(1,nPerframeFeatures);      
-      for j = 1:nPerframeFeatures,
-        perframeFileName=perframeFileNameList{j};
-        if ~exist(perframeFileName,'file'),
-          success = false;
-          msg = sprintf('Per-frame data file %s does not exist',perframeFileNameList{j});
-          return;
-        end
-        tmp = load(perframeFileName);
-        obj.perframedata{j} = tmp.data{iTarget};
-        obj.perframeunits{j} = tmp.units;
-      end
-      success=true;
-      msg='';
-    end  % method
+    end    
     
     
     % ---------------------------------------------------------------------
@@ -2314,188 +2278,6 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.classifier_params{iCls},'deterministic',obj.deterministic);
     end
     
-    
-    % ---------------------------------------------------------------------
-    function [successes,msg] = CheckMovies(obj,expis)
-    % [successes,msg] = CheckMovies(obj,expis)
-    % check that the movie files exist and can be read for the input
-    % experiments.
-      
-      successes = []; msg = '';
-      
-      if nargin < 2,
-        expis = 1:obj.nexps;
-      end
-      
-      if isempty(expis),
-        return;
-      end
-      
-      successes = true(1,numel(expis));
-      
-      if ~obj.ismovie,
-        return;
-      end
-      
-      for i = 1:numel(expis),
-        moviefilename = obj.GetFile('movie',expis(i));
-        obj.SetStatus('Checking movie %s...',moviefilename);
-        
-        % check for file existence
-        if ~exist(moviefilename,'file'),
-          successes(i) = false;
-          msg1 = sprintf('File %s missing',moviefilename);
-          if isempty(msg),
-            msg = msg1;
-          else
-            msg = sprintf('%s\n%s',msg,msg1);
-          end
-        else
-          
-          % try reading a frame
-%           try
-            [readframe,~,movie_fid] = ...
-              get_readframe_fcn(moviefilename);
-            if movie_fid <= 0,
-              error('Could not open movie %s for reading',moviefilename);
-            end
-            readframe(1);
-            fclose(movie_fid);
-%           catch ME,
-%             successes(i) = false;
-%             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
-%             if isempty(msg),
-%               msg = msg1;
-%             else
-%               msg = sprintf('%s\n%s',msg,msg1);
-%             end
-%           end
-          
-        end
-      end
-      
-      obj.ClearStatus();
-      
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
-    % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
-    % Update the tables of what files exist for what experiments. This
-    % returns false if all files were in existence or could be generated
-    % and now they are/can not.  It mutates the instance variables
-    % fileexists and filetimestamps, and sets filesfixable and
-    % allfilesexist.
-    %
-    % missingfiles: Cell vector of length obj.nexps. Each element is a 
-    % cellstr. QUIRKY API: Only missingfiles(expis) are meaningful, 
-    % containing missing files for expis. Remaining elements are
-    % empty/indeterminate.
-
-      % Initialize return vars
-      msg = '';
-      success = false;
-      missingfiles = cell(1,obj.nexps);
-      for i = 1:obj.nexps,
-        missingfiles{i} = {};
-      end
-
-      % Process arguments
-      if ~exist('filetypes','var') || isempty(filetypes)
-        filetypes = obj.filetypes;
-      end
-      if ~exist('expis','var') || isempty(expis)
-        expis = 1:obj.nexps;
-      end
-
-      % Check that the file types requested are valid
-      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
-      if any(~fileTypeIsValid),
-        msg = 'Unknown filetypes';
-        return
-      end
-
-      % Get the file existance and time-stamp tables
-      [fileExists,fileTimeStamps,missingFileNames] = ...
-        obj.fileOfGivenTypesExistForGivenExps(filetypes,expis);
-      
-      % Update the state vars accordingly
-      obj.fileexists(expis,fileTypeIndices) = fileExists;
-      obj.filetimestamps(expis,fileTypeIndices) = fileTimeStamps;
-      missingfiles(expis) = missingFileNames;
-      
-      % store old values to see if latest change broke something
-      old_filesfixable = obj.filesfixable;
-      old_allfilesexist = obj.allfilesexist;
-
-      % initialize summaries to true
-      [allRequiredFilesExist, ...
-       missingFilesCanBeGenerated, ...
-       oneMissingFileTypeThatCantBeGenerated] = ...
-        obj.allRequiredFilesExist(obj.fileexists);
-      
-      % Write the file status summaries into the object state, and
-      % modify the error message if necessary to reflect missing files that
-      % cannot be generated.
-      obj.allfilesexist = allRequiredFilesExist;
-      if allRequiredFilesExist
-        obj.filesfixable = true;
-      else
-        obj.filesfixable = missingFilesCanBeGenerated;
-        if ~missingFilesCanBeGenerated
-          msg1 = sprintf('%s missing and cannot be generated.',oneMissingFileTypeThatCantBeGenerated);
-          if isempty(msg),
-            msg = msg1;
-          else
-            msg = sprintf('%s\n%s',msg,msg1);
-          end
-        end
-      end
-
-      % Modify the error message to reflect missing files for each exp
-      nFileNamesMissingTotal = sum(cellfun(@(c)length(c),missingFileNames));
-      if nFileNamesMissingTotal>0
-        stringForEachExpWithMissingFiles={};        
-        for i=1:length(missingFileNames)
-          expi=expis(i);
-          missingFileNamesThis=missingFileNames{i};
-          if ~isempty(missingFileNamesThis)
-            stringForEachExpWithMissingFiles{end+1}= ...
-              [civilizedStringFromCellArrayOfStrings(missingFileNamesThis) ' from experiment ' obj.expnames{expi}];  %#ok
-          end
-        end
-        msg= [msg ' Missing ' civilizedStringFromCellArrayOfStrings(stringForEachExpWithMissingFiles,';')];
-      end
-      
-      % fail if was ok and now not ok
-      success = ~(old_allfilesexist || old_filesfixable) || ...
-                 (obj.allfilesexist || obj.filesfixable);      
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetTrxFileName(obj,trxfilename)
-      % [success,msg] = SetTrxFileName(obj,trxfilename)
-      % set the name of the trx file within the experiment directory. this
-      % does not currently check for missing/bad trx files, or replace
-      % preloaded trx data, so you really shouldn't call it if expdirs are
-      % loaded. (TODO)
-
-      success = false;
-      msg = '';
-      if ischar(trxfilename),
-        if ischar(obj.trxfilename) && strcmp(trxfilename,obj.trxfilename),
-          success = true;
-          return;
-        end
-        obj.trxfilename = trxfilename;
-        [success,msg] = obj.UpdateStatusTable('trx');        
-        % TODO: check that trx are parsable, remove bad experiments, update
-        % preloaded trx
-      end
-    end  % method    
-
 
     % ---------------------------------------------------------------------
     function StoreLabelsForCurrentAnimal(obj)
@@ -2757,18 +2539,7 @@ classdef JLabelData < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   % -----------------------------------------------------------------------
-  methods (Access=public,Static=true)
-
-    % movie, trx, and perframedir are required for each experiment
-    % perframedir can be generated
-    function res = CanGenerateFile(file)
-      res = ismember(file,{'perframedir'});
-    end
-    
-    % which files should go in the output directory
-    function res = IsOutputFile(file)
-      res = ismember(file,{'label','clipsdir','scores','gt_label'});
-    end    
+  methods (Access=public,Static=true)    
     
     function valid = CheckExp(expi)
       if numel(expi) ~= 1,
@@ -2956,20 +2727,7 @@ classdef JLabelData < matlab.mixin.Copyable
         isvarname(behaviorName); 
       % AL: second condition because labels.timelinetimestamp, see Labels.m
     end
-
-    
-    % ---------------------------------------------------------------------
-    function result=isValidScoreFileName(scoreFileName)
-      [path,baseName,ext]=fileparts(scoreFileName);
-      if ~isempty(path) ,
-        result=false;
-      elseif ~isequal(ext,'.mat')
-        result=false;
-      else
-        result=~isempty(regexp(baseName,'^[a-zA-Z_0-9]+$','once'));
-      end
-    end    
-    
+     
     
 %     % ------------------------------------------------------------------------
 %     function basicParams=basicParamsFromMacguffin(everythingParams)
@@ -3089,16 +2847,6 @@ classdef JLabelData < matlab.mixin.Copyable
 % Some helper functions.
 
     % ---------------------------------------------------------------------
-    function res = IsRequiredFile(obj,file)
-      if obj.isST
-        res = any(strcmp(file,{'trx' 'stfeatures'}));
-      else
-        res = ismember(file,{'trx','perframedir'});
-      end
-    end
-
-
-    % ---------------------------------------------------------------------
     function idx = FlyNdx(obj,expi,flies,iCls)
       %MERGESTUPDATED      
       
@@ -3171,156 +2919,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function maxEndframe = GetMaxEndFrame(obj)
       maxEndframe = max(obj.endframes_per_exp{obj.expi});
     end
-    
-    % ---------------------------------------------------------------------
-    function [fileExists,fileTimeStamps,missingFileNamesComplete] = ...
-        fileOfGivenTypesExistForGivenExps(obj,filetypes,expis)
-      % This gets whether the experiment files of filetypes (a cell array
-      % of strings) exist, for the experiments indicated by expis.  On
-      % return, fileExists is a length(expis) x length(filetypes) logical
-      % array, indicating whether the given file type exists for the given
-      % experiment.  fileTimeStamps has the same shape, and given the time
-      % stamp of each file if it exists, and -inf otherwise.
-      % missingFileNamesComplete is a cell array vector of length
-      % length(expis).  Each element is a cell array of strings, listing
-      % the missing files for that experiment.  These lists are not 
-      % truncated to any particular length.  (That's why 'Complete' is in 
-      % the name.  Note that this function is a getter---it does not change
-      % the object state at all.
-      %
-      % For filetypes that can represent multiple files:
-      %  - fileExists is only true if *all* files are present
-      %  - fileTimeStamps is the *oldest* of all timestamps
-      %      AL20150109: For fileType='perframedir', fileTimeStamps appears
-      %      to be *newest* of all timestamps
-
-      % ST OK
-      
-      % Process arguments
-      if ~exist('filetypes','var') || isempty(filetypes)
-        filetypes = obj.filetypes;
-      end
-      if ~exist('expis','var') || isempty(expis)
-        expis = 1:obj.nexps;
-      end
-
-      % Check that the file types requested are valid
-      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
-      assert(all(fileTypeIsValid),'JLabelData:unknownFileType', ...
-        'Internal error: Unknown file type.  Please report to the JAABA developers.');
-      
-      % Initialize the return vars
-      nExpsToCheck = length(expis);
-      nFileTypesToCheck = length(fileTypeIndices);
-      fileExists = false(nExpsToCheck,nFileTypesToCheck);
-      fileTimeStamps = nan(nExpsToCheck,nFileTypesToCheck);
-      missingFileNamesComplete = cell(1,nExpsToCheck);
-      for i = 1:nExpsToCheck
-        missingFileNamesComplete{i} = {};
-      end
-      
-      % Loop through all file types, checking the existence of files of
-      % that type.
-      for j=1:nFileTypesToCheck
-        fileTypeIndex = fileTypeIndices(j);
-        fileType = obj.filetypes{fileTypeIndex};
-        % loop through experiments
-        for i=1:nExpsToCheck
-          expi = expis(i);
-          if strcmpi(fileType,'perframedir'),
-            % fileType of 'perframedir' is a special case, and has to be
-            % handled separately
-            [perframeFileNames,timestamps] = obj.GetPerframeFiles(expi);
-            if isempty(perframeFileNames),
-              fileExists(i,j) = false;
-              fileTimeStamps(i,j) = -inf;
-            else
-              perframeFileExists = cellfun(@(s) exist(s,'file'),perframeFileNames);
-              fileExists(i,j) = all(perframeFileExists);
-              if ~fileExists(i,j) && obj.IsRequiredFile(fileType),
-                for indicesOfMissingPerframeFiles = find(~perframeFileExists(:)'),
-                  [~,fileNameThis] = myfileparts(perframeFileNames{indicesOfMissingPerframeFiles});
-                  missingFileNamesComplete{i}{end+1} = ['perframe_' fileNameThis];
-                end
-              end
-              fileTimeStamps(i,j) = max(timestamps); % AL 20150109: This is newest timestamp, comments above say oldest
-            end
-          else
-            % if fileType is anything besides 'perframedir'
-            % check for existence of current file(s)
-            [fn,fTS,tffound] = obj.GetFile(fileType,expi);
-            assert(iscell(fn)||ischar(fn),'Legacy check.');
-            fileExists(i,j) = all(tffound);
-            fileTimeStamps(i,j) = min(fTS);
-            if ~fileExists(i,j) && obj.IsRequiredFile(fileType)
-              missingFileNamesComplete{i}{end+1} = fileType;
-            end
-          end
-        end
-      end
-    end  % method
-
-
-    % ---------------------------------------------------------------------
-    function [allRequiredFilesExist, ...
-              missingFilesCanBeGenerated, ...
-              oneMissingFileTypeThatCantBeGenerated] = allRequiredFilesExist(obj,fileExists)
-      % Check whether all required files exist for all experiments.
-      % fileExists is optional, and if provided should be a complete matrix
-      % of file existance information, e.g. as returned by
-      % fileExists=obj.fileOfGivenTypesExistForGivenExps().  If this
-      % argument is not provided, this method calls
-      % fileOfGivenTypesExistForGivenExps() to get current file existance
-      % information.  (The idea is that if you just called
-      % fileOfGivenTypesExistForGivenExps(), you can give its output to
-      % this method, and then this method won't have to figure that stuff
-      % out again.)
-      % On return, allRequiredFilesExist is a logical scalar.  If
-      % allRequiredFilesExist is false, missingFilesCanBeGenerated is a
-      % logical scalar indicating whether the missing files can be
-      % generated.  If both allRequiredFilesExist and
-      % missingFilesCanBeGenerated are false,
-      % oneMissingFileTypeThatCantBeGenerated gives the name of one file
-      % type that cannot be generated.  Note that this function is a
-      % getter---it does not change the object state at all.
-
-      % ST OK
-      
-      % Get detailed information about file existance, if not given as
-      % argument
-      if ~exist('fileExists','var')
-        fileExists = obj.fileOfGivenTypesExistForGivenExps();
-          % with no args, computed for all file types, all exps
-      end
-      
-      nExp = obj.nexps;
-      nType = numel(obj.filetypes);
-      assert(isequal(size(fileExists),[nExp nType]));
-            
-      % initialize outputs
-      allRequiredFilesExist = true;
-      missingFilesCanBeGenerated = [];
-      oneMissingFileTypeThatCantBeGenerated = '';
-      
-      for iType = 1:nType
-        type = obj.filetypes{iType};
-        tfReqd = obj.IsRequiredFile(type);
-        if tfReqd
-          for iExp = 1:nExp
-            if ~fileExists(iExp,iType)
-              allRequiredFilesExist = false;
-              % if furthermore file can't be generated, then not fixable
-              missingFilesCanBeGenerated = JLabelData.CanGenerateFile(type);
-              if ~missingFilesCanBeGenerated
-                oneMissingFileTypeThatCantBeGenerated = type;
-                return;
-              end
-            end
-          end
-        end
-      end
-    end 
-    
+        
     
 % Configuration settings.
 
@@ -3426,59 +3025,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Get the behavior name, a string
       obj.needsave = true;
     end
-        
-        
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetMovieFileName(obj,moviefilename)
-    % change/set the name of the movie within the experiment directory
-    % will fail if movie files don't exist for any of the current
-    % experiment directories (checked by CheckMovies)
-
-      success = false; msg = '';
-
-      if ischar(moviefilename),
-        if ischar(obj.moviefilename) && strcmp(moviefilename,obj.moviefilename),
-          success = true;
-          return;
-        end
-        oldmoviefilename = obj.moviefilename;
-        obj.moviefilename = moviefilename;
-        %obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
-        [success1,msg] = obj.CheckMovies();
-        if ~success1,
-          obj.moviefilename = oldmoviefilename;
-          return;
-        end
-        [success,msg] = obj.UpdateStatusTable('movie');
-      end
-      
-    end
     
-
-    % ---------------------------------------------------------------------
-    function scoreFileName = getScoreFileName(obj)
-      scoreFileName = obj.scorefilename;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = setScoreFileName(obj,sfn)
-      assert(iscellstr(sfn) && numel(sfn)==obj.nclassifiers,...
-        'Number of score filenames must match number of classifiers.');
-      assert(numel(sfn)==numel(unique(sfn)),...
-        'Score filenames must be unique.');
-      
-      tfValid = cellfun(@JLabelData.isValidScoreFileName,sfn);
-      if ~all(tfValid)
-        error('JLabelData:scoreFileName',...
-          'The following are not valid score filenames: %s',...
-          civilizedStringFromCellArrayOfStrings(sfn(~tfValid)));
-      end
-      
-      obj.scorefilename = sfn;
-      obj.needsave = true;
-      [success,msg] = obj.UpdateStatusTable('scores');
-    end
 
 % Status display
     
@@ -3515,59 +3062,6 @@ classdef JLabelData < matlab.mixin.Copyable
         drawnow;
       end
     end  % method
-
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetPerFrameDir(obj,perframedir)
-      % [success,msg] = SetPerFrameDir(obj,perframedir)
-      % Sets the per-frame directory name within the experiment directory.
-      % Currently, this does not change the cached per-frame data or check
-      % that all the per-frame files necessary are within the directory
-      % (TODO).
-      
-      success = false; msg = '';
-      
-      if ischar(perframedir),
-        if ischar(obj.perframedir) && strcmp(perframedir,obj.perframedir),
-          success = true;
-          return;
-        end
-        
-        obj.perframedir = perframedir;
-        
-        % TODO: check per-frame directories are okay, remove bad
-        % experiments
-        
-        [success,msg] = obj.UpdateStatusTable('perframedir');
-      end
-      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetClipsDir(obj,clipsdir)
-    % [success,msg] = SetClipsDir(obj,clipsdir)
-    % Sets the clips directory name within the experiment directory.
-      
-      success = true;
-      msg = '';
-
-      if ischar(clipsdir),
-        for i = 1:numel(obj.expdirs),
-          %clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
-%           if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
-%             mkdir(clipsdircurr);
-%           end
-        end
-        if ischar(obj.clipsdir) && strcmp(clipsdir,obj.clipsdir),
-          success = true;
-          return;
-        end
-
-        obj.clipsdir = clipsdir;        
-        [success,msg] = obj.UpdateStatusTable('clipsdir');
-      end
-      
-    end
 
     
     % ---------------------------------------------------------------------
@@ -4013,51 +3507,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end  
 
         
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetExpDirs(obj,expdirs)
-    % Changes what experiments are currently being used for this
-    % classifier. This function calls RemoveExpDirs to remove all current
-    % experiments not in expdirs, then calls AddExpDirs to add the new
-    % experiment directories. 
-
-      % MERGESTUPDATED
-      
-      success = false;
-      msg = '';
-      
-      if isnumeric(expdirs), % AL ?
-        return;
-      end
-      
-      if nargin < 2,
-        error('Usage: obj.SetExpDirs(expdirs)');
-      end
-                  
-      oldexpdirs = obj.expdirs;
-      
-      % remove all oldexpdirs that aren't in expdirs
-      expi = find(~ismember(oldexpdirs,expdirs));
-      if ~isempty(expi)
-        [success1,msg] = obj.RemoveExpDirs(expi);
-        if ~success1,
-          return;
-        end
-      end
-
-      % add all new expdirs that weren't in oldexpdirs
-      idx = find(~ismember(expdirs,oldexpdirs));
-      success = true;
-      for i = idx(:)'
-        [success1,msg1] = obj.AddExpDir(expdirs{i});
-        success = success && success1;
-        if isempty(msg),
-          msg = msg1;
-        else
-          msg = sprintf('%s\n%s',msg,msg1);
-        end        
-      end
-
-    end
     
     
 % Saving and loading    
@@ -4372,344 +3821,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
     end
    
-    
-% Experiment handling
-
-    % ---------------------------------------------------------------------
-    function [success,msg] = AddExpDir(obj, ...
-                                       expDirName, ...
-                                       interactivemode) %#ok
-      % Add a new experiment to the GUI.  This does not change self.expi,
-      % and does not do any preloading.
-      
-      %MERGESTOK
-      
-      % Set default return values
-      success = false; msg = '';
-      
-      if isnumeric(expDirName)
-        return; 
-      end
-      
-      % interactive mode is not stored in the instance vars
-      if exist('interactivemode','var')
-        warning(['JLabelData.AddExpDir: Whether or not the JLabelData is interactive is now stored in the object.  ' ...
-                 'Setting it for the call to AddExpDir() is ignored.']);
-      end
-      interactivemode = obj.isInteractive;
-
-      % make sure directory exists
-      obj.SetStatus('Checking that %s exists...',expDirName);
-      if ~exist(expDirName,'file'),
-        error('JLabelData:expDirDoesNotExist', '%s', ...
-              expDirName);
-      end
-      
-%       % Is there an output directory?
-%       isoutexpdir = false;
-      
-      % Did the caller provide extra information about the tracks
-      %istrxinfo = false;
-
-      [~,expName] = myfileparts(expDirName);
-      
-%       % expnames and rootoutputdir must match (do we still need this?)
-%       if isoutexpdir,
-%         [rootoutputdir,outname] = myfileparts(outexpdir);
-%         if ~strcmp(expname,outname),
-%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-%           return;
-%         end
-%       elseif ~ischar(obj.rootoutputdir),
-%         outexpdir = expdir;
-%         rootoutputdir = 0;
-%       else
-%         rootoutputdir = obj.rootoutputdir;        
-%       end
-      
-%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
-%         outexpdir = fullfile(rootoutputdir,expname);
-%       end
-      %outexpdir=expDirName;
-
-%       % create missing outexpdirs
-%       if ~exist(outexpdir,'dir'),
-%         [success1,msg1] = mkdir(rootoutputdir,expname);
-%         if ~success1,
-%           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
-%           return;
-%         end
-%       end
-
-      % create clips dir
-      clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(expDirName,clipsdir);  %#ok
-
-      % okay, checks succeeded, start storing stuff
-      %obj.nexps = obj.nexps + 1;
-      obj.expdirs{end+1} = expDirName;
-      %obj.expnames{end+1} = expName;
-      %obj.rootoutputdir = rootoutputdir;
-      %obj.outexpdirs{end+1} = outexpdir;
-
-      % If we call remove, it's to roll-back a failed experiment add, so we
-      % don't want to set needsave in this case.
-      needSaveIfSuccessfulRemoval = false;
-      
-      % Update the status table        
-      obj.SetStatus('Updating status table for %s...',expName);
-      [success,msg,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
-      missingfiles = missingfiles{obj.nexps};
-      if ~success,
-        obj.SetStatus('Bad experiment directory %s...',expDirName);
-        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-        return;
-      end
-      
-      % check for existence of necessary files in this directory
-      if ~obj.filesfixable,
-        msg = sprintf(['Experiment %s is missing required files that cannot '...
-          'be generated within this interface. Removing...'],expDirName);
-        obj.SetStatus('Bad experiment directory %s...',expDirName);
-        success = false;
-        % undo
-        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-        return;
-      end
-      
-      % Always regenerate the score feature perframe files, to make sure
-      % they're from the right classifier
-      % Have to do this _before_ calling GenerateMissingFiles() so that
-      % when UpdateStatusTable() gets called wihtin GenerateMissingFiles(), 
-      % any score feature perframe files are already in place
-      [success,msg] = obj.GenerateScoreFeaturePerframeFiles(obj.nexps);
-      if ~success,
-        %msg = sprintf(['Error generating missing required files %s '...
-        %  'for experiment %s: %s. Removing...'],...
-        %  sprintf(' %s',missingfiles{:}),expDirName,msg);
-        obj.SetStatus('Error generating score feature perframe files for %s...',expName);
-        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-        return
-      end
-      
-      % If some files are missing, and we can generate them, do so
-      if obj.filesfixable && ~obj.allfilesexist,
-        obj.SetStatus('Some files missing for %s...',expName);
-        if interactivemode && isdisplay(),
-          if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
-            if numel(missingfiles)>10,
-              missingfiles = missingfiles(1:10);
-              missingfiles{end+1} = ' and more ';
-            end
-            % Would be good to move UI stuff out of JLabelData, which is
-            % essentially a model in MVC terms --ALT, Apr 30, 2013
-            res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
-              'Generate now?'],expDirName,sprintf(' %s',missingfiles{:})),...
-              'Generate missing files?','Yes','Cancel','Yes');
-            if strcmpi(res,'Yes')
-              obj.SetGenerateMissingFiles();
-            end
-          else 
-            res = 'Yes';
-          end
-        else
-          res = 'Yes';
-        end
-        if strcmpi(res,'Yes'),
-          obj.SetStatus('Generating missing files for %s...',expName);
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
-          if ~success,
-            msg = sprintf(['Error generating missing required files %s '...
-              'for experiment %s: %s. Removing...'],...
-              sprintf(' %s',missingfiles{:}),expDirName,msg);
-            obj.SetStatus('Error generating missing files for %s...',expName);
-            obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-            return;
-          end
-        else
-          obj.SetStatus('Not generating missing files for %s, not adding...',expName);
-          obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-          return;
-        end
-      end
-      
-%       % Convert the scores file into perframe files.      
-%       for i = 1:numel(obj.scoreFeatures)
-%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-%         [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
-%                                              obj.scoreFeatures(i).scorefilename, ...
-%                                              obj.scoreFeatures(i).ts);
-%           if ~success,
-%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-%             obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-%             return;
-%           end
-%       end
-      
-      % Set the fields describing the tracks, either using info provided by
-      % the caller, or by reading from the trx file.
-%       if istrxinfo,
-%         obj.nflies_per_exp(end+1) = nFlies;
-%         obj.sex_per_exp{end+1} = sex;
-%         obj.frac_sex_per_exp{end+1} = fracSex;
-%         obj.firstframes_per_exp{end+1} = firstFrames;
-%         obj.endframes_per_exp{end+1} = endFrames;
-%       else
-      % Read from the trx file
-      obj.SetStatus('Getting basic trx info for %s...',expName);
-      trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
-      try
-        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex,hasperframesex] = ...
-          JLabelData.readTrxInfoFromFile(trxFileNameAbs);
-      catch err
-         if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
-           msg = sprintf('Error getting basic trx info: %s',msg1);
-           obj.SetStatus('Error getting basic trx info for %s, not adding...',expName);
-           obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-           return;
-         else
-           rethrow(err);
-         end
-      end
-      obj.hassex = obj.hassex || hasSex;
-      obj.hasperframesex = hasperframesex;
-      obj.nflies_per_exp(end+1) = nFlies;
-      obj.sex_per_exp{end+1} = sex;
-      obj.frac_sex_per_exp{end+1} = fracSex;
-      obj.firstframes_per_exp{end+1} = firstFrames;
-      obj.endframes_per_exp{end+1} = endFrames;
-%       end
-      
-      % Initialize the labels for the current labeling mode
-      iExp = obj.nexps;
-      obj.labels(iExp) = Labels.labels(1);
-%       obj.labels(iExp).t0s = {};
-%       obj.labels(iExp).t1s = {};
-%       obj.labels(iExp).names = {};
-%       obj.labels(iExp).flies = [];
-%       obj.labels(iExp).off = [];
-%       obj.labels(iExp).timestamp = {};
-%       obj.labels(iExp).timelinetimestamp = {};
-%       obj.labels(iExp).imp_t0s = {};
-%       obj.labels(iExp).imp_t1s = {};
-      obj.labelstats(iExp).nflies_labeled = 0;
-      obj.labelstats(iExp).nbouts_labeled = 0;
-      
-      % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
-      if numel(obj.predictdata)<obj.nexps
-        obj.SetStatus('Initializing prediction data for %s...',expName);
-        obj.InitPredictionData(obj.nexps);
-      end
-            
-      % % Set the default path to the experiment directory's parent
-      obj.expdefaultpath = fileparts(expDirName);
-
-      % Update the status
-      obj.SetStatus('Successfully added experiment %s...',expDirName);
-      
-      % Declare victory
-      obj.needsave = true;
-      success = true;
-    end
-    
-    function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)
-      %MERGESTUPDATED
-      
-      assert(obj.nclassifiers==1,'Current project must be a single-classifier project.');
-      % AL 20141219: In the multiclassifier world one can imagine a
-      % different merge operation, where the incoming Jab contains new
-      % classifiers/behaviors to be added to the current Jab.
-      
-      assert(~obj.isST,'ST: unsupported.'); % AL: for no good reason
-      
-      success = true; 
-      msg = '';
-      
-      try
-        Q = load(jabfilename,'-mat');
-      catch ME
-        success = false;
-        msg = ME.message;
-        return;
-      end
-      
-      assert(isscalar(Q.x.classifierStuff),...
-        'Jabfile ''%s'' is not a single-classifier project.',jabfilename);
-      
-      if obj.IsGTMode
-        origExpDirNames = Q.x.gtExpDirNames;
-        origLabels = Q.x.gtLabels;
-        % modernize labels?
-      else
-        origExpDirNames = Q.x.expDirNames;
-        origLabels = Q.x.labels;
-        origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
-      end
-      assert(numel(origExpDirNames)==numel(origLabels));
-      
-      for ndx = 1:numel(origExpDirNames)
-        expdirname = origExpDirNames{ndx};
-        labels = origLabels(ndx);
-        if importlabels % Change the names
-          assert(numel(Q.x.behaviors.names)==2);
-          origBehName = Q.x.behaviors.names{1};
-          origNoBehName = Q.x.behaviors.names{2};
-          assert(strcmpi(origNoBehName,'none'));
-          newBehName = obj.labelnames{1};
-          newNoBehName = obj.labelnames{2};
-          assert(strcmpi(newNoBehName,'none'));
-          labels = Labels.renameBehavior(labels,origBehName,newBehName,origNoBehName,newNoBehName);
-        end
         
-        curexp = find(strcmp(expdirname,obj.expdirs));
-        if isempty(curexp)
-          [success,msg] = obj.AddExpDir(expdirname);
-          if ~success
-            return;
-          end
-          if importlabels
-            obj.labels(end) = labels;
-          end
-        elseif importlabels
-          tfLabelsUpdated = false;
-          if obj.haslabels(curexp)
-            dlgstr = sprintf('Experiment %s already has labels. Discard the existing (current) labels and load the new ones?',...
-              expdirname);
-            res = questdlg(dlgstr,'Load new labels?',...
-              'Keep Existing','Load New','Cancel','Keep Existing');
-            if strcmp(res,'Load New')
-              obj.labels(curexp) = labels;
-              tfLabelsUpdated = true;
-            end
-          else
-            obj.labels(curexp) = labels;
-            tfLabelsUpdated = true;
-          end
-          
-          if tfLabelsUpdated && curexp==obj.expi
-            % initialize .labelidx from .labels
-            % AL 20141219: added tfLabelsUpdated condition; seems like we
-            % only want to update .labelidx (especially from .labels) if
-            % the new labels were accepted
-            
-            labelShort = Labels.labelsShort;
-            [labelsShort,tffly] = Labels.labelsShortInit(labelShort,labels,obj.flies);            
-            if tffly
-              T0 = max(obj.GetTrxFirstFrame(obj.expi,obj.flies));
-              T1 = min(obj.GetTrxEndFrame(obj.expi,obj.flies));
-              labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
-              labelidx = Labels.labelIdxInit(labelidx,labelsShort);
-              obj.labelidx = labelidx;
-            else
-              % none. obj.flies not present in new labels. .labelidx not 
-              % updated, so may contain bouts that differ from .labels
-            end
-          end          
-        end
-      end
-    end
-    
-    
     % ---------------------------------------------------------------------
     function has = haslabels(obj,expnum)
       obj.StoreLabelsForCurrentAnimal();
@@ -4721,635 +3833,6 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end    
 
-
-    % ---------------------------------------------------------------------
-    function [success,msg] = RemoveExpDirs(obj,expi,needSaveIfSuccessful)
-      % [success,msg] = RemoveExpDirs(obj,expi,[needSaveIfSuccessful])
-      % Removes experiments in expi from the GUI. If the currently loaded
-      % experiment is removed, then a different experiment may be preloaded. 
-      % If needSaveIfSuccessful is defined and true, the JLabelData's
-      % needsave property will be set to true if the experiment is
-      % successfully removed.  If needSaveIfSuccessful is not defined, is
-      % empty, or is false, needsave will not be changed.  It is useful to
-      % set needSaveIfSuccessful to false if RemoveExpDirs() is being called
-      % in order to roll-back the partially-completed addition of an
-      % experiment.
-
-      %MERGESTUPDATED
-      
-      success = false;
-      msg = '';
-      
-      if ~exist('needSaveIfSuccessful','var') || isempty(needSaveIfSuccessful)
-        needSaveIfSuccessful = true;
-      end
-      
-      if any(obj.nexps < expi) || any(expi < 1),
-        msg = sprintf('expi = %s must be in the range 1 < expi < nexps = %d',mat2str(expi),obj.nexps);
-        return;
-      end
-      
-      origNExp = obj.nexps;
-      newExpNumbers = zeros(1,obj.nexps);
-      for ndx = 1:obj.nexps
-        if ismember(ndx,expi);
-          newExpNumbers(1,ndx) = 0;
-        else
-          newExpNumbers(1,ndx) = ndx-nnz(expi<ndx);
-        end
-      end
-      
-      if ~(numel(obj.expdirs)<expi)
-        obj.expdirs(expi) = [];   
-      end
-      
-      assert(nnz(newExpNumbers>0)==numel(obj.expdirs));
-      
-      % if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
-      %if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
-      if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
-      if ~(numel(obj.sex_per_exp)<expi); obj.sex_per_exp(expi) = []; end
-      if ~(numel(obj.frac_sex_per_exp)<expi); obj.frac_sex_per_exp(expi) = []; end
-      if ~(numel(obj.firstframes_per_exp)<expi); obj.firstframes_per_exp(expi) = []; end
-      if ~(numel(obj.endframes_per_exp)<expi); obj.endframes_per_exp(expi) = []; end
-      if ~(numel(obj.labels)<expi); obj.labels(expi) = []; end
-      if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
-      %if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
-      %if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
-      %obj.nexps = obj.nexps - numel(expi);
-      % TODO: exp2labeloff
-
-      % Clean window data
-      for iCls = 1:numel(obj.windowdata)
-        wdExp = obj.windowdata(iCls).exp;
-        assert(iscolumn(wdExp) || isequal(wdExp,[]));
-        newExp = newExpNumbers(wdExp);
-        obj.windowdata(iCls).exp = newExp(:);
-      end
-      % removed exps now have obj.windowdata.exp==0
-      obj.windowdata = WindowData.windowdataTrim(obj.windowdata,@(x)x.exp==0);
-      % AL 20141121. There used to be some odd code here:
-      % - Not all windowdata fields trimmed, eg labelidx_old
-      % - Code implied that many fields (eg labelidx_cur) did not have to 
-      % size consistent with windowdata.X, eg size of labelidx_cur implied
-      % to be different than labelidx_new
-      WindowData.windowdataVerify(obj.windowdata);      
-
-      for curex = sort(expi(:)','descend') %#ok<UDIM>
-        if numel(obj.predictdata)>=curex
-          obj.predictdata(curex) = [];
-        end
-      end
-      
-      nCls = obj.nclassifiers;
-      pbfnames = fieldnames(obj.predictblocks);
-      for iCls = 1:nCls
-        if ~isempty(obj.predictblocks(iCls).expi)
-          idxcurr = ismember(obj.predictblocks(iCls).expi,expi);
-          for fndx = 1:numel(pbfnames)
-            obj.predictblocks(iCls).(pbfnames{fndx})(idxcurr) = [];
-            % all fields of predictblocks are currently row vecs
-          end
-          tmp = newExpNumbers(obj.predictblocks(iCls).expi);
-          obj.predictblocks(iCls).expi = tmp(:)';
-        end
-      end
-      
-      if ~isempty(obj.randomGTSuggestions)
-        assert(numel(obj.randomGTSuggestions)==origNExp);
-        obj.randomGTSuggestions(expi) = [];
-      end
-      
-      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi 
-        assert(numel(obj.loadedGTSuggestions)==origNExp);
-        obj.loadedGTSuggestions(expi) = [];
-      end
-
-      % update current exp, flies
-      if ~isempty(obj.expi) && obj.expi > 0 
-        if ismember(obj.expi,expi), % The current experiment was removed.
-          newexpi = find(newExpNumbers(obj.expi+1:end),1);
-          if isempty(newexpi), % No next experiment.
-            newexpi = find(newExpNumbers(1:obj.expi-1),1,'last');
-            if isempty(newexpi), % No previous experiment either.
-              newexpi = 0;
-            else
-              newexpi = newExpNumbers(newexpi);
-            end
-          else
-            newexpi = newExpNumbers(obj.expi+newexpi);
-          end
-          obj.expi = 0;
-          obj.flies = nan(size(obj.flies));
-          if obj.nexps > 0,
-            obj.setCurrentTarget(newexpi,1);
-          end
-        else
-          obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
-        end
-      end
-      
-      % Set needsave, if called for
-      if needSaveIfSuccessful
-        obj.needsave = true;
-      end
-      
-      % Declare victory
-      success = true;
-    end  % method
-
-    
-% File Handling 
-    
-    % ---------------------------------------------------------------------
-    function res = GetFileName(obj,fileType)
-    % res = GetFileName(obj,fileType)
-    % Get base name of file of the input type fileType.
-      switch fileType,
-        case 'movie',
-          res = obj.moviefilename;
-        case 'trx',
-          res = obj.trxfilename;
-%         case 'label',
-%           res = obj.labelfilename;
-%         case 'gt_label',
-%             res = obj.gt_labelfilename;            
-        case {'perframedir','perframe'},
-          res = obj.perframedir;
-        case {'clipsdir','clips'},
-          if ischar(obj.clipsdir)
-            res = strtrim(obj.clipsdir);
-          else
-            res = 'clips';
-          end            
-        case 'scores',
-          res = obj.scorefilename;
-        case 'stfeatures',
-          res = obj.stfeatures;
-        otherwise
-          error('Unknown file type %s',fileType);
-      end
-    end
-
-    
-    % ---------------------------------------------------------------------    
-    function [filename,timestamp,tffound] = GetFile(obj,fileType,expi)
-    % filename: full path(s). Either char or cellstr
-    % timestamp: timestamps for files that exist. Size corresponding to filename.
-    % tffound: logical vector. Size corresponding to filename.
-    %
-    % If tffound is true, filename is the full filename and timestamp is the filesystem timestamp.
-    % If tffound is false, filename is the file-that-was-tried and timestamp=-inf.
-    %
-    % Vector output occurs eg for fileType='score' when using multiple
-    % classifiers.
-  
-    %ST OK
-    
-      % base name
-      fileNameLocal = obj.GetFileName(fileType);
-      
-      % if this is an output file, only look in output experiment directory
-%       if dowrite && JLabelData.IsOutputFile(file),
-%         %expdirs_try = obj.outexpdirs(expi);
-%         expdirs_try = obj.expdirs(expi);
-%       else
-%         % otherwise, first look in output directory, then look in input
-%         % directory
-%         %expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
-%         expdirs_try = obj.expdirs(expi);
-%       end
-      expdirs_try = obj.expdirs(expi);
-      
-      % non-char or empty filename signals its absence
-      if ~ischar(fileNameLocal) && ~iscellstr(fileNameLocal) || isempty(fileNameLocal)
-        filename = fileNameLocal;
-        timestamp = -inf;
-        tffound = false;
-        return
-      end
-      
-      if ischar(fileNameLocal)
-        [tffound,filename,timestamp] = JLabelData.GetFileRaw(fileType,expdirs_try,fileNameLocal);
-      elseif iscellstr(fileNameLocal)
-        [tffound,filename,timestamp] = cellfun(@(x)JLabelData.GetFileRaw(fileType,expdirs_try,x),fileNameLocal,'uni',0);
-        timestamp = cell2mat(timestamp);
-        tffound = cell2mat(tffound);
-      end
-    end    
-  
-    
-    % ---------------------------------------------------------------------
-    function SetGenerateMissingFiles(obj)
-      obj.perframeGenerate = true;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function perframeGenerate = GetGenerateMissingFiles(obj)
-      perframeGenerate = obj.perframeGenerate;
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = GenerateMissingFiles(obj,expi)
-    % [success,msg] = GenerateMissingFiles(obj,expi)
-    % Generate required, missing files for experiments expi. 
-    % TODO: implement this!
-    
-    % ST OK
-      
-      success = true;
-      msg = '';
-            
-      for i = 1:numel(obj.filetypes),
-        file = obj.filetypes{i};
-        if obj.IsRequiredFile(file) && obj.CanGenerateFile(file) && ...
-            ~obj.FileExists(file,expi),
-          fprintf('Generating %s for %s...\n',file,obj.expnames{expi});
-          switch file
-            case 'perframedir'
-              [success1,msg1] = obj.GeneratePerframeFilesExceptScoreFeatures(expi);
-              success = success && success1;
-              if ~success1,
-                msg = [msg,'\n',msg1]; %#ok<AGROW>
-              end
-%               [success2,msg2] = obj.GenerateScoreFeaturePerframeFiles(expi);
-%               success = success && success2;
-%               if ~success2,
-%                 msg = [msg,'\n',msg2]; %#ok<AGROW>
-%               end
-          end
-        end
-      end
-      [success1,msg1] = obj.UpdateStatusTable();
-      success = success && success1;
-      if isempty(msg),
-        msg = msg1;
-      else
-        msg = sprintf('%s\n%s',msg,msg1);
-      end
-      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function RemoveArenaPFs(obj)
-      %Update .allperframefns, .curperframefns, .windowfeaturesparams,
-      %.windowfeaturescellparams
-      
-      %MERGESTUPDATED
-      
-      % Determine which PFFs to remove
-      settings = obj.featureLexicon;
-      apff = obj.allperframefns;      
-      Napff = numel(apff);
-      tfRm = false(Napff,1);
-      for i = 1:Napff
-        curpf = apff{i};
-        if any(strcmp(curpf,{obj.scoreFeatures(:).scorefilename}))
-          continue;
-        end
-        curtypes = settings.perframe.(curpf).type;
-        tfRm(i) = any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'));
-      end
-      
-      % Remove
-      apffRm = apff(tfRm);
-      obj.allperframefns(tfRm,:) = [];
-      nCls = obj.nclassifiers;
-      for iCls = 1:nCls
-        fldsRm = intersect(fieldnames(obj.windowfeaturesparams{iCls}),apffRm);
-        obj.windowfeaturesparams{iCls} = rmfield(obj.windowfeaturesparams{iCls},fldsRm);
-        % AL 20141215: next line is legacy, don't understand why it is 
-        % necessary given we are just removing fields
-        obj.windowfeaturesparams{iCls} = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams{iCls});
-        obj.windowfeaturescellparams{iCls} = JLabelData.convertParams2CellParams(obj.windowfeaturesparams{iCls});
-        
-        tf = ismember(obj.curperframefns{iCls},apffRm);
-        obj.curperframefns{iCls}(tf,:) = [];
-      end      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = GeneratePerframeFilesExceptScoreFeatures(obj,expi)
-      success = false; %#ok<NASGU>
-      msg = '';
-
-      perframedir = obj.GetFile('perframedir',expi);
-      
-      isInteractive=obj.isInteractive;
-      if ~isInteractive,
-        dooverwrite = false;
-      elseif ~isempty(obj.perframeOverwrite) 
-        dooverwrite = obj.perframeOverwrite;
-      elseif exist(perframedir,'dir'),
-        res = questdlg('Do you want to leave existing files alone or regenerate them?',...
-                       'Regenerate existing files?', ...
-                       'Leave Alone','Regenerate', ...
-                       'Leave Alone');
-        dooverwrite = strcmpi(res,'Regenerate');
-        obj.perframeOverwrite = dooverwrite;
-      else
-        dooverwrite = true;
-      end
-      
-      expdir = obj.expdirs{expi};
-      
-      hwait=-1;  % make sure hwait var exists, and is not a graphics handle
-                 % unless it gets overwritten
-      if isInteractive
-        hwait = mywaitbar(0,sprintf('Generating perframe files for %s',expdir),'interpreter','none');
-      else
-        fprintf('Generating perframe files for %s\n',expdir);
-      end
-      
-      perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
-                        'moviefilestr',obj.GetFileName('movie'),...
-                        'perframedir',obj.GetFileName('perframedir'),...
-                        'default_landmark_params',obj.landmark_params,...
-                        'perframe_params',obj.perframe_params);
-                        %'rootwritedir',expdir);
-%                        'rootwritedir',obj.rootoutputdir);
-      
-      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
-      
-
-      
-      if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
-        if expi>1,
-          success = false;
-          msg = ['Landmark params were not defined in the configuration file or in the trx file for the current experiment. '...
-              'Cannot compute arena perframe features for the experiment and removing it'];
-          if isInteractive && ishandle(hwait),
-              delete(hwait);
-          end
-          return;
-        end
-
-        if isInteractive,
-          uiwait(warndlg(['Landmark params were not defined in the configuration file'...
-            ' or in the trx file. Not computing arena features and removing them from the perframe list']));
-        else
-          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list.\n');
-        end
-        obj.RemoveArenaPFs();
-        obj.arenawarn = false;
-      end
-      
-      perframefiles = obj.GetPerframeFiles(expi);
-      for i = 1:numel(obj.allperframefns),
-        fn = obj.allperframefns{i};
-        %ndx = find(strcmp(fn,obj.allperframefns));
-        file = perframefiles{i};
-        if ~dooverwrite && exist(file,'file'),
-          continue;
-        end
-        if isInteractive
-          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,...
-            sprintf('Computing %s and saving to file %s',fn,file));
-        else
-          fprintf('Computing %s and saving to file %s\n',fn,file);
-        end
-        
-        % Generate the per-frame files that are not score features
-        % Don't generate the per-frame files from scores here anymore..
-        
-%          try
-           if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
-            perframetrx.(fn);
-           end        
-%          catch excp
-%            if isInteractive && ishandle(hwait),
-%              delete(hwait);
-%            end
-%            if isequal(excp.identifier,'MATLAB:UndefinedFunction')
-%              msg=sprintf('Unable to calculate per-frame feature %s.',fn);
-%              success=false;
-%              return
-%           else
-%              rethrow(excp);
-%            end
-%          end
-      end
-      
-      if isInteractive && ishandle(hwait),
-        delete(hwait);
-      end
-      
-      success = true;
-      
-    end  % method
-
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = GenerateScoreFeaturePerframeFiles(obj,expi)
-      % MERGEST OK
-      
-      success = true;
-      msg = '';
-      % Convert the scores file into perframe files.
-      for i = 1:numel(obj.scoreFeatures)
-        %obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-        [success,msg] = obj.ScoresToPerframe(expi, ...
-          obj.scoreFeatures(i).scorefilename, ...
-          obj.scoreFeatures(i).ts);
-        if ~success,
-          %obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-          %obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-          return
-        end
-      end
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function [success,msg,ts,projectName] = ...
-        ScoresToPerframe(obj,expi,fileName,ts,projectName)
-      % Create perframe file from scorefile in toplevel-dir
-      %
-      % ts: timestamp
-      
-      % MERGESTUPDATED
-      
-      persistent perframescoresfile_didselectyes;
-      
-      success = true;
-      msg = '';
-
-      outdir = obj.expdirs{expi};
-      scoresFileIn = [fullfile(outdir,fileName) '.mat'];
-      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fileName) '.mat'];
-      if ~exist(scoresFileIn,'file')
-        success = false; 
-        msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
-        return;
-      end
-      
-      Q = load(scoresFileIn);
-      if obj.isInteractive
-        if Q.timestamp > ts
-          res = questdlg(sprintf('The timestamp for scores file %s (%s) is newer than that expected for this project (%s). Do you want to update the current project, proceed without updating, or cancel?',...
-              scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Update project','Proceed without updating','Cancel','Update project');
-          if strcmpi(res,'Update project')
-            
-            while true
-              [f,p] = uigetfile('*.jab',sprintf('Choose the project corresponding to %s',fileName),projectName);
-              if ~ischar(f)
-                break;
-              end
-              newProjectName = fullfile(p,f);
-              if ~exist(newProjectName,'file'),
-                uiwait(warndlg(sprintf('File %s does not exist',newProjectName)));
-                continue;
-              end
-              projectData = loadAnonymous(newProjectName);
-              projectData = Macguffin(projectData);
-              projectData.modernize();
-              assert(isscalar(projectData.classifierStuff),...
-                'Project ''%s'' is a multi-classifier project; this is currently unsupported.',newProjectName);              
-              if projectData.classifierStuff.timeStamp ~= Q.timestamp
-                uiwait(warndlg(sprintf('Timestamp in project file %s = %s does not match time stamp in score file %s = %s',newProjectName,datestr(projectData.classifierStuff.timeStamp),fileName,datestr(ts))));
-                continue;
-              end
-              if ~strcmp(projectData.file.scorefilename{1},[fileName,'.mat']),
-                uiwait(warndlg(sprintf('Score file name in %s = %s does not match score file name %s',newProjectName,projectData.file.scorefilename,[fileName,'.mat'])));
-                continue;
-              end
-              projectName = newProjectName;
-              ts = projectData.classifierStuff.timeStamp;
-              break;
-            end
-            
-          elseif strcmpi(res,'Proceed without updating')
-            Q.timestamp = ts;
-          end
-        elseif Q.timestamp < ts,
-          res = questdlg(sprintf('The timestamp for scores file %s (%s) is older than that expected for this project (%s). Do you want to add this experiment anyways or cancel?',...
-            scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Add experiment anyway','Cancel','Cancel');
-          if strcmpi(res,'Add experiment anyway'),
-            Q.timestamp = ts;
-          end
-        end
-      end
-      if Q.timestamp ~= ts % check the timestamps match the classifier's timestamp.
-        success = false; 
-        msg = sprintf(['The scores file %s was generated using a classifier' ...
-          ' that was saved on %s while the classifier chosen was saved on %s'],...
-          scoresFileIn,datestr(Q.timestamp),datestr(ts));
-      end
-      
-      OUT = struct();
-      OUT.units = struct();
-      OUT.units.num = {'scores'};
-      OUT.units.den = {''};
-      for ndx = 1:numel(Q.allScores.scores)
-        t0 = Q.allScores.tStart(ndx);
-        t1 = Q.allScores.tEnd(ndx);
-        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
-      end
-      try
-        save(scoresFileOut,'-struct','OUT');
-      catch ME,
-        questmsg = sprintf('Could not write perframe file from scores file: %s.',fileName);
-        if obj.isInteractive && isempty(perframescoresfile_didselectyes)
-          button = questdlg([questmsg,' Continue?'],'Continue','Yes');
-          if ~strcmp(button,'Yes')
-            success = false;
-            msg = ME.message;
-          else
-            perframescoresfile_didselectyes = true;
-          end
-        else
-          warning(questmsg); %#ok<SPWRN>
-        end
-      end
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
-      windowfeaturesparams = obj.windowfeaturesparams; 
-      windowfeaturescellparams = obj.windowfeaturescellparams; 
-    end  
-    
-    
-    % ---------------------------------------------------------------------
-    function [filenames,timestamps] = GetPerframeFiles(obj,expi)
-    % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
-    % Get the full path to the per-frame mat files for experiment expi
-      
-%       if nargin < 3,
-%         dowrite = false;
-%       end
-      
-      fn = obj.GetFileName('perframedir');
-      
-      % if this is an output file, only look in output experiment directory
-%       if dowrite && JLabelData.IsOutputFile('perframedir'),
-%         %expdirs_try = obj.outexpdirs(expi);
-%         expdirs_try = obj.expdirs(expi);
-%       else
-%         % otherwise, first look in output directory, then look in input
-%         % directory
-%         %expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
-%         expdirs_try = obj.expdirs(expi);
-%       end
-      expdirs_try = obj.expdirs(expi);
-      
-      filenames = cell(1,numel(obj.allperframefns));
-      timestamps = -inf(1,numel(obj.allperframefns));
-      
-      for i = 1:numel(obj.allperframefns),
-
-        % loop through directories to look in
-        for j = 1:numel(expdirs_try),
-          expdir = expdirs_try{j};
-%           perframedir = fullfile(expdir,fn);  % BJA: slow by 10x
-          perframedir = [expdir filesep fn];
-          if ispc && ~exist(perframedir,'dir'),
-            [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
-            if didfind,
-              perframedir = actualperframedir;
-            end
-          end
-%           filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);  % BJA: slow by 10x
-          filename = [perframedir filesep obj.allperframefns{i} '.mat'];
-          if ispc && ~exist(filename,'file'),
-            [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
-            if didfind,
-              filename = actualfilename;
-            end
-          end
-          
-          if exist(filename,'file'),
-            filenames{i} = filename;
-            tmp = dir(filename);
-            timestamps(i) = tmp.datenum;
-          elseif j == 1,
-            filenames{i} = filename;
-          end
-          
-        end
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [fe,ft] = FileExists(obj,fileType,expi)
-    % [fe,ft] = FileExists(obj,file,expi)
-    % Returns whether the input file exists for the input experiment. 
-      filei = find(strcmpi(fileType,obj.filetypes),1);
-      if isempty(filei),
-        error('file type %s does not match any known file type',fileType);
-      end
-      if nargin < 3,
-        expi = 1:obj.nexps;
-      end
-      fe = obj.fileexists(expi,filei);
-      ft = obj.filetimestamps(expi,filei);
-    end  % method
     
     
 % Tracking information   
@@ -5952,86 +4435,8 @@ classdef JLabelData < matlab.mixin.Copyable
       labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
       labelidx = Labels.labelIdxInit(labelidx,labelsShort);
     end
-
     
-    % ---------------------------------------------------------------------
-    function [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
-    % [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
-    % Returns the per-frame data for the input experiment, flies, and
-    % property. 
-
-      if ischar(prop),
-        prop = find(strcmp(prop,obj.allperframefns),1);
-        if isempty(prop),
-          error('Property %s is not a per-frame property');
-        end
-      end
-      
-      if obj.IsCurFly(expi,flies) 
-        if nargin < 5,
-          perframedata = obj.perframedata{prop};
-          T0 = obj.t0_curr;
-          T1 = obj.t0_curr + numel(perframedata) - 1;
-        else
-          T0 = max(T0,obj.t0_curr);
-          T1 = min(T1,obj.t0_curr+numel(obj.perframedata{prop})-1);
-          i0 = T0 - obj.t0_curr + 1;
-          i1 = T1 - obj.t0_curr + 1;
-          perframedata = obj.perframedata{prop}(i0:i1);
-        end
-        return;
-      end
-      
-      perframedir = obj.GetFile('perframedir',expi);
-      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
-      if nargin < 5,
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        % TODO: generalize to multi-fly
-        perframedata = tmp.data{flies(1)};
-        T1 = T0 + numel(perframedata) - 1;
-        return;
-      end
-      off = 1 - obj.GetTrxFirstFrame(expi,flies);
-      i0 = T0 + off;
-      i1 = T1 + off;
-      perframedata = tmp.data{flies(1)}(i0:i1);
-
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
-    % perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
-    % Returns the per-frame data for the input experiment, flies, and
-    % property. 
-
-%       if ischar(prop),
-%         prop = find(strcmp(prop,handles.perframefn),1);
-%         if isempty(prop),
-%           error('Property %s is not a per-frame property');
-%         end
-%       end
-      
-      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
-        is = t-obj.t0_curr+1;
-        badidx = is > numel(obj.perframedata{prop});
-        if any(badidx),
-          perframedata = nan(size(is));
-          perframedata(~badidx) = obj.perframedata{prop}(is(~badidx));
-        else
-          perframedata = obj.perframedata{prop}(is);
-        end
-        return;
-      end
-      
-      perframedir = obj.GetFile('perframedir',expi);
-      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
-      off = 1 - obj.GetTrxFirstFrame(expi,flies);
-      perframedata = tmp.data{flies(1)}(t+off);
-
-    end
-    
-    
+   
     % ---------------------------------------------------------------------
     function [prediction,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
       % Get the prediction for experiment expi, target flies, over the time
@@ -6852,6 +5257,1674 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end
+  
+  methods % Experiment/Filesystem
+        
+
+    % ---------------------------------------------------------------------
+    function [success,msg] = AddExpDir(obj, ...
+                                       expDirName, ...
+                                       interactivemode) %#ok
+      % Add a new experiment to the GUI.  This does not change self.expi,
+      % and does not do any preloading.
+      
+      %MERGESTOK
+      
+      % Set default return values
+      success = false; msg = '';
+      
+      if isnumeric(expDirName)
+        return; 
+      end
+      
+      % interactive mode is not stored in the instance vars
+      if exist('interactivemode','var')
+        warning(['JLabelData.AddExpDir: Whether or not the JLabelData is interactive is now stored in the object.  ' ...
+                 'Setting it for the call to AddExpDir() is ignored.']);
+      end
+      interactivemode = obj.isInteractive;
+
+      % make sure directory exists
+      obj.SetStatus('Checking that %s exists...',expDirName);
+      if ~exist(expDirName,'file'),
+        error('JLabelData:expDirDoesNotExist', '%s', ...
+              expDirName);
+      end
+      
+%       % Is there an output directory?
+%       isoutexpdir = false;
+      
+      % Did the caller provide extra information about the tracks
+      %istrxinfo = false;
+
+      [~,expName] = myfileparts(expDirName);
+      
+%       % expnames and rootoutputdir must match (do we still need this?)
+%       if isoutexpdir,
+%         [rootoutputdir,outname] = myfileparts(outexpdir);
+%         if ~strcmp(expname,outname),
+%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
+%           return;
+%         end
+%       elseif ~ischar(obj.rootoutputdir),
+%         outexpdir = expdir;
+%         rootoutputdir = 0;
+%       else
+%         rootoutputdir = obj.rootoutputdir;        
+%       end
+      
+%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
+%         outexpdir = fullfile(rootoutputdir,expname);
+%       end
+      %outexpdir=expDirName;
+
+%       % create missing outexpdirs
+%       if ~exist(outexpdir,'dir'),
+%         [success1,msg1] = mkdir(rootoutputdir,expname);
+%         if ~success1,
+%           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
+%           return;
+%         end
+%       end
+
+      % create clips dir
+      clipsdir = obj.GetFileName('clipsdir');
+      outclipsdir = fullfile(expDirName,clipsdir);  %#ok
+
+      % okay, checks succeeded, start storing stuff
+      %obj.nexps = obj.nexps + 1;
+      obj.expdirs{end+1} = expDirName;
+      %obj.expnames{end+1} = expName;
+      %obj.rootoutputdir = rootoutputdir;
+      %obj.outexpdirs{end+1} = outexpdir;
+
+      % If we call remove, it's to roll-back a failed experiment add, so we
+      % don't want to set needsave in this case.
+      needSaveIfSuccessfulRemoval = false;
+      
+      % Update the status table        
+      obj.SetStatus('Updating status table for %s...',expName);
+      [success,msg,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+      missingfiles = missingfiles{obj.nexps};
+      if ~success,
+        obj.SetStatus('Bad experiment directory %s...',expDirName);
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+        return;
+      end
+      
+      % check for existence of necessary files in this directory
+      if ~obj.filesfixable,
+        msg = sprintf(['Experiment %s is missing required files that cannot '...
+          'be generated within this interface. Removing...'],expDirName);
+        obj.SetStatus('Bad experiment directory %s...',expDirName);
+        success = false;
+        % undo
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+        return;
+      end
+      
+      % Always regenerate the score feature perframe files, to make sure
+      % they're from the right classifier
+      % Have to do this _before_ calling GenerateMissingFiles() so that
+      % when UpdateStatusTable() gets called wihtin GenerateMissingFiles(), 
+      % any score feature perframe files are already in place
+      [success,msg] = obj.GenerateScoreFeaturePerframeFiles(obj.nexps);
+      if ~success,
+        %msg = sprintf(['Error generating missing required files %s '...
+        %  'for experiment %s: %s. Removing...'],...
+        %  sprintf(' %s',missingfiles{:}),expDirName,msg);
+        obj.SetStatus('Error generating score feature perframe files for %s...',expName);
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+        return
+      end
+      
+      % If some files are missing, and we can generate them, do so
+      if obj.filesfixable && ~obj.allfilesexist,
+        obj.SetStatus('Some files missing for %s...',expName);
+        if interactivemode && isdisplay(),
+          if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
+            if numel(missingfiles)>10,
+              missingfiles = missingfiles(1:10);
+              missingfiles{end+1} = ' and more ';
+            end
+            % Would be good to move UI stuff out of JLabelData, which is
+            % essentially a model in MVC terms --ALT, Apr 30, 2013
+            res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
+              'Generate now?'],expDirName,sprintf(' %s',missingfiles{:})),...
+              'Generate missing files?','Yes','Cancel','Yes');
+            if strcmpi(res,'Yes')
+              obj.SetGenerateMissingFiles();
+            end
+          else 
+            res = 'Yes';
+          end
+        else
+          res = 'Yes';
+        end
+        if strcmpi(res,'Yes'),
+          obj.SetStatus('Generating missing files for %s...',expName);
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          if ~success,
+            msg = sprintf(['Error generating missing required files %s '...
+              'for experiment %s: %s. Removing...'],...
+              sprintf(' %s',missingfiles{:}),expDirName,msg);
+            obj.SetStatus('Error generating missing files for %s...',expName);
+            obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+            return;
+          end
+        else
+          obj.SetStatus('Not generating missing files for %s, not adding...',expName);
+          obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+          return;
+        end
+      end
+      
+%       % Convert the scores file into perframe files.      
+%       for i = 1:numel(obj.scoreFeatures)
+%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
+%                                              obj.scoreFeatures(i).scorefilename, ...
+%                                              obj.scoreFeatures(i).ts);
+%           if ~success,
+%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+%             obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+%             return;
+%           end
+%       end
+      
+      % Set the fields describing the tracks, either using info provided by
+      % the caller, or by reading from the trx file.
+%       if istrxinfo,
+%         obj.nflies_per_exp(end+1) = nFlies;
+%         obj.sex_per_exp{end+1} = sex;
+%         obj.frac_sex_per_exp{end+1} = fracSex;
+%         obj.firstframes_per_exp{end+1} = firstFrames;
+%         obj.endframes_per_exp{end+1} = endFrames;
+%       else
+      % Read from the trx file
+      obj.SetStatus('Getting basic trx info for %s...',expName);
+      trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
+      try
+        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex,hasperframesex] = ...
+          JLabelData.readTrxInfoFromFile(trxFileNameAbs);
+      catch err
+         if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
+           msg = sprintf('Error getting basic trx info: %s',msg1);
+           obj.SetStatus('Error getting basic trx info for %s, not adding...',expName);
+           obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+           return;
+         else
+           rethrow(err);
+         end
+      end
+      obj.hassex = obj.hassex || hasSex;
+      obj.hasperframesex = hasperframesex;
+      obj.nflies_per_exp(end+1) = nFlies;
+      obj.sex_per_exp{end+1} = sex;
+      obj.frac_sex_per_exp{end+1} = fracSex;
+      obj.firstframes_per_exp{end+1} = firstFrames;
+      obj.endframes_per_exp{end+1} = endFrames;
+%       end
+      
+      % Initialize the labels for the current labeling mode
+      iExp = obj.nexps;
+      obj.labels(iExp) = Labels.labels(1);
+%       obj.labels(iExp).t0s = {};
+%       obj.labels(iExp).t1s = {};
+%       obj.labels(iExp).names = {};
+%       obj.labels(iExp).flies = [];
+%       obj.labels(iExp).off = [];
+%       obj.labels(iExp).timestamp = {};
+%       obj.labels(iExp).timelinetimestamp = {};
+%       obj.labels(iExp).imp_t0s = {};
+%       obj.labels(iExp).imp_t1s = {};
+      obj.labelstats(iExp).nflies_labeled = 0;
+      obj.labelstats(iExp).nbouts_labeled = 0;
+      
+      % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
+      if numel(obj.predictdata)<obj.nexps
+        obj.SetStatus('Initializing prediction data for %s...',expName);
+        obj.InitPredictionData(obj.nexps);
+      end
+            
+      % % Set the default path to the experiment directory's parent
+      obj.expdefaultpath = fileparts(expDirName);
+
+      % Update the status
+      obj.SetStatus('Successfully added experiment %s...',expDirName);
+      
+      % Declare victory
+      obj.needsave = true;
+      success = true;
+    end
+    
+    
+    function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)
+      %MERGESTUPDATED
+      
+      assert(obj.nclassifiers==1,'Current project must be a single-classifier project.');
+      % AL 20141219: In the multiclassifier world one can imagine a
+      % different merge operation, where the incoming Jab contains new
+      % classifiers/behaviors to be added to the current Jab.
+      
+      assert(~obj.isST,'ST: unsupported.'); % AL: for no good reason
+      
+      success = true; 
+      msg = '';
+      
+      try
+        Q = load(jabfilename,'-mat');
+      catch ME
+        success = false;
+        msg = ME.message;
+        return;
+      end
+      
+      assert(isscalar(Q.x.classifierStuff),...
+        'Jabfile ''%s'' is not a single-classifier project.',jabfilename);
+      
+      if obj.IsGTMode
+        origExpDirNames = Q.x.gtExpDirNames;
+        origLabels = Q.x.gtLabels;
+        % modernize labels?
+      else
+        origExpDirNames = Q.x.expDirNames;
+        origLabels = Q.x.labels;
+        origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
+      end
+      assert(numel(origExpDirNames)==numel(origLabels));
+      
+      for ndx = 1:numel(origExpDirNames)
+        expdirname = origExpDirNames{ndx};
+        labels = origLabels(ndx);
+        if importlabels % Change the names
+          assert(numel(Q.x.behaviors.names)==2);
+          origBehName = Q.x.behaviors.names{1};
+          origNoBehName = Q.x.behaviors.names{2};
+          assert(strcmpi(origNoBehName,'none'));
+          newBehName = obj.labelnames{1};
+          newNoBehName = obj.labelnames{2};
+          assert(strcmpi(newNoBehName,'none'));
+          labels = Labels.renameBehavior(labels,origBehName,newBehName,origNoBehName,newNoBehName);
+        end
+        
+        curexp = find(strcmp(expdirname,obj.expdirs));
+        if isempty(curexp)
+          [success,msg] = obj.AddExpDir(expdirname);
+          if ~success
+            return;
+          end
+          if importlabels
+            obj.labels(end) = labels;
+          end
+        elseif importlabels
+          tfLabelsUpdated = false;
+          if obj.haslabels(curexp)
+            dlgstr = sprintf('Experiment %s already has labels. Discard the existing (current) labels and load the new ones?',...
+              expdirname);
+            res = questdlg(dlgstr,'Load new labels?',...
+              'Keep Existing','Load New','Cancel','Keep Existing');
+            if strcmp(res,'Load New')
+              obj.labels(curexp) = labels;
+              tfLabelsUpdated = true;
+            end
+          else
+            obj.labels(curexp) = labels;
+            tfLabelsUpdated = true;
+          end
+          
+          if tfLabelsUpdated && curexp==obj.expi
+            % initialize .labelidx from .labels
+            % AL 20141219: added tfLabelsUpdated condition; seems like we
+            % only want to update .labelidx (especially from .labels) if
+            % the new labels were accepted
+            
+            labelShort = Labels.labelsShort;
+            [labelsShort,tffly] = Labels.labelsShortInit(labelShort,labels,obj.flies);            
+            if tffly
+              T0 = max(obj.GetTrxFirstFrame(obj.expi,obj.flies));
+              T1 = min(obj.GetTrxEndFrame(obj.expi,obj.flies));
+              labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
+              labelidx = Labels.labelIdxInit(labelidx,labelsShort);
+              obj.labelidx = labelidx;
+            else
+              % none. obj.flies not present in new labels. .labelidx not 
+              % updated, so may contain bouts that differ from .labels
+            end
+          end          
+        end
+      end
+    end    
+
+
+    % ---------------------------------------------------------------------
+    function [success,msg] = RemoveExpDirs(obj,expi,needSaveIfSuccessful)
+      % [success,msg] = RemoveExpDirs(obj,expi,[needSaveIfSuccessful])
+      % Removes experiments in expi from the GUI. If the currently loaded
+      % experiment is removed, then a different experiment may be preloaded. 
+      % If needSaveIfSuccessful is defined and true, the JLabelData's
+      % needsave property will be set to true if the experiment is
+      % successfully removed.  If needSaveIfSuccessful is not defined, is
+      % empty, or is false, needsave will not be changed.  It is useful to
+      % set needSaveIfSuccessful to false if RemoveExpDirs() is being called
+      % in order to roll-back the partially-completed addition of an
+      % experiment.
+
+      %MERGESTUPDATED
+      
+      success = false;
+      msg = '';
+      
+      if ~exist('needSaveIfSuccessful','var') || isempty(needSaveIfSuccessful)
+        needSaveIfSuccessful = true;
+      end
+      
+      if any(obj.nexps < expi) || any(expi < 1),
+        msg = sprintf('expi = %s must be in the range 1 < expi < nexps = %d',mat2str(expi),obj.nexps);
+        return;
+      end
+      
+      origNExp = obj.nexps;
+      newExpNumbers = zeros(1,obj.nexps);
+      for ndx = 1:obj.nexps
+        if ismember(ndx,expi);
+          newExpNumbers(1,ndx) = 0;
+        else
+          newExpNumbers(1,ndx) = ndx-nnz(expi<ndx);
+        end
+      end
+      
+      if ~(numel(obj.expdirs)<expi)
+        obj.expdirs(expi) = [];   
+      end
+      
+      assert(nnz(newExpNumbers>0)==numel(obj.expdirs));
+      
+      % if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
+      %if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
+      if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
+      if ~(numel(obj.sex_per_exp)<expi); obj.sex_per_exp(expi) = []; end
+      if ~(numel(obj.frac_sex_per_exp)<expi); obj.frac_sex_per_exp(expi) = []; end
+      if ~(numel(obj.firstframes_per_exp)<expi); obj.firstframes_per_exp(expi) = []; end
+      if ~(numel(obj.endframes_per_exp)<expi); obj.endframes_per_exp(expi) = []; end
+      if ~(numel(obj.labels)<expi); obj.labels(expi) = []; end
+      if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
+      %if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
+      %if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
+      %obj.nexps = obj.nexps - numel(expi);
+      % TODO: exp2labeloff
+
+      % Clean window data
+      for iCls = 1:numel(obj.windowdata)
+        wdExp = obj.windowdata(iCls).exp;
+        assert(iscolumn(wdExp) || isequal(wdExp,[]));
+        newExp = newExpNumbers(wdExp);
+        obj.windowdata(iCls).exp = newExp(:);
+      end
+      % removed exps now have obj.windowdata.exp==0
+      obj.windowdata = WindowData.windowdataTrim(obj.windowdata,@(x)x.exp==0);
+      % AL 20141121. There used to be some odd code here:
+      % - Not all windowdata fields trimmed, eg labelidx_old
+      % - Code implied that many fields (eg labelidx_cur) did not have to 
+      % size consistent with windowdata.X, eg size of labelidx_cur implied
+      % to be different than labelidx_new
+      WindowData.windowdataVerify(obj.windowdata);      
+
+      for curex = sort(expi(:)','descend') %#ok<UDIM>
+        if numel(obj.predictdata)>=curex
+          obj.predictdata(curex) = [];
+        end
+      end
+      
+      nCls = obj.nclassifiers;
+      pbfnames = fieldnames(obj.predictblocks);
+      for iCls = 1:nCls
+        if ~isempty(obj.predictblocks(iCls).expi)
+          idxcurr = ismember(obj.predictblocks(iCls).expi,expi);
+          for fndx = 1:numel(pbfnames)
+            obj.predictblocks(iCls).(pbfnames{fndx})(idxcurr) = [];
+            % all fields of predictblocks are currently row vecs
+          end
+          tmp = newExpNumbers(obj.predictblocks(iCls).expi);
+          obj.predictblocks(iCls).expi = tmp(:)';
+        end
+      end
+      
+      if ~isempty(obj.randomGTSuggestions)
+        assert(numel(obj.randomGTSuggestions)==origNExp);
+        obj.randomGTSuggestions(expi) = [];
+      end
+      
+      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi 
+        assert(numel(obj.loadedGTSuggestions)==origNExp);
+        obj.loadedGTSuggestions(expi) = [];
+      end
+
+      % update current exp, flies
+      if ~isempty(obj.expi) && obj.expi > 0 
+        if ismember(obj.expi,expi), % The current experiment was removed.
+          newexpi = find(newExpNumbers(obj.expi+1:end),1);
+          if isempty(newexpi), % No next experiment.
+            newexpi = find(newExpNumbers(1:obj.expi-1),1,'last');
+            if isempty(newexpi), % No previous experiment either.
+              newexpi = 0;
+            else
+              newexpi = newExpNumbers(newexpi);
+            end
+          else
+            newexpi = newExpNumbers(obj.expi+newexpi);
+          end
+          obj.expi = 0;
+          obj.flies = nan(size(obj.flies));
+          if obj.nexps > 0,
+            obj.setCurrentTarget(newexpi,1);
+          end
+        else
+          obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
+        end
+      end
+      
+      % Set needsave, if called for
+      if needSaveIfSuccessful
+        obj.needsave = true;
+      end
+      
+      % Declare victory
+      success = true;
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetExpDirs(obj,expdirs)
+    % Changes what experiments are currently being used for this
+    % classifier. This function calls RemoveExpDirs to remove all current
+    % experiments not in expdirs, then calls AddExpDirs to add the new
+    % experiment directories. 
+
+      % MERGESTUPDATED
+      
+      success = false;
+      msg = '';
+      
+      if isnumeric(expdirs), % AL ?
+        return;
+      end
+      
+      if nargin < 2,
+        error('Usage: obj.SetExpDirs(expdirs)');
+      end
+                  
+      oldexpdirs = obj.expdirs;
+      
+      % remove all oldexpdirs that aren't in expdirs
+      expi = find(~ismember(oldexpdirs,expdirs));
+      if ~isempty(expi)
+        [success1,msg] = obj.RemoveExpDirs(expi);
+        if ~success1,
+          return;
+        end
+      end
+
+      % add all new expdirs that weren't in oldexpdirs
+      idx = find(~ismember(expdirs,oldexpdirs));
+      success = true;
+      for i = idx(:)'
+        [success1,msg1] = obj.AddExpDir(expdirs{i});
+        success = success && success1;
+        if isempty(msg),
+          msg = msg1;
+        else
+          msg = sprintf('%s\n%s',msg,msg1);
+        end        
+      end
+    end
+
+        
+    % ---------------------------------------------------------------------
+    function res = GetFileName(obj,fileType)
+    % res = GetFileName(obj,fileType)
+    % Get base name of file of the input type fileType.
+      switch fileType,
+        case 'movie',
+          res = obj.moviefilename;
+        case 'trx',
+          res = obj.trxfilename;
+%         case 'label',
+%           res = obj.labelfilename;
+%         case 'gt_label',
+%             res = obj.gt_labelfilename;            
+        case {'perframedir','perframe'},
+          res = obj.perframedir;
+        case {'clipsdir','clips'},
+          if ischar(obj.clipsdir)
+            res = strtrim(obj.clipsdir);
+          else
+            res = 'clips';
+          end            
+        case 'scores',
+          res = obj.scorefilename;
+        case 'stfeatures',
+          res = obj.stfeatures;
+        otherwise
+          error('Unknown file type %s',fileType);
+      end
+    end
+
+    
+    % ---------------------------------------------------------------------    
+    function [filename,timestamp,tffound] = GetFile(obj,fileType,expi)
+    % filename: full path(s). Either char or cellstr
+    % timestamp: timestamps for files that exist. Size corresponding to filename.
+    % tffound: logical vector. Size corresponding to filename.
+    %
+    % If tffound is true, filename is the full filename and timestamp is the filesystem timestamp.
+    % If tffound is false, filename is the file-that-was-tried and timestamp=-inf.
+    %
+    % Vector output occurs eg for fileType='score' when using multiple
+    % classifiers.
+  
+    %ST OK
+    
+      % base name
+      fileNameLocal = obj.GetFileName(fileType);
+      
+      % if this is an output file, only look in output experiment directory
+%       if dowrite && JLabelData.IsOutputFile(file),
+%         %expdirs_try = obj.outexpdirs(expi);
+%         expdirs_try = obj.expdirs(expi);
+%       else
+%         % otherwise, first look in output directory, then look in input
+%         % directory
+%         %expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
+%         expdirs_try = obj.expdirs(expi);
+%       end
+      expdirs_try = obj.expdirs(expi);
+      
+      % non-char or empty filename signals its absence
+      if ~ischar(fileNameLocal) && ~iscellstr(fileNameLocal) || isempty(fileNameLocal)
+        filename = fileNameLocal;
+        timestamp = -inf;
+        tffound = false;
+        return
+      end
+      
+      if ischar(fileNameLocal)
+        [tffound,filename,timestamp] = JLabelData.GetFileRaw(fileType,expdirs_try,fileNameLocal);
+      elseif iscellstr(fileNameLocal)
+        [tffound,filename,timestamp] = cellfun(@(x)JLabelData.GetFileRaw(fileType,expdirs_try,x),fileNameLocal,'uni',0);
+        timestamp = cell2mat(timestamp);
+        tffound = cell2mat(tffound);
+      end
+    end    
+  
+    
+    % ---------------------------------------------------------------------
+    function SetGenerateMissingFiles(obj)
+      obj.perframeGenerate = true;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function perframeGenerate = GetGenerateMissingFiles(obj)
+      perframeGenerate = obj.perframeGenerate;
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = GenerateMissingFiles(obj,expi)
+    % [success,msg] = GenerateMissingFiles(obj,expi)
+    % Generate required, missing files for experiments expi. 
+    % TODO: implement this!
+    
+    % ST OK
+      
+      success = true;
+      msg = '';
+            
+      for i = 1:numel(obj.filetypes),
+        file = obj.filetypes{i};
+        if obj.IsRequiredFile(file) && obj.CanGenerateFile(file) && ...
+            ~obj.FileExists(file,expi),
+          fprintf('Generating %s for %s...\n',file,obj.expnames{expi});
+          switch file
+            case 'perframedir'
+              [success1,msg1] = obj.GeneratePerframeFilesExceptScoreFeatures(expi);
+              success = success && success1;
+              if ~success1,
+                msg = [msg,'\n',msg1]; %#ok<AGROW>
+              end
+%               [success2,msg2] = obj.GenerateScoreFeaturePerframeFiles(expi);
+%               success = success && success2;
+%               if ~success2,
+%                 msg = [msg,'\n',msg2]; %#ok<AGROW>
+%               end
+          end
+        end
+      end
+      [success1,msg1] = obj.UpdateStatusTable();
+      success = success && success1;
+      if isempty(msg),
+        msg = msg1;
+      else
+        msg = sprintf('%s\n%s',msg,msg1);
+      end
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function RemoveArenaPFs(obj)
+      %Update .allperframefns, .curperframefns, .windowfeaturesparams,
+      %.windowfeaturescellparams
+      
+      %MERGESTUPDATED
+      
+      % Determine which PFFs to remove
+      settings = obj.featureLexicon;
+      apff = obj.allperframefns;      
+      Napff = numel(apff);
+      tfRm = false(Napff,1);
+      for i = 1:Napff
+        curpf = apff{i};
+        if any(strcmp(curpf,{obj.scoreFeatures(:).scorefilename}))
+          continue;
+        end
+        curtypes = settings.perframe.(curpf).type;
+        tfRm(i) = any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'));
+      end
+      
+      % Remove
+      apffRm = apff(tfRm);
+      obj.allperframefns(tfRm,:) = [];
+      nCls = obj.nclassifiers;
+      for iCls = 1:nCls
+        fldsRm = intersect(fieldnames(obj.windowfeaturesparams{iCls}),apffRm);
+        obj.windowfeaturesparams{iCls} = rmfield(obj.windowfeaturesparams{iCls},fldsRm);
+        % AL 20141215: next line is legacy, don't understand why it is 
+        % necessary given we are just removing fields
+        obj.windowfeaturesparams{iCls} = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams{iCls});
+        obj.windowfeaturescellparams{iCls} = JLabelData.convertParams2CellParams(obj.windowfeaturesparams{iCls});
+        
+        tf = ismember(obj.curperframefns{iCls},apffRm);
+        obj.curperframefns{iCls}(tf,:) = [];
+      end      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = GeneratePerframeFilesExceptScoreFeatures(obj,expi)
+      success = false; %#ok<NASGU>
+      msg = '';
+
+      perframedir = obj.GetFile('perframedir',expi);
+      
+      isInteractive=obj.isInteractive;
+      if ~isInteractive,
+        dooverwrite = false;
+      elseif ~isempty(obj.perframeOverwrite) 
+        dooverwrite = obj.perframeOverwrite;
+      elseif exist(perframedir,'dir'),
+        res = questdlg('Do you want to leave existing files alone or regenerate them?',...
+                       'Regenerate existing files?', ...
+                       'Leave Alone','Regenerate', ...
+                       'Leave Alone');
+        dooverwrite = strcmpi(res,'Regenerate');
+        obj.perframeOverwrite = dooverwrite;
+      else
+        dooverwrite = true;
+      end
+      
+      expdir = obj.expdirs{expi};
+      
+      hwait=-1;  % make sure hwait var exists, and is not a graphics handle
+                 % unless it gets overwritten
+      if isInteractive
+        hwait = mywaitbar(0,sprintf('Generating perframe files for %s',expdir),'interpreter','none');
+      else
+        fprintf('Generating perframe files for %s\n',expdir);
+      end
+      
+      perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
+                        'moviefilestr',obj.GetFileName('movie'),...
+                        'perframedir',obj.GetFileName('perframedir'),...
+                        'default_landmark_params',obj.landmark_params,...
+                        'perframe_params',obj.perframe_params);
+                        %'rootwritedir',expdir);
+%                        'rootwritedir',obj.rootoutputdir);
+      
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
+      
+
+      
+      if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
+        if expi>1,
+          success = false;
+          msg = ['Landmark params were not defined in the configuration file or in the trx file for the current experiment. '...
+              'Cannot compute arena perframe features for the experiment and removing it'];
+          if isInteractive && ishandle(hwait),
+              delete(hwait);
+          end
+          return;
+        end
+
+        if isInteractive,
+          uiwait(warndlg(['Landmark params were not defined in the configuration file'...
+            ' or in the trx file. Not computing arena features and removing them from the perframe list']));
+        else
+          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list.\n');
+        end
+        obj.RemoveArenaPFs();
+        obj.arenawarn = false;
+      end
+      
+      perframefiles = obj.GetPerframeFiles(expi);
+      for i = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{i};
+        %ndx = find(strcmp(fn,obj.allperframefns));
+        file = perframefiles{i};
+        if ~dooverwrite && exist(file,'file'),
+          continue;
+        end
+        if isInteractive
+          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,...
+            sprintf('Computing %s and saving to file %s',fn,file));
+        else
+          fprintf('Computing %s and saving to file %s\n',fn,file);
+        end
+        
+        % Generate the per-frame files that are not score features
+        % Don't generate the per-frame files from scores here anymore..
+        
+%          try
+           if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
+            perframetrx.(fn);
+           end        
+%          catch excp
+%            if isInteractive && ishandle(hwait),
+%              delete(hwait);
+%            end
+%            if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+%              msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+%              success=false;
+%              return
+%           else
+%              rethrow(excp);
+%            end
+%          end
+      end
+      
+      if isInteractive && ishandle(hwait),
+        delete(hwait);
+      end
+      
+      success = true;
+      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = GenerateScoreFeaturePerframeFiles(obj,expi)
+      % MERGEST OK
+      
+      success = true;
+      msg = '';
+      % Convert the scores file into perframe files.
+      for i = 1:numel(obj.scoreFeatures)
+        %obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+        [success,msg] = obj.ScoresToPerframe(expi, ...
+          obj.scoreFeatures(i).scorefilename, ...
+          obj.scoreFeatures(i).ts);
+        if ~success,
+          %obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+          %obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+          return
+        end
+      end
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function [success,msg,ts,projectName] = ...
+        ScoresToPerframe(obj,expi,fileName,ts,projectName)
+      % Create perframe file from scorefile in toplevel-dir
+      %
+      % ts: timestamp
+      
+      % MERGESTUPDATED
+      
+      persistent perframescoresfile_didselectyes;
+      
+      success = true;
+      msg = '';
+
+      outdir = obj.expdirs{expi};
+      scoresFileIn = [fullfile(outdir,fileName) '.mat'];
+      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fileName) '.mat'];
+      if ~exist(scoresFileIn,'file')
+        success = false; 
+        msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
+        return;
+      end
+      
+      Q = load(scoresFileIn);
+      if obj.isInteractive
+        if Q.timestamp > ts
+          res = questdlg(sprintf('The timestamp for scores file %s (%s) is newer than that expected for this project (%s). Do you want to update the current project, proceed without updating, or cancel?',...
+              scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Update project','Proceed without updating','Cancel','Update project');
+          if strcmpi(res,'Update project')
+            
+            while true
+              [f,p] = uigetfile('*.jab',sprintf('Choose the project corresponding to %s',fileName),projectName);
+              if ~ischar(f)
+                break;
+              end
+              newProjectName = fullfile(p,f);
+              if ~exist(newProjectName,'file'),
+                uiwait(warndlg(sprintf('File %s does not exist',newProjectName)));
+                continue;
+              end
+              projectData = loadAnonymous(newProjectName);
+              projectData = Macguffin(projectData);
+              projectData.modernize();
+              assert(isscalar(projectData.classifierStuff),...
+                'Project ''%s'' is a multi-classifier project; this is currently unsupported.',newProjectName);              
+              if projectData.classifierStuff.timeStamp ~= Q.timestamp
+                uiwait(warndlg(sprintf('Timestamp in project file %s = %s does not match time stamp in score file %s = %s',newProjectName,datestr(projectData.classifierStuff.timeStamp),fileName,datestr(ts))));
+                continue;
+              end
+              if ~strcmp(projectData.file.scorefilename{1},[fileName,'.mat']),
+                uiwait(warndlg(sprintf('Score file name in %s = %s does not match score file name %s',newProjectName,projectData.file.scorefilename,[fileName,'.mat'])));
+                continue;
+              end
+              projectName = newProjectName;
+              ts = projectData.classifierStuff.timeStamp;
+              break;
+            end
+            
+          elseif strcmpi(res,'Proceed without updating')
+            Q.timestamp = ts;
+          end
+        elseif Q.timestamp < ts,
+          res = questdlg(sprintf('The timestamp for scores file %s (%s) is older than that expected for this project (%s). Do you want to add this experiment anyways or cancel?',...
+            scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Add experiment anyway','Cancel','Cancel');
+          if strcmpi(res,'Add experiment anyway'),
+            Q.timestamp = ts;
+          end
+        end
+      end
+      if Q.timestamp ~= ts % check the timestamps match the classifier's timestamp.
+        success = false; 
+        msg = sprintf(['The scores file %s was generated using a classifier' ...
+          ' that was saved on %s while the classifier chosen was saved on %s'],...
+          scoresFileIn,datestr(Q.timestamp),datestr(ts));
+      end
+      
+      OUT = struct();
+      OUT.units = struct();
+      OUT.units.num = {'scores'};
+      OUT.units.den = {''};
+      for ndx = 1:numel(Q.allScores.scores)
+        t0 = Q.allScores.tStart(ndx);
+        t1 = Q.allScores.tEnd(ndx);
+        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
+      end
+      try
+        save(scoresFileOut,'-struct','OUT');
+      catch ME,
+        questmsg = sprintf('Could not write perframe file from scores file: %s.',fileName);
+        if obj.isInteractive && isempty(perframescoresfile_didselectyes)
+          button = questdlg([questmsg,' Continue?'],'Continue','Yes');
+          if ~strcmp(button,'Yes')
+            success = false;
+            msg = ME.message;
+          else
+            perframescoresfile_didselectyes = true;
+          end
+        else
+          warning(questmsg); %#ok<SPWRN>
+        end
+      end
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
+      windowfeaturesparams = obj.windowfeaturesparams; 
+      windowfeaturescellparams = obj.windowfeaturescellparams; 
+    end  
+    
+    
+    % ---------------------------------------------------------------------
+    function [filenames,timestamps] = GetPerframeFiles(obj,expi)
+    % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
+    % Get the full path to the per-frame mat files for experiment expi
+      
+%       if nargin < 3,
+%         dowrite = false;
+%       end
+      
+      fn = obj.GetFileName('perframedir');
+      
+      % if this is an output file, only look in output experiment directory
+%       if dowrite && JLabelData.IsOutputFile('perframedir'),
+%         %expdirs_try = obj.outexpdirs(expi);
+%         expdirs_try = obj.expdirs(expi);
+%       else
+%         % otherwise, first look in output directory, then look in input
+%         % directory
+%         %expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
+%         expdirs_try = obj.expdirs(expi);
+%       end
+      expdirs_try = obj.expdirs(expi);
+      
+      filenames = cell(1,numel(obj.allperframefns));
+      timestamps = -inf(1,numel(obj.allperframefns));
+      
+      for i = 1:numel(obj.allperframefns),
+
+        % loop through directories to look in
+        for j = 1:numel(expdirs_try),
+          expdir = expdirs_try{j};
+%           perframedir = fullfile(expdir,fn);  % BJA: slow by 10x
+          perframedir = [expdir filesep fn];
+          if ispc && ~exist(perframedir,'dir'),
+            [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
+            if didfind,
+              perframedir = actualperframedir;
+            end
+          end
+%           filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);  % BJA: slow by 10x
+          filename = [perframedir filesep obj.allperframefns{i} '.mat'];
+          if ispc && ~exist(filename,'file'),
+            [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+            if didfind,
+              filename = actualfilename;
+            end
+          end
+          
+          if exist(filename,'file'),
+            filenames{i} = filename;
+            tmp = dir(filename);
+            timestamps(i) = tmp.datenum;
+          elseif j == 1,
+            filenames{i} = filename;
+          end
+          
+        end
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [fe,ft] = FileExists(obj,fileType,expi)
+    % [fe,ft] = FileExists(obj,file,expi)
+    % Returns whether the input file exists for the input experiment. 
+      filei = find(strcmpi(fileType,obj.filetypes),1);
+      if isempty(filei),
+        error('file type %s does not match any known file type',fileType);
+      end
+      if nargin < 3,
+        expi = 1:obj.nexps;
+      end
+      fe = obj.fileexists(expi,filei);
+      ft = obj.filetimestamps(expi,filei);
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [successes,msg] = CheckMovies(obj,expis)
+    % [successes,msg] = CheckMovies(obj,expis)
+    % check that the movie files exist and can be read for the input
+    % experiments.
+      
+      successes = []; msg = '';
+      
+      if nargin < 2,
+        expis = 1:obj.nexps;
+      end
+      
+      if isempty(expis),
+        return;
+      end
+      
+      successes = true(1,numel(expis));
+      
+      if ~obj.ismovie,
+        return;
+      end
+      
+      for i = 1:numel(expis),
+        moviefilename = obj.GetFile('movie',expis(i));
+        obj.SetStatus('Checking movie %s...',moviefilename);
+        
+        % check for file existence
+        if ~exist(moviefilename,'file'),
+          successes(i) = false;
+          msg1 = sprintf('File %s missing',moviefilename);
+          if isempty(msg),
+            msg = msg1;
+          else
+            msg = sprintf('%s\n%s',msg,msg1);
+          end
+        else
+          
+          % try reading a frame
+%           try
+            [readframe,~,movie_fid] = ...
+              get_readframe_fcn(moviefilename);
+            if movie_fid <= 0,
+              error('Could not open movie %s for reading',moviefilename);
+            end
+            readframe(1);
+            fclose(movie_fid);
+%           catch ME,
+%             successes(i) = false;
+%             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
+%             if isempty(msg),
+%               msg = msg1;
+%             else
+%               msg = sprintf('%s\n%s',msg,msg1);
+%             end
+%           end
+          
+        end
+      end
+      
+      obj.ClearStatus();
+      
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
+    % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
+    % Update the tables of what files exist for what experiments. This
+    % returns false if all files were in existence or could be generated
+    % and now they are/can not.  It mutates the instance variables
+    % fileexists and filetimestamps, and sets filesfixable and
+    % allfilesexist.
+    %
+    % missingfiles: Cell vector of length obj.nexps. Each element is a 
+    % cellstr. QUIRKY API: Only missingfiles(expis) are meaningful, 
+    % containing missing files for expis. Remaining elements are
+    % empty/indeterminate.
+
+      % Initialize return vars
+      msg = '';
+      success = false;
+      missingfiles = cell(1,obj.nexps);
+      for i = 1:obj.nexps,
+        missingfiles{i} = {};
+      end
+
+      % Process arguments
+      if ~exist('filetypes','var') || isempty(filetypes)
+        filetypes = obj.filetypes;
+      end
+      if ~exist('expis','var') || isempty(expis)
+        expis = 1:obj.nexps;
+      end
+
+      % Check that the file types requested are valid
+      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
+      if any(~fileTypeIsValid),
+        msg = 'Unknown filetypes';
+        return
+      end
+
+      % Get the file existance and time-stamp tables
+      [fileExists,fileTimeStamps,missingFileNames] = ...
+        obj.fileOfGivenTypesExistForGivenExps(filetypes,expis);
+      
+      % Update the state vars accordingly
+      obj.fileexists(expis,fileTypeIndices) = fileExists;
+      obj.filetimestamps(expis,fileTypeIndices) = fileTimeStamps;
+      missingfiles(expis) = missingFileNames;
+      
+      % store old values to see if latest change broke something
+      old_filesfixable = obj.filesfixable;
+      old_allfilesexist = obj.allfilesexist;
+
+      % initialize summaries to true
+      [allRequiredFilesExist, ...
+       missingFilesCanBeGenerated, ...
+       oneMissingFileTypeThatCantBeGenerated] = ...
+        obj.allRequiredFilesExist(obj.fileexists);
+      
+      % Write the file status summaries into the object state, and
+      % modify the error message if necessary to reflect missing files that
+      % cannot be generated.
+      obj.allfilesexist = allRequiredFilesExist;
+      if allRequiredFilesExist
+        obj.filesfixable = true;
+      else
+        obj.filesfixable = missingFilesCanBeGenerated;
+        if ~missingFilesCanBeGenerated
+          msg1 = sprintf('%s missing and cannot be generated.',oneMissingFileTypeThatCantBeGenerated);
+          if isempty(msg),
+            msg = msg1;
+          else
+            msg = sprintf('%s\n%s',msg,msg1);
+          end
+        end
+      end
+
+      % Modify the error message to reflect missing files for each exp
+      nFileNamesMissingTotal = sum(cellfun(@(c)length(c),missingFileNames));
+      if nFileNamesMissingTotal>0
+        stringForEachExpWithMissingFiles={};        
+        for i=1:length(missingFileNames)
+          expi=expis(i);
+          missingFileNamesThis=missingFileNames{i};
+          if ~isempty(missingFileNamesThis)
+            stringForEachExpWithMissingFiles{end+1}= ...
+              [civilizedStringFromCellArrayOfStrings(missingFileNamesThis) ' from experiment ' obj.expnames{expi}];  %#ok
+          end
+        end
+        msg= [msg ' Missing ' civilizedStringFromCellArrayOfStrings(stringForEachExpWithMissingFiles,';')];
+      end
+      
+      % fail if was ok and now not ok
+      success = ~(old_allfilesexist || old_filesfixable) || ...
+                 (obj.allfilesexist || obj.filesfixable);      
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetTrxFileName(obj,trxfilename)
+      % [success,msg] = SetTrxFileName(obj,trxfilename)
+      % set the name of the trx file within the experiment directory. this
+      % does not currently check for missing/bad trx files, or replace
+      % preloaded trx data, so you really shouldn't call it if expdirs are
+      % loaded. (TODO)
+
+      success = false;
+      msg = '';
+      if ischar(trxfilename),
+        if ischar(obj.trxfilename) && strcmp(trxfilename,obj.trxfilename),
+          success = true;
+          return;
+        end
+        obj.trxfilename = trxfilename;
+        [success,msg] = obj.UpdateStatusTable('trx');        
+        % TODO: check that trx are parsable, remove bad experiments, update
+        % preloaded trx
+      end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetMovieFileName(obj,moviefilename)
+    % change/set the name of the movie within the experiment directory
+    % will fail if movie files don't exist for any of the current
+    % experiment directories (checked by CheckMovies)
+
+      success = false; msg = '';
+
+      if ischar(moviefilename),
+        if ischar(obj.moviefilename) && strcmp(moviefilename,obj.moviefilename),
+          success = true;
+          return;
+        end
+        oldmoviefilename = obj.moviefilename;
+        obj.moviefilename = moviefilename;
+        %obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
+        [success1,msg] = obj.CheckMovies();
+        if ~success1,
+          obj.moviefilename = oldmoviefilename;
+          return;
+        end
+        [success,msg] = obj.UpdateStatusTable('movie');
+      end
+      
+    end
+    
+
+    % ---------------------------------------------------------------------
+    function scoreFileName = getScoreFileName(obj)
+      scoreFileName = obj.scorefilename;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = setScoreFileName(obj,sfn)
+      assert(iscellstr(sfn) && numel(sfn)==obj.nclassifiers,...
+        'Number of score filenames must match number of classifiers.');
+      assert(numel(sfn)==numel(unique(sfn)),...
+        'Score filenames must be unique.');
+      
+      tfValid = cellfun(@JLabelData.isValidScoreFileName,sfn);
+      if ~all(tfValid)
+        error('JLabelData:scoreFileName',...
+          'The following are not valid score filenames: %s',...
+          civilizedStringFromCellArrayOfStrings(sfn(~tfValid)));
+      end
+      
+      obj.scorefilename = sfn;
+      obj.needsave = true;
+      [success,msg] = obj.UpdateStatusTable('scores');
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function res = IsRequiredFile(obj,file)
+      if obj.isST
+        res = any(strcmp(file,{'trx' 'stfeatures'}));
+      else
+        res = ismember(file,{'trx','perframedir'});
+      end
+    end
+    
+   
+    % ---------------------------------------------------------------------
+    function expdirs_removed = removeExperimentsWithNoLabels(self)
+      self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
+      nExps=self.nexps;
+      markedForRemoval=false(1,nExps);
+      for i=1:nExps
+        t0sThis=self.labels(i).t0s;
+        % t0sThis is a cell array, with one element per labeled target.
+        % Each element holds a double array, with the start frames of each
+        % labelled bout for that target.
+        nBoutsPerLabeledTarget=cellfun(@(a)length(a),t0sThis);
+        nBouts=sum(nBoutsPerLabeledTarget);
+        markedForRemoval(i)=(nBouts==0);
+      end
+      expIndicesToRemove=find(markedForRemoval);
+      expdirs_removed = self.expdirs(expIndicesToRemove);
+      self.RemoveExpDirs(expIndicesToRemove);  %#ok
+    end  % method
+
+        
+    % ---------------------------------------------------------------------
+    function [fileExists,fileTimeStamps,missingFileNamesComplete] = ...
+        fileOfGivenTypesExistForGivenExps(obj,filetypes,expis)
+      % This gets whether the experiment files of filetypes (a cell array
+      % of strings) exist, for the experiments indicated by expis.  On
+      % return, fileExists is a length(expis) x length(filetypes) logical
+      % array, indicating whether the given file type exists for the given
+      % experiment.  fileTimeStamps has the same shape, and given the time
+      % stamp of each file if it exists, and -inf otherwise.
+      % missingFileNamesComplete is a cell array vector of length
+      % length(expis).  Each element is a cell array of strings, listing
+      % the missing files for that experiment.  These lists are not 
+      % truncated to any particular length.  (That's why 'Complete' is in 
+      % the name.  Note that this function is a getter---it does not change
+      % the object state at all.
+      %
+      % For filetypes that can represent multiple files:
+      %  - fileExists is only true if *all* files are present
+      %  - fileTimeStamps is the *oldest* of all timestamps
+      %      AL20150109: For fileType='perframedir', fileTimeStamps appears
+      %      to be *newest* of all timestamps
+
+      % ST OK
+      
+      % Process arguments
+      if ~exist('filetypes','var') || isempty(filetypes)
+        filetypes = obj.filetypes;
+      end
+      if ~exist('expis','var') || isempty(expis)
+        expis = 1:obj.nexps;
+      end
+
+      % Check that the file types requested are valid
+      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
+      assert(all(fileTypeIsValid),'JLabelData:unknownFileType', ...
+        'Internal error: Unknown file type.  Please report to the JAABA developers.');
+      
+      % Initialize the return vars
+      nExpsToCheck = length(expis);
+      nFileTypesToCheck = length(fileTypeIndices);
+      fileExists = false(nExpsToCheck,nFileTypesToCheck);
+      fileTimeStamps = nan(nExpsToCheck,nFileTypesToCheck);
+      missingFileNamesComplete = cell(1,nExpsToCheck);
+      for i = 1:nExpsToCheck
+        missingFileNamesComplete{i} = {};
+      end
+      
+      % Loop through all file types, checking the existence of files of
+      % that type.
+      for j=1:nFileTypesToCheck
+        fileTypeIndex = fileTypeIndices(j);
+        fileType = obj.filetypes{fileTypeIndex};
+        % loop through experiments
+        for i=1:nExpsToCheck
+          expi = expis(i);
+          if strcmpi(fileType,'perframedir'),
+            % fileType of 'perframedir' is a special case, and has to be
+            % handled separately
+            [perframeFileNames,timestamps] = obj.GetPerframeFiles(expi);
+            if isempty(perframeFileNames),
+              fileExists(i,j) = false;
+              fileTimeStamps(i,j) = -inf;
+            else
+              perframeFileExists = cellfun(@(s) exist(s,'file'),perframeFileNames);
+              fileExists(i,j) = all(perframeFileExists);
+              if ~fileExists(i,j) && obj.IsRequiredFile(fileType),
+                for indicesOfMissingPerframeFiles = find(~perframeFileExists(:)'),
+                  [~,fileNameThis] = myfileparts(perframeFileNames{indicesOfMissingPerframeFiles});
+                  missingFileNamesComplete{i}{end+1} = ['perframe_' fileNameThis];
+                end
+              end
+              fileTimeStamps(i,j) = max(timestamps); % AL 20150109: This is newest timestamp, comments above say oldest
+            end
+          else
+            % if fileType is anything besides 'perframedir'
+            % check for existence of current file(s)
+            [fn,fTS,tffound] = obj.GetFile(fileType,expi);
+            assert(iscell(fn)||ischar(fn),'Legacy check.');
+            fileExists(i,j) = all(tffound);
+            fileTimeStamps(i,j) = min(fTS);
+            if ~fileExists(i,j) && obj.IsRequiredFile(fileType)
+              missingFileNamesComplete{i}{end+1} = fileType;
+            end
+          end
+        end
+      end
+    end  % method
+
+
+    % ---------------------------------------------------------------------
+    function [allRequiredFilesExist, ...
+              missingFilesCanBeGenerated, ...
+              oneMissingFileTypeThatCantBeGenerated] = allRequiredFilesExist(obj,fileExists)
+      % Check whether all required files exist for all experiments.
+      % fileExists is optional, and if provided should be a complete matrix
+      % of file existance information, e.g. as returned by
+      % fileExists=obj.fileOfGivenTypesExistForGivenExps().  If this
+      % argument is not provided, this method calls
+      % fileOfGivenTypesExistForGivenExps() to get current file existance
+      % information.  (The idea is that if you just called
+      % fileOfGivenTypesExistForGivenExps(), you can give its output to
+      % this method, and then this method won't have to figure that stuff
+      % out again.)
+      % On return, allRequiredFilesExist is a logical scalar.  If
+      % allRequiredFilesExist is false, missingFilesCanBeGenerated is a
+      % logical scalar indicating whether the missing files can be
+      % generated.  If both allRequiredFilesExist and
+      % missingFilesCanBeGenerated are false,
+      % oneMissingFileTypeThatCantBeGenerated gives the name of one file
+      % type that cannot be generated.  Note that this function is a
+      % getter---it does not change the object state at all.
+
+      % ST OK
+      
+      % Get detailed information about file existance, if not given as
+      % argument
+      if ~exist('fileExists','var')
+        fileExists = obj.fileOfGivenTypesExistForGivenExps();
+          % with no args, computed for all file types, all exps
+      end
+      
+      nExp = obj.nexps;
+      nType = numel(obj.filetypes);
+      assert(isequal(size(fileExists),[nExp nType]));
+            
+      % initialize outputs
+      allRequiredFilesExist = true;
+      missingFilesCanBeGenerated = [];
+      oneMissingFileTypeThatCantBeGenerated = '';
+      
+      for iType = 1:nType
+        type = obj.filetypes{iType};
+        tfReqd = obj.IsRequiredFile(type);
+        if tfReqd
+          for iExp = 1:nExp
+            if ~fileExists(iExp,iType)
+              allRequiredFilesExist = false;
+              % if furthermore file can't be generated, then not fixable
+              missingFilesCanBeGenerated = JLabelData.CanGenerateFile(type);
+              if ~missingFilesCanBeGenerated
+                oneMissingFileTypeThatCantBeGenerated = type;
+                return;
+              end
+            end
+          end
+        end
+      end
+    end 
+
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetPerFrameDir(obj,perframedir)
+      % [success,msg] = SetPerFrameDir(obj,perframedir)
+      % Sets the per-frame directory name within the experiment directory.
+      % Currently, this does not change the cached per-frame data or check
+      % that all the per-frame files necessary are within the directory
+      % (TODO).
+      
+      success = false; msg = '';
+      
+      if ischar(perframedir),
+        if ischar(obj.perframedir) && strcmp(perframedir,obj.perframedir),
+          success = true;
+          return;
+        end
+        
+        obj.perframedir = perframedir;
+        
+        % TODO: check per-frame directories are okay, remove bad
+        % experiments
+        
+        [success,msg] = obj.UpdateStatusTable('perframedir');
+      end
+    end
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetClipsDir(obj,clipsdir)
+    % [success,msg] = SetClipsDir(obj,clipsdir)
+    % Sets the clips directory name within the experiment directory.
+      
+      success = true;
+      msg = '';
+
+      if ischar(clipsdir),
+        for i = 1:numel(obj.expdirs),
+          %clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
+%           if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
+%             mkdir(clipsdircurr);
+%           end
+        end
+        if ischar(obj.clipsdir) && strcmp(clipsdir,obj.clipsdir),
+          success = true;
+          return;
+        end
+
+        obj.clipsdir = clipsdir;        
+        [success,msg] = obj.UpdateStatusTable('clipsdir');
+      end
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = loadPerframeData(obj,expi,indicesOfTargets)
+      % Loads the per-frame features for experiment expi and target
+      % iTarget into obj.perframedata and obj.perframeunits      
+      
+      % Test for various degenerate cases 
+      if isempty(indicesOfTargets)
+        success=true;  msg='';
+        return
+      end
+      iTarget=indicesOfTargets(1);
+      if isempty(expi) || ~((1<=expi)&&(expi<=obj.nexps))
+        success=true;  msg='';
+        return
+      end        
+      % If we got here, expi and iTarget are non-degenerate
+      perframeFileNameList = obj.GetPerframeFiles(expi);
+      nPerframeFeatures=numel(obj.allperframefns);
+      obj.perframedata=cell(1,nPerframeFeatures);
+      obj.perframeunits=cell(1,nPerframeFeatures);      
+      for j = 1:nPerframeFeatures,
+        perframeFileName=perframeFileNameList{j};
+        if ~exist(perframeFileName,'file'),
+          success = false;
+          msg = sprintf('Per-frame data file %s does not exist',perframeFileNameList{j});
+          return;
+        end
+        tmp = load(perframeFileName);
+        obj.perframedata{j} = tmp.data{iTarget};
+        obj.perframeunits{j} = tmp.units;
+      end
+      success=true;
+      msg='';
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
+    % [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
+    % Returns the per-frame data for the input experiment, flies, and
+    % property. 
+
+      if ischar(prop),
+        prop = find(strcmp(prop,obj.allperframefns),1);
+        if isempty(prop),
+          error('Property %s is not a per-frame property');
+        end
+      end
+      
+      if obj.IsCurFly(expi,flies) 
+        if nargin < 5,
+          perframedata = obj.perframedata{prop};
+          T0 = obj.t0_curr;
+          T1 = obj.t0_curr + numel(perframedata) - 1;
+        else
+          T0 = max(T0,obj.t0_curr);
+          T1 = min(T1,obj.t0_curr+numel(obj.perframedata{prop})-1);
+          i0 = T0 - obj.t0_curr + 1;
+          i1 = T1 - obj.t0_curr + 1;
+          perframedata = obj.perframedata{prop}(i0:i1);
+        end
+        return;
+      end
+      
+      perframedir = obj.GetFile('perframedir',expi);
+      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
+      if nargin < 5,
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        % TODO: generalize to multi-fly
+        perframedata = tmp.data{flies(1)};
+        T1 = T0 + numel(perframedata) - 1;
+        return;
+      end
+      off = 1 - obj.GetTrxFirstFrame(expi,flies);
+      i0 = T0 + off;
+      i1 = T1 + off;
+      perframedata = tmp.data{flies(1)}(i0:i1);
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
+    % perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
+    % Returns the per-frame data for the input experiment, flies, and
+    % property. 
+
+%       if ischar(prop),
+%         prop = find(strcmp(prop,handles.perframefn),1);
+%         if isempty(prop),
+%           error('Property %s is not a per-frame property');
+%         end
+%       end
+      
+      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+        is = t-obj.t0_curr+1;
+        badidx = is > numel(obj.perframedata{prop});
+        if any(badidx),
+          perframedata = nan(size(is));
+          perframedata(~badidx) = obj.perframedata{prop}(is(~badidx));
+        else
+          perframedata = obj.perframedata{prop}(is);
+        end
+        return;
+      end
+      
+      perframedir = obj.GetFile('perframedir',expi);
+      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
+      off = 1 - obj.GetTrxFirstFrame(expi,flies);
+      perframedata = tmp.data{flies(1)}(t+off);
+    end
+    
+  end
+  
+  methods (Static) % Experiment/Filesystem
+    
+    % ---------------------------------------------------------------------
+    function result = isValidScoreFileName(scoreFileName)
+      [path,baseName,ext]=fileparts(scoreFileName);
+      if ~isempty(path) ,
+        result=false;
+      elseif ~isequal(ext,'.mat')
+        result=false;
+      else
+        result=~isempty(regexp(baseName,'^[a-zA-Z_0-9]+$','once'));
+      end
+    end
+    
+    % movie, trx, and perframedir are required for each experiment
+    % perframedir can be generated
+    function res = CanGenerateFile(file)
+      res = ismember(file,{'perframedir'});
+    end
+    
+    % which files should go in the output directory
+    function res = IsOutputFile(file)
+      res = ismember(file,{'label','clipsdir','scores','gt_label'});
+    end
+   
+  end
+  
+  methods (Static,Access=private) % Experiment/Filesystem
+    
+    function [tffound,filename,timestamp] = GetFileRaw(fileType,parentDir,fileNameLocal)
+      % Look for a filename in a parent dir.
+      % fileType: The fileType enum used here in JLabelData. This is used
+      % only for a quirk regarding .lnk/.seq files
+      % fileNameLocal: char, single short filename.
+      %
+      % tffound: scalar logical.
+      %   - If true, filename is the full filename and timestamp is the filesystem timestamp.
+      %   - If false, filename is the file-that-was-tried; and timestamp=-inf.
+      
+      assert(isscalar(parentDir));
+      
+      for j = 1:numel(parentDir),
+        ddir = parentDir{j};
+        
+        filename = fullfile(ddir,fileNameLocal);
+        if exist(filename,'file'),
+          tmp = dir(filename);
+          timestamp = tmp.datenum;
+          tffound = true;
+          return;
+        end
+        % check for lnk files
+        if ispc && exist([filename,'.lnk'],'file'),
+          isseq = ~isempty(regexp(fileNameLocal,'\.seq$','once'));
+          % for seq file, just keep the soft link, get_readframe_fcn will
+          % deal with it
+          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+          if didfind,
+            tmp = dir(actualfilename);
+            timestamp = tmp.datenum;
+            if ~isseq || ~strcmpi(fileType,'movie'),
+              filename = actualfilename;
+            end
+            tffound = true;
+            return;
+          end
+        end
+      end
+      
+      tffound = false;
+      % filename is the file-that-was-tried
+      timestamp = -inf;
+    end
+    
+  end 
   
   methods % Evaluating performance
 
@@ -9653,28 +9726,8 @@ end
           self.(property.Name)=jld.(property.Name);
         end
       end
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function expdirs_removed = removeExperimentsWithNoLabels(self)
-      self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
-      nExps=self.nexps;
-      markedForRemoval=false(1,nExps);
-      for i=1:nExps
-        t0sThis=self.labels(i).t0s;
-        % t0sThis is a cell array, with one element per labeled target.
-        % Each element holds a double array, with the start frames of each
-        % labelled bout for that target.
-        nBoutsPerLabeledTarget=cellfun(@(a)length(a),t0sThis);
-        nBouts=sum(nBoutsPerLabeledTarget);
-        markedForRemoval(i)=(nBouts==0);
-      end
-      expIndicesToRemove=find(markedForRemoval);
-      expdirs_removed = self.expdirs(expIndicesToRemove);
-      self.RemoveExpDirs(expIndicesToRemove);  %#ok
-    end  % method
-    
+    end  % method    
+        
     
     function isRandom = getColorAssignment(self)
       if isfield(self.trxGraphicParams,'assignment') && ...
@@ -9738,51 +9791,6 @@ end
   
   methods (Static,Access=private)
     
-    function [tffound,filename,timestamp] = GetFileRaw(fileType,parentDir,fileNameLocal)
-      % Look for a filename in a parent dir.
-      % fileType: The fileType enum used here in JLabelData. This is used
-      % only for a quirk regarding .lnk/.seq files
-      % fileNameLocal: char, single short filename.
-      %
-      % tffound: scalar logical.
-      %   - If true, filename is the full filename and timestamp is the filesystem timestamp.
-      %   - If false, filename is the file-that-was-tried; and timestamp=-inf.
-      
-      assert(isscalar(parentDir));
-      
-      for j = 1:numel(parentDir),
-        ddir = parentDir{j};
-        
-        filename = fullfile(ddir,fileNameLocal);
-        if exist(filename,'file'),
-          tmp = dir(filename);
-          timestamp = tmp.datenum;
-          tffound = true;
-          return;
-        end
-        % check for lnk files
-        if ispc && exist([filename,'.lnk'],'file'),
-          isseq = ~isempty(regexp(fileNameLocal,'\.seq$','once'));
-          % for seq file, just keep the soft link, get_readframe_fcn will
-          % deal with it
-          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
-          if didfind,
-            tmp = dir(actualfilename);
-            timestamp = tmp.datenum;
-            if ~isseq || ~strcmpi(fileType,'movie'),
-              filename = actualfilename;
-            end
-            tffound = true;
-            return;
-          end
-        end
-      end
-      
-      tffound = false;
-      % filename is the file-that-was-tried
-      timestamp = -inf;
-    end
-
     function tf = AllPredictedScoresValid(predDataExp,nclassifier)
       % predDataExp: JLD.predictdata for one experiment, eg
       % obj.predictdata{expi}
