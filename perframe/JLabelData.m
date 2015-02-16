@@ -824,24 +824,6 @@ classdef JLabelData < matlab.mixin.Copyable
   % -----------------------------------------------------------------------
   methods (Access=public,Static=true)    
     
-    function valid = CheckExp(expi)
-      if numel(expi) ~= 1,
-        error('Usage: expi must be a scalar');
-        %valid = false;
-      else
-        valid = true;
-      end
-    end
-    
-    function valid = CheckFlies(flies)
-      if size(flies,1) ~= 1,
-        error('Usage: one set of flies must be selected');
-        %valid = false;
-      else
-        valid = true;
-      end
-    end      
-    
     % ---------------------------------------------------------------------
     function result = isValidBehaviorName(behaviorName)
       result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
@@ -869,33 +851,6 @@ classdef JLabelData < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   methods (Access=public)
-
-    
-% Some helper functions.
-   
-    
-    % ---------------------------------------------------------------------
-    function val = IsCurFly(obj,expi,flies)
-      val = all(flies == obj.flies) && (expi==obj.expi);
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function expi = GetExp(obj)
-      expi = obj.expi;
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function flies = GetFlies(obj)
-      flies = obj.flies;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function nflies = GetNumFlies(obj,expi)
-      nflies = obj.nflies_per_exp(expi);
-    end
     
     
 % Configuration settings.
@@ -972,268 +927,6 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(nnz(tf)==1);
       iCls = obj.labelidx.idxBeh2idxTL(tf);
     end
-        
-    
-        
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = SetClassifierFileName(self,classifierfilename,varargin)
-%     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-%     % Sets the name of the classifier file. If the classifier file exists, 
-%     % it loads the data stored in the file. This involves removing all the
-%     % experiments and data currently loaded, setting the config file,
-%     % setting all the file names set in the config file, setting the
-%     % experiments to be those listed in the classifier file, clearing all
-%     % the previously computed window data and computing the window data for
-%     % all the labeled frames. 
-%       [classifierlabels,doreadconfigfile] = ...
-%         myparse(varargin,...
-%                 'classifierlabels',false,...
-%                 'doreadconfigfile',true);
-%       success = false;
-%       msg = '';
-%       self.classifierfilename = classifierfilename;
-%       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
-%         classifierParams = load(self.classifierfilename);
-%         [success,msg]= ...
-%           self.setClassifierParamsOld(classifierParams, ...
-%                                       'classifierfilename',classifierfilename, ...
-%                                       'classifierlabels',classifierlabels, ...
-%                                       'doreadconfigfile',doreadconfigfile);
-%       end
-%     end  % method
-
-    
-%     % ---------------------------------------------------------------------
-%     function [success,msg] = setClassifierParamsOld(obj, ...
-%                                                     classifierParams, ...
-%                                                     varargin)
-%       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-%       % Sets the name of the classifier file. If the classifier file exists,
-%       % it loads the data stored in the file. This involves removing all the
-%       % experiments and data currently loaded, setting the config file,
-%       % setting all the file names set in the config file, setting the
-%       % experiments to be those listed in the classifier file, clearing all
-%       % the previously computed window data and computing the window data for
-%       % all the labeled frames.
-%       
-%       [classifierlabels,doreadconfigfile,classifierfilename] = ...
-%         myparse(varargin,...
-%                 'classifierlabels',false, ...
-%                 'doreadconfigfile',true, ...
-%                 'classifierfilename',0);
-%     
-%       success = false;  %#ok
-%       msg = '';  %#ok
-%       
-%       obj.classifierfilename = classifierfilename;
-% 
-%       if ischar(classifierParams.labelfilename) && ~strcmp(classifierParams.labelfilename,obj.labelfilename),
-%         success = false;
-%         msg = sprintf(['Label file name specified for the project (%s) don''t match' ...
-%           ' the label file name used to train the classifier (%s). Not loading the classifier'],...
-%           obj.labelfilename,classifierParams.labelfilename);
-%         return;
-%       end
-% 
-%       if ischar(classifierfilename)
-%         obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
-%       else
-%         obj.SetStatus('Loading classifier...');
-%       end
-% 
-%       % remove all experiments
-%       obj.RemoveExpDirs(1:obj.nexps);
-% 
-%       if doreadconfigfile,
-%         % set config file
-%         %     if ~strcmp(obj.configfilename,'configfilename'),
-%         %       obj.SetConfigFileName(classifierParams.configfilename);
-%         %     end
-% 
-%         % set movie
-%         [success,msg] = obj.SetMovieFileName(classifierParams.moviefilename);
-%         if ~success,error(msg);end
-% 
-%         % trx
-%         [success,msg] = obj.SetTrxFileName(classifierParams.trxfilename);
-%         if ~success,error(msg);end
-% 
-%         % labelPreLoad
-%         [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
-%         if ~success,error(msg);end
-% 
-%         % perframedir
-%         [success,msg] = obj.SetPerFrameDir(classifierParams.perframedir);
-%         if ~success,error(msg);end
-% 
-%         % clipsdir
-%         [success,msg] = obj.SetClipsDir(classifierParams.clipsdir);
-%         if ~success,error(msg);end
-%       end
-% 
-%       % featureparamsfilename
-% %           [success,msg] = obj.SetFeatureParamsFileName(classifierParams.featureparamsfilename);
-% %           if ~success,error(msg);end
-% 
-%       % load actual window features params instead of filename.
-%       if all( isfield(classifierParams,{'windowfeaturesparams','windowfeaturescellparams',...
-%                                   'basicFeatureTable','maxWindowRadiusCommonCached'}))
-% 
-%         classifierParams.windowfeaturesparams = JLabelData.convertTransTypes2Cell(classifierParams.windowfeaturesparams);
-%         classifierParams.windowfeaturescellparams = JLabelData.convertParams2CellParams(classifierParams.windowfeaturesparams);
-%         if ~( isequal(obj.windowfeaturesparams,classifierParams.windowfeaturesparams) && ...
-%                 isequal(obj.maxWindowRadiusCommonCached,classifierParams.maxWindowRadiusCommonCached)),
-%             str = sprintf('Window feature parameters in the configuration file');
-%             str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
-%             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
-%             uiwait(warndlg(str));
-%             obj.setWindowFeaturesParams(classifierParams.windowfeaturesparams,...
-%                                      classifierParams.basicFeatureTable,...
-%                                      classifierParams.maxWindowRadiusCommonCached);
-%         end
-%       end
-% 
-%       if ~isfield(classifierParams,'featurenames')
-%         feature_names = {};
-%         for j = 1:numel(obj.curperframefns),
-%           fn = obj.curperframefns{j};
-%           [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
-%             obj.windowfeaturescellparams.(fn){:});
-%           feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
-%           feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-%         end
-%         obj.windowdata.featurenames = feature_names;
-%       else
-%         obj.windowdata.featurenames = classifierParams.featurenames;
-%       end
-% 
-% 
-%       % rootoutputdir
-% %           [success,msg] = obj.SetRootOutputDir(classifierParams.rootoutputdir);
-% %           if ~success,error(msg); end
-% 
-%       % set experiment directories
-%       if classifierlabels && isfield(classifierParams,'labels'),
-%         [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
-%           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
-%           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
-%         if ~success,error(msg); end
-%         obj.labels = classifierParams.labels;
-%         [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
-%         obj.labelidx_off = 1 - obj.t0_curr;
-%         [success,msg] = obj.PreLoadPeriLabelWindowData();
-%         if ~success,error(msg); end
-%         obj.labelsLoadedFromClassifier = true;
-%       else
-%         if classifierlabels,
-%           uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
-%         end
-%         [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
-%           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
-%           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
-%         if ~success,error(msg); end
-%       end
-%       [success,msg] = obj.UpdateStatusTable();
-%       if ~success, error(msg); end
-% 
-%       % update cached data
-% %           obj.windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
-% %             'labelidx_cur',[],'labelidx_new',[],'featurenames',{{}},...
-% %             'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
-%       [success,msg] = obj.PreLoadPeriLabelWindowData();
-%       if ~success,error(msg);end
-% 
-%       obj.classifier = classifierParams.classifier;
-%       obj.classifiertype = classifierParams.classifiertype;
-%       obj.classifierTS = classifierParams.classifierTS;
-%       obj.windowdata.scoreNorm = classifierParams.scoreNorm;
-%       obj.confThresholds = classifierParams.confThresholds;
-%       if isfield(classifierParams,'postprocessparams')
-%         obj.postprocessparams = classifierParams.postprocessparams;
-%       end
-% 
-%       paramFields = fieldnames(classifierParams.classifier_params);
-%       for ndx = 1:numel(paramFields)
-%         obj.classifier_params.(paramFields{ndx}) = classifierParams.classifier_params.(paramFields{ndx});
-%       end
-%       % predict for all loaded examples
-%       obj.PredictLoaded();
-% 
-%       % set labelidx_cur
-%       obj.SetTrainingData(classifierParams.trainingdata);
-% 
-% %           if strcmp(obj.classifiertype,'boosting'),
-% %             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
-% %           end
-% 
-%       % make sure inds is ordered correctly
-%       if ~isempty(obj.classifier),
-%         switch obj.classifiertype,
-% 
-%           case 'ferns',
-%             waslabeled = obj.windowdata.labelidx_cur ~= 0;
-%             obj.classifier.inds = obj.predict_cache.last_predicted_inds(waslabeled,:);
-% 
-%         end
-%       end
-% 
-%       % clear the cached per-frame, trx data
-%       obj.ClearCachedPerExpData();
-% 
-% %         catch ME,
-% %           errordlg(getReport(ME),'Error loading classifier from file');
-% %         end
-% 
-%       obj.ClearStatus();
-%       obj.classifierfilename = classifierfilename;
-%       obj.FindFastPredictParams();
-%     end  % setClassifierParamsOld() method
-   
-    
-% Saving and loading
-
-    
-% AL 20141210 appears unused, and see below for a commented (identical?) method  
-%     % ---------------------------------------------------------------------
-%     function SaveCurScores(self,expi,sfn)
-%     % Saves the current scores to a file.
-%         
-%       if nargin < 3
-%         sfn = self.GetFile('scores',expi);
-%       end
-%     
-%       if ~self.HasCurrentScores(),
-%         %uiwait(warndlg('No scores to save'));
-%         return
-%       end
-%       
-%       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-%                          'postprocessed',{{}},'postprocessparams',[]);
-%       scores_valid = true;
-%       pdExp = self.predictdata{expi};
-%       nFly = self.nflies_per_exp(expi);
-%       firstFrms = self.firstframes_per_exp{expi};
-%       endFrms = self.endframes_epr_exp{expi};      
-%       assert(iscell(pdExp) && numel(pdExp)==nFly);
-%       assert(isequal(nFly,numel(firstFrms),numel(endFrms)));
-%       
-%       for fly = 1:nFly
-%         
-%       
-%       end
-%       
-%       if ~scores_valid,
-%         % uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
-%         %  '%s. Cannot save the scores.'],self.expnames{expi}));
-%         % return;
-%         error('JLabelData.scoresHaveNotBeenComputed', ...
-%               ['Scores have not been computed for all the frames of experiment ' ...
-%                '%s. Cannot save the scores.'],self.expnames{expi});  %#ok
-%       end
-%       allScores.postprocessedparams = self.postprocessparams;
-%       allScores.scoreNorm = self.windowdata.scoreNorm;
-%       self.SaveScores(allScores,sfn);      
-%     end  % method
     
   end
   
@@ -1243,144 +936,6 @@ classdef JLabelData < matlab.mixin.Copyable
 % Labels and predictions    
     
 
-    % ---------------------------------------------------------------------
-    function [success,msg] = setCurrentTarget(obj,expi,flies,force)
-      % This is the method formerly known as PreLoad(). Sets the current
-      % target to experiment expi, animal flies.  This implies preloading
-      % data associated with the input experiment and flies. If neither the
-      % experiment nor flies are changing, then we do nothing. If there is
-      % currently a preloaded experiment, then we store the labels in
-      % labelidx into labels using StoreLabels. We then load from labels into
-      % labelidx for the new experiment and flies. We load the per-frame data
-      % for this experiment and flies. If this is a different experiment,
-      % then we load in the trajectories for this experiment.
-      
-      success = false;
-      msg = '';
-      
-      if ~exist('force','var')
-        force=false;
-      end
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-
-      if numel(unique(flies)) ~= numel(flies),
-        msg = 'flies must all be unique';
-        return;
-      end
-      
-      diffexpi = isempty(obj.expi) || expi ~= obj.expi;
-      diffflies = diffexpi || numel(flies) ~= numel(obj.flies) || ~all(flies == obj.flies);
-      % nothing to do
-      if ~diffflies && ~force,
-        success = true;
-        return;
-      end
-
-      if ~isempty(obj.expi) && obj.expi > 0,
-        % store labels currently in labelidx to labels
-        obj.StoreLabelsAndPreLoadWindowData();
-      end
-      
-      if diffexpi || force,
-        
-        % load trx
-%         try
-          trxfilename = obj.GetFile('trx',expi);
-          if ~exist(trxfilename,'file')
-            msg = sprintf('Trx file %s does not exist',trxfilename);
-            success = false;
-            return;
-          end
-          
-          obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
-                    
-          % TODO: remove this
-          global CACHED_TRX; %#ok<TLEV>
-          global CACHED_TRX_EXPNAME; %#ok<TLEV>
-          if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-              ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-            trx = load_tracks(trxfilename);
-            ff = fieldnames(trx);
-            for fnum = 1:numel(ff)
-              if numel(trx(1).(ff{fnum})) == trx(1).nframes && ~strcmpi(ff{fnum},'sex');
-                for fly = 1:numel(trx)
-                  trx(fly).(ff{fnum}) = trx(fly).(ff{fnum})(:)';
-                end
-              end
-            end
-
-            obj.trx = trx;
-            CACHED_TRX = obj.trx;
-            CACHED_TRX_EXPNAME = obj.expnames{expi};
-          else
-            fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-            obj.trx = CACHED_TRX;
-          end
-          % store trx_info, in case this is the first time these trx have
-          % been loaded
-          [success,msg] = obj.GetTrxInfo(expi,true,obj.trx);
-          if ~success,
-            return;
-          end
-          
-%         catch ME,
-%           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
-%           if ishandle(hwait),
-%             delete(hwait);
-%             drawnow;
-%           end
-%           return;
-%         end
- 
-      end  % if diffexpi
-
-      % set labelidx from labels
-      obj.SetStatus('Caching labels for experiment %s, flies%s',obj.expnames{expi},sprintf(' %d',flies));
-      [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
-      obj.labelidx_off = 1 - obj.t0_curr;
-      
-      % load perframedata
-      obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
-      [success,msg]=obj.loadPerframeData(expi,flies);
-      if ~success, return;  end
-      
-      obj.expi = expi;
-      obj.flies = flies;
-
-      if numel(obj.predictdata)<obj.expi
-        obj.InitPredictionData(obj.expi);
-      end
-      obj.UpdatePredictedIdx();
-      obj.ClearStatus();
-           
-      success = true;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function unsetCurrentTarget(obj)
-      % Sets the object to a state where no target is currently selected.
-      % This also clears the cached data for the currently loaded
-      % experiment.
-      obj.StoreLabelsForCurrentAnimal();
-      obj.trx = {};
-      obj.expi = 0;
-      obj.flies = [];
-      obj.perframedata = {};
-      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
-      obj.labelidx_off = 0;
-      obj.t0_curr = 0;
-      obj.t1_curr = 0;
-      obj.predictedidx = [];
-      obj.scoresidx = [];
-      obj.scoresidx_old = [];
-      obj.erroridx = [];
-      obj.suggestedidx = [];
-    end    
-         
     
     % ---------------------------------------------------------------------
     function setWindowFeaturesParams(obj,windowFeaturesParams)
@@ -3091,10 +2646,16 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end 
   
-  %% Tracking 
+  %% Tracking info
   
   methods
 
+    % ---------------------------------------------------------------------
+    function nflies = GetNumFlies(obj,expi)
+      nflies = obj.nflies_per_exp(expi);
+    end
+    
+    
     % --------------------------------------------------------------------------
     function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
     % [success,msg] = GetTrxInfo(obj,expi)
@@ -4143,6 +3704,191 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end
+  
+  %% Target
+  
+  methods
+    
+     % ---------------------------------------------------------------------
+    function val = IsCurFly(obj,expi,flies)
+      val = all(flies == obj.flies) && (expi==obj.expi);
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function expi = GetExp(obj)
+      expi = obj.expi;
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function flies = GetFlies(obj)
+      flies = obj.flies;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = setCurrentTarget(obj,expi,flies,force)
+      % This is the method formerly known as PreLoad(). Sets the current
+      % target to experiment expi, animal flies.  This implies preloading
+      % data associated with the input experiment and flies. If neither the
+      % experiment nor flies are changing, then we do nothing. If there is
+      % currently a preloaded experiment, then we store the labels in
+      % labelidx into labels using StoreLabels. We then load from labels into
+      % labelidx for the new experiment and flies. We load the per-frame data
+      % for this experiment and flies. If this is a different experiment,
+      % then we load in the trajectories for this experiment.
+      
+      success = false;
+      msg = '';
+      
+      if ~exist('force','var')
+        force=false;
+      end
+      
+      if numel(expi) ~= 1,
+        error('expi must be a scalar');
+      end
+
+      if numel(unique(flies)) ~= numel(flies),
+        msg = 'flies must all be unique';
+        return;
+      end
+      
+      diffexpi = isempty(obj.expi) || expi ~= obj.expi;
+      diffflies = diffexpi || numel(flies) ~= numel(obj.flies) || ~all(flies == obj.flies);
+      % nothing to do
+      if ~diffflies && ~force,
+        success = true;
+        return;
+      end
+
+      if ~isempty(obj.expi) && obj.expi > 0,
+        % store labels currently in labelidx to labels
+        obj.StoreLabelsAndPreLoadWindowData();
+      end
+      
+      if diffexpi || force,
+        
+        % load trx
+%         try
+          trxfilename = obj.GetFile('trx',expi);
+          if ~exist(trxfilename,'file')
+            msg = sprintf('Trx file %s does not exist',trxfilename);
+            success = false;
+            return;
+          end
+          
+          obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
+                    
+          % TODO: remove this
+          global CACHED_TRX; %#ok<TLEV>
+          global CACHED_TRX_EXPNAME; %#ok<TLEV>
+          if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+              ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+            trx = load_tracks(trxfilename);
+            ff = fieldnames(trx);
+            for fnum = 1:numel(ff)
+              if numel(trx(1).(ff{fnum})) == trx(1).nframes && ~strcmpi(ff{fnum},'sex');
+                for fly = 1:numel(trx)
+                  trx(fly).(ff{fnum}) = trx(fly).(ff{fnum})(:)';
+                end
+              end
+            end
+
+            obj.trx = trx;
+            CACHED_TRX = obj.trx;
+            CACHED_TRX_EXPNAME = obj.expnames{expi};
+          else
+            fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+            obj.trx = CACHED_TRX;
+          end
+          % store trx_info, in case this is the first time these trx have
+          % been loaded
+          [success,msg] = obj.GetTrxInfo(expi,true,obj.trx);
+          if ~success,
+            return;
+          end
+          
+%         catch ME,
+%           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
+%           if ishandle(hwait),
+%             delete(hwait);
+%             drawnow;
+%           end
+%           return;
+%         end
+ 
+      end  % if diffexpi
+
+      % set labelidx from labels
+      obj.SetStatus('Caching labels for experiment %s, flies%s',obj.expnames{expi},sprintf(' %d',flies));
+      [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
+      obj.labelidx_off = 1 - obj.t0_curr;
+      
+      % load perframedata
+      obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
+      [success,msg]=obj.loadPerframeData(expi,flies);
+      if ~success, return;  end
+      
+      obj.expi = expi;
+      obj.flies = flies;
+
+      if numel(obj.predictdata)<obj.expi
+        obj.InitPredictionData(obj.expi);
+      end
+      obj.UpdatePredictedIdx();
+      obj.ClearStatus();
+           
+      success = true;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function unsetCurrentTarget(obj)
+      % Sets the object to a state where no target is currently selected.
+      % This also clears the cached data for the currently loaded
+      % experiment.
+      obj.StoreLabelsForCurrentAnimal();
+      obj.trx = {};
+      obj.expi = 0;
+      obj.flies = [];
+      obj.perframedata = {};
+      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
+      obj.labelidx_off = 0;
+      obj.t0_curr = 0;
+      obj.t1_curr = 0;
+      obj.predictedidx = [];
+      obj.scoresidx = [];
+      obj.scoresidx_old = [];
+      obj.erroridx = [];
+      obj.suggestedidx = [];
+    end    
+             
+  end
+  
+  methods (Access=public,Static=true)
+    
+    function valid = CheckExp(expi)
+      if numel(expi) ~= 1,
+        error('Usage: expi must be a scalar');
+        %valid = false;
+      else
+        valid = true;
+      end
+    end
+    
+    function valid = CheckFlies(flies)
+      if size(flies,1) ~= 1,
+        error('Usage: one set of flies must be selected');
+        %valid = false;
+      else
+        valid = true;
+      end
+    end
+    
+  end
+  
   
   %% Labels
   
@@ -7506,7 +7252,264 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifier_params = params(:)';
     end
     
+    % AL 20141210 appears unused, and see below for a commented (identical?) method  
+%     % ---------------------------------------------------------------------
+%     function SaveCurScores(self,expi,sfn)
+%     % Saves the current scores to a file.
+%         
+%       if nargin < 3
+%         sfn = self.GetFile('scores',expi);
+%       end
+%     
+%       if ~self.HasCurrentScores(),
+%         %uiwait(warndlg('No scores to save'));
+%         return
+%       end
+%       
+%       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+%                          'postprocessed',{{}},'postprocessparams',[]);
+%       scores_valid = true;
+%       pdExp = self.predictdata{expi};
+%       nFly = self.nflies_per_exp(expi);
+%       firstFrms = self.firstframes_per_exp{expi};
+%       endFrms = self.endframes_epr_exp{expi};      
+%       assert(iscell(pdExp) && numel(pdExp)==nFly);
+%       assert(isequal(nFly,numel(firstFrms),numel(endFrms)));
+%       
+%       for fly = 1:nFly
+%         
+%       
+%       end
+%       
+%       if ~scores_valid,
+%         % uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
+%         %  '%s. Cannot save the scores.'],self.expnames{expi}));
+%         % return;
+%         error('JLabelData.scoresHaveNotBeenComputed', ...
+%               ['Scores have not been computed for all the frames of experiment ' ...
+%                '%s. Cannot save the scores.'],self.expnames{expi});  %#ok
+%       end
+%       allScores.postprocessedparams = self.postprocessparams;
+%       allScores.scoreNorm = self.windowdata.scoreNorm;
+%       self.SaveScores(allScores,sfn);      
+%     end  % method
+
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetClassifierFileName(self,classifierfilename,varargin)
+%     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+%     % Sets the name of the classifier file. If the classifier file exists, 
+%     % it loads the data stored in the file. This involves removing all the
+%     % experiments and data currently loaded, setting the config file,
+%     % setting all the file names set in the config file, setting the
+%     % experiments to be those listed in the classifier file, clearing all
+%     % the previously computed window data and computing the window data for
+%     % all the labeled frames. 
+%       [classifierlabels,doreadconfigfile] = ...
+%         myparse(varargin,...
+%                 'classifierlabels',false,...
+%                 'doreadconfigfile',true);
+%       success = false;
+%       msg = '';
+%       self.classifierfilename = classifierfilename;
+%       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
+%         classifierParams = load(self.classifierfilename);
+%         [success,msg]= ...
+%           self.setClassifierParamsOld(classifierParams, ...
+%                                       'classifierfilename',classifierfilename, ...
+%                                       'classifierlabels',classifierlabels, ...
+%                                       'doreadconfigfile',doreadconfigfile);
+%       end
+%     end  % method
+
+    
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = setClassifierParamsOld(obj, ...
+%                                                     classifierParams, ...
+%                                                     varargin)
+%       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+%       % Sets the name of the classifier file. If the classifier file exists,
+%       % it loads the data stored in the file. This involves removing all the
+%       % experiments and data currently loaded, setting the config file,
+%       % setting all the file names set in the config file, setting the
+%       % experiments to be those listed in the classifier file, clearing all
+%       % the previously computed window data and computing the window data for
+%       % all the labeled frames.
+%       
+%       [classifierlabels,doreadconfigfile,classifierfilename] = ...
+%         myparse(varargin,...
+%                 'classifierlabels',false, ...
+%                 'doreadconfigfile',true, ...
+%                 'classifierfilename',0);
+%     
+%       success = false;  %#ok
+%       msg = '';  %#ok
+%       
+%       obj.classifierfilename = classifierfilename;
+% 
+%       if ischar(classifierParams.labelfilename) && ~strcmp(classifierParams.labelfilename,obj.labelfilename),
+%         success = false;
+%         msg = sprintf(['Label file name specified for the project (%s) don''t match' ...
+%           ' the label file name used to train the classifier (%s). Not loading the classifier'],...
+%           obj.labelfilename,classifierParams.labelfilename);
+%         return;
+%       end
+% 
+%       if ischar(classifierfilename)
+%         obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
+%       else
+%         obj.SetStatus('Loading classifier...');
+%       end
+% 
+%       % remove all experiments
+%       obj.RemoveExpDirs(1:obj.nexps);
+% 
+%       if doreadconfigfile,
+%         % set config file
+%         %     if ~strcmp(obj.configfilename,'configfilename'),
+%         %       obj.SetConfigFileName(classifierParams.configfilename);
+%         %     end
+% 
+%         % set movie
+%         [success,msg] = obj.SetMovieFileName(classifierParams.moviefilename);
+%         if ~success,error(msg);end
+% 
+%         % trx
+%         [success,msg] = obj.SetTrxFileName(classifierParams.trxfilename);
+%         if ~success,error(msg);end
+% 
+%         % labelPreLoad
+%         [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
+%         if ~success,error(msg);end
+% 
+%         % perframedir
+%         [success,msg] = obj.SetPerFrameDir(classifierParams.perframedir);
+%         if ~success,error(msg);end
+% 
+%         % clipsdir
+%         [success,msg] = obj.SetClipsDir(classifierParams.clipsdir);
+%         if ~success,error(msg);end
+%       end
+% 
+%       % featureparamsfilename
+% %           [success,msg] = obj.SetFeatureParamsFileName(classifierParams.featureparamsfilename);
+% %           if ~success,error(msg);end
+% 
+%       % load actual window features params instead of filename.
+%       if all( isfield(classifierParams,{'windowfeaturesparams','windowfeaturescellparams',...
+%                                   'basicFeatureTable','maxWindowRadiusCommonCached'}))
+% 
+%         classifierParams.windowfeaturesparams = JLabelData.convertTransTypes2Cell(classifierParams.windowfeaturesparams);
+%         classifierParams.windowfeaturescellparams = JLabelData.convertParams2CellParams(classifierParams.windowfeaturesparams);
+%         if ~( isequal(obj.windowfeaturesparams,classifierParams.windowfeaturesparams) && ...
+%                 isequal(obj.maxWindowRadiusCommonCached,classifierParams.maxWindowRadiusCommonCached)),
+%             str = sprintf('Window feature parameters in the configuration file');
+%             str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
+%             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
+%             uiwait(warndlg(str));
+%             obj.setWindowFeaturesParams(classifierParams.windowfeaturesparams,...
+%                                      classifierParams.basicFeatureTable,...
+%                                      classifierParams.maxWindowRadiusCommonCached);
+%         end
+%       end
+% 
+%       if ~isfield(classifierParams,'featurenames')
+%         feature_names = {};
+%         for j = 1:numel(obj.curperframefns),
+%           fn = obj.curperframefns{j};
+%           [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
+%             obj.windowfeaturescellparams.(fn){:});
+%           feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
+%           feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+%         end
+%         obj.windowdata.featurenames = feature_names;
+%       else
+%         obj.windowdata.featurenames = classifierParams.featurenames;
+%       end
+% 
+% 
+%       % rootoutputdir
+% %           [success,msg] = obj.SetRootOutputDir(classifierParams.rootoutputdir);
+% %           if ~success,error(msg); end
+% 
+%       % set experiment directories
+%       if classifierlabels && isfield(classifierParams,'labels'),
+%         [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
+%           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
+%           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
+%         if ~success,error(msg); end
+%         obj.labels = classifierParams.labels;
+%         [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
+%         obj.labelidx_off = 1 - obj.t0_curr;
+%         [success,msg] = obj.PreLoadPeriLabelWindowData();
+%         if ~success,error(msg); end
+%         obj.labelsLoadedFromClassifier = true;
+%       else
+%         if classifierlabels,
+%           uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
+%         end
+%         [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
+%           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
+%           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
+%         if ~success,error(msg); end
+%       end
+%       [success,msg] = obj.UpdateStatusTable();
+%       if ~success, error(msg); end
+% 
+%       % update cached data
+% %           obj.windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
+% %             'labelidx_cur',[],'labelidx_new',[],'featurenames',{{}},...
+% %             'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
+%       [success,msg] = obj.PreLoadPeriLabelWindowData();
+%       if ~success,error(msg);end
+% 
+%       obj.classifier = classifierParams.classifier;
+%       obj.classifiertype = classifierParams.classifiertype;
+%       obj.classifierTS = classifierParams.classifierTS;
+%       obj.windowdata.scoreNorm = classifierParams.scoreNorm;
+%       obj.confThresholds = classifierParams.confThresholds;
+%       if isfield(classifierParams,'postprocessparams')
+%         obj.postprocessparams = classifierParams.postprocessparams;
+%       end
+% 
+%       paramFields = fieldnames(classifierParams.classifier_params);
+%       for ndx = 1:numel(paramFields)
+%         obj.classifier_params.(paramFields{ndx}) = classifierParams.classifier_params.(paramFields{ndx});
+%       end
+%       % predict for all loaded examples
+%       obj.PredictLoaded();
+% 
+%       % set labelidx_cur
+%       obj.SetTrainingData(classifierParams.trainingdata);
+% 
+% %           if strcmp(obj.classifiertype,'boosting'),
+% %             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+% %           end
+% 
+%       % make sure inds is ordered correctly
+%       if ~isempty(obj.classifier),
+%         switch obj.classifiertype,
+% 
+%           case 'ferns',
+%             waslabeled = obj.windowdata.labelidx_cur ~= 0;
+%             obj.classifier.inds = obj.predict_cache.last_predicted_inds(waslabeled,:);
+% 
+%         end
+%       end
+% 
+%       % clear the cached per-frame, trx data
+%       obj.ClearCachedPerExpData();
+% 
+% %         catch ME,
+% %           errordlg(getReport(ME),'Error loading classifier from file');
+% %         end
+% 
+%       obj.ClearStatus();
+%       obj.classifierfilename = classifierfilename;
+%       obj.FindFastPredictParams();
+%     end  % setClassifierParamsOld() method
+
   end
+  
   
   %% Evaluating performance
   
@@ -8757,7 +8760,6 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end  
   
-   
   %% Ground truthing
   
   methods 
