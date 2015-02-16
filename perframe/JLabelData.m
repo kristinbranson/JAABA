@@ -815,166 +815,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.ClearStatus();
 
     end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function tf = HasLoadedScores(obj,iCls)
-      % tf: true if there are loaded scores for all exps/flies
-      
-      %MERGESTUPDATED
-      
-      assert(isscalar(iCls) && any(iCls==1:obj.nclassifiers));
-      
-      tf = true;
-      for expi = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(expi)
-          pdArr = obj.predictdata{expi}{flies};
-          if ~pdArr(iCls).loaded_valid(1)
-            tf = false;
-            return;
-          end
-        end
-      end      
-    end
-
-    
-% Post Processing functions
-
-%    % ---------------------------------------------------------------------
-%    function InitPostprocessparams(obj)
-%      % AL no callsites
-%      obj.postprocessparams.method = 'Hysteresis';
-%      obj.postprocessparams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
-%      obj.postprocessparams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
-%      obj.postprocessparams.filtopts(1) = struct('name','Size','tag','size','value',1);
-%      obj.postprocessparams.blen = 1;
-%    end
-
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = ApplyPostprocessing(obj,expis,allflies)
-    % Applies postprocessing to current, loaded scores.
-    %
-    % Effect: update obj.predictdata{expis}{...}(:).cur_pp and
-    % obj.predictdata{expis}{...}(:).loaded_pp
-    
-    %MERGESTUPDATED
-            
-      if nargin < 2,
-        expis = 1:obj.nexps;
-      end
-      if nargin >= 3,
-        if ~iscell(allflies),
-          allflies = {allflies};
-        end
-      else
-        allflies = {};
-      end
-      for i = 1:numel(expis),
-        if numel(allflies) < i,
-          endx = expis(i);
-          allflies{i} = 1:obj.nflies_per_exp(endx);
-        end
-      end
-      
-      assert(numel(expis)==numel(allflies) && iscell(allflies));
-      % allflies{i} contains list of flies for exp expis{i}
-          
-      %fprintf('Calling ApplyPostprocessing for %d experiments and %d flies...\n',numel(expis),sum(cellfun(@numel,allflies)));  
-      
-      nCls = obj.nclassifiers;
-      assert(numel(obj.windowdata)==nCls);
-      for ibeh = 1:nCls
-        scoreNorm = obj.windowdata(ibeh).scoreNorm;
-        ppparams = obj.postprocessparams{ibeh};
-        for expii = 1:numel(expis),
-          endx = expis(expii);
-          for flies = allflies{expii},
-            idx = obj.predictdata{endx}{flies}(ibeh).cur_valid;
-            ts = obj.predictdata{endx}{flies}(ibeh).t(idx);
-            [sortedts, idxorder] = sort(ts);
-            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1; 
-            gaps = [1;gaps';numel(ts)+1];
-            for ndx = 1:numel(gaps)-1
-              % Loop over "nongap" or "consecutive-t" subseqs
-              % - idxorder(gaps(ndx):gaps(ndx+1)-1) appears to be indices into ts
-              % for a consecutive subseq
-              % - so curidx represent indices into fields of predictdata{}{}(ibeh)
-              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
-              curs = obj.predictdata{endx}{flies}(ibeh).cur(curidx);
-              obj.predictdata{endx}{flies}(ibeh).cur_pp(curidx) = ...
-                PostProcessor.PostProcess(curs,ppparams,scoreNorm);
-            end
-          end
-        end
-      end
-      
-      for ibeh = 1:nCls
-        scoreNorm = obj.windowdata(ibeh).scoreNorm;
-        ppparams = obj.postprocessparams{ibeh};
-        for expii = 1:numel(expis),
-          endx = expis(expii);
-          for flies = allflies{expii},
-            curidx = obj.predictdata{endx}{flies}(ibeh).loaded_valid;
-            curt = obj.predictdata{endx}{flies}(ibeh).t(curidx);
-            if any(curt(2:end)-curt(1:end-1) ~= 1)
-              msg = 'Scores are not in order';
-              success = false;
-              return;
-              % ALTODO early return has left obj.predictdata partially
-              % updated. Is this an assert?
-            end
-            curs = obj.predictdata{endx}{flies}(ibeh).loaded(curidx);
-            obj.predictdata{endx}{flies}(ibeh).loaded_pp(curidx) = ...
-              PostProcessor.PostProcess(curs,ppparams,scoreNorm);
-          end %flies
-        end
-      end
-      
-      msg = ''; 
-      success = true;     
-    end  % method
-
-    
-%     % ---------------------------------------------------------------------
-%     function posts = Postprocess(obj,curs,scoreNorm)
-%       posts = PostProcessor.PostProcess(curs,obj.postprocessparams,scoreNorm);
-%     end 
-%     
-    
-    % ---------------------------------------------------------------------
-    function SaveScores(self,allScoresCell,sfn)
-      % Save prediction scores for a whole experiment.
-      % 
-      % allScoresCell: cell array, nclassifiers elements, each el is an
-      %  allScore (see ScoreFile)
-      % sfn: cellstr, full filenames to be saved
-      
-      % MERGESTUPDATED
-      
-      nCls = self.nclassifiers;
-      assert(iscell(allScoresCell) && numel(allScoresCell)==nCls);
-      assert(iscellstr(sfn) && numel(sfn)==nCls);
-
-      if ~self.userHasSpecifiedEverythingFileName
-        error('JLabelData:noJabFileNameSpecified', ...
-          'A .jab file name must be specified before scores can be saved.');
-      end
-      
-      sf = ScoreFile;
-      sf.jabFileNameAbs = self.everythingFileNameAbs;
-      sf.version = self.version;
-      timestamp = self.classifierTS;
-      behnames = self.classifiernames;
-      assert(isequal(nCls,numel(timestamp),numel(behnames)));
-      
-      for iCls = 1:nCls
-        sf.allScores = allScoresCell{iCls};
-        sf.behaviorName = behnames{iCls};
-        sf.timestamp = timestamp(iCls);
-        save(sf,sfn{iCls});
-      end
-    end
+   
     
   end  % private methods
 
@@ -1397,180 +1238,6 @@ classdef JLabelData < matlab.mixin.Copyable
   end
   
   methods (Access=public)
-    
-    % ---------------------------------------------------------------------
-    function AddScores(obj,expi,allScoresCell,updateCurrent) 
-      % Set .predictdata from allScores
-      % allScoresCell: cell array of length nclassifiers
-      % 
-      % This sure seems like it should be a private method, but it's called
-      % by JLabelGUIData.  -- ALT, Apr 18, 2013
-      
-      % MERGESTUPDATED
-      
-      if isscalar(allScoresCell) && isstruct(allScoresCell)
-        allScoresCell = {allScoresCell};
-      end
-      assert(iscell(allScoresCell) && numel(allScoresCell)==obj.ntimelines);
-      
-      obj.SetStatus('Updating Predictions ...');
-        
-      for ibeh = 1:obj.ntimelines
-        nFly = numel(allScoresCell{ibeh}.scores);
-        assert(nFly==numel(obj.predictdata{expi}));
-        for ndx = 1:nFly
-          tStart = allScoresCell{ibeh}.tStart(ndx);
-          tEnd = allScoresCell{ibeh}.tEnd(ndx);
-          curScores = allScoresCell{ibeh}.scores{ndx}(tStart:tEnd);
-          Nscore = tEnd-tStart+1;
-          Npredict = numel(obj.predictdata{expi}{ndx}(ibeh).loaded_valid);
-          if Npredict < Nscore
-            warningNoTrace('JLabelData:scoreSizeMismatch',...
-              'Scores for experiment %d, behavior %d, fly %d have more elements (%d) than expected (%d). Truncating scores.',...
-              expi,ibeh,ndx,Nscore,Npredict);
-            curScores = curScores(1:Npredict);            
-          elseif Npredict > Nscore
-            warningNoTrace('JLabelData:scoreSizeMismatch',...
-              'Scores for experiment %d, behavior %d, fly %d have fewer elements (%d) than expected (%d). Padding with nans.',...
-              expi,ibeh,ndx,Nscore,Npredict);
-            curScores(end+1:Npredict) = nan;
-          end
-          if updateCurrent
-            obj.predictdata{expi}{ndx}(ibeh).cur(:) = curScores;
-            obj.predictdata{expi}{ndx}(ibeh).cur_valid(:) = true;
-          else
-            obj.predictdata{expi}{ndx}(ibeh).loaded(:) = curScores;
-            obj.predictdata{expi}{ndx}(ibeh).loaded_valid(:) = true;
-          end
-        end
-      end
-
-      if ~isempty(obj.postprocessparams)
-        [success,msg] = obj.ApplyPostprocessing();
-        if ~success
-          uiwait(warndlg(['Couldn''t apply postprocessing to the scores: ' msg]));
-        end
-      elseif ~updateCurrent,
-        assert(false,'Deprecated codepath');
-        for ibeh = 1:obj.ntimelines 
-          for ndx = 1:numel(allScoresCell{ibeh}.loaded) % Out of date fieldname
-            tStart = allScoresCell{ibeh}.tStart(ndx);
-            tEnd = allScoresCell{ibeh}.tEnd(ndx);
-            if isfield(allScoresCell{ibeh},'postprocessedscores'); % Out of date fieldname
-              obj.postprocessparams = allScoresCell{ibeh}.postprocessparams;
-              curpostprocessedscores = allScoresCell{ibeh}.postprocessedscores{ndx}(tStart:tEnd);
-              obj.predictdata{expi}{ndx}(ibeh).loaded_pp(:) = curpostprocessedscores;
-          else
-              obj.predictdata{expi}{ndx}(ibeh).loaded_pp(:) = 0;
-            end
-          end
-        end
-      end
-      
-      obj.UpdatePredictedIdx();
-      obj.ClearStatus();
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function LoadScores(obj,expi,scorefns)
-      
-      %MERGESTUPDATED 
-      
-      assert(iscellstr(scorefns));
-      Nscore = numel(scorefns);
-      assert(Nscore==obj.nclassifiers); % must be one scorefile per classifier
-      
-      for i = 1:Nscore
-        sfn = scorefns{i};
-        if ~exist(sfn,'file')
-          warndlg('Score file %s does not exist. Not loading scores',sfn);
-          return;
-        end
-      end
-      
-      scorefnstr = civilizedStringFromCellArrayOfStrings(scorefns);
-      obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},scorefnstr);
-      
-      behNames = Labels.verifyBehaviorNames(obj.labelnames);
-      assert(numel(behNames)==Nscore);
-      allScoresCell = cell(1,Nscore);
-
-%       winDataScoreNorm = obj.windowdata.scoreNorm;
-%       % Windowdata.scoreNorm will be updated from scorefiles as appropriate
-%       if numel(winDataScoreNorm)>Nscore
-%         warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too many elements. Truncating, then loading from scorefile(s).');
-%         obj.windowdata.scoreNorm = winDataScoreNorm(1:Nscore);
-%       elseif numel(winDataScoreNorm<Nscore)
-%         %warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too few elements. Padding with nans, then loading from scorefile(s).');
-%         obj.windowdata.scoreNorm(end+1:Nscore) = nan;
-%       end        
-      for i = 1:Nscore
-        sfn = scorefns{i};
-        S = load(sfn); % Could use ScoreFile.load here
-        
-        % check the behavior name
-        if isfield(S,'behaviorName')
-          if ~strcmp(S.behaviorName,behNames{i})
-            warningNoTrace('LoadScores:possibleBehaviorMismatch',...
-              'Possible behavior mismatch. Behavior name in score file: %s. Expected: %s.',S.behaviorName,behNames{i});
-          end
-        end
-        
-        if ~isempty(obj.classifierTS) && obj.classifierTS(i)>0
-          if S.timestamp~=obj.classifierTS(i)
-            uiwait(warndlg(sprintf(['Scores were computed using a classifier trained on %s'...
-              ' while the current classifier was trained on %s'],datestr(S.timestamp),...
-              datestr(obj.classifierTS(i))))),
-          end
-        end
-        % AL 20141211: classifierfilename appears to be deprecated field
-        if isfield(S,'classifierfilename') %~isempty(whos('-file',sfn,'classifierfilename'))
-          classifierfilename = S.classifierfilename;
-        else
-          classifierfilename = '';
-        end
-        
-        % Set windowdata.scoreNorm if necessary
-        %if isempty(winDataScoreNorm) || all(isnan(winDataScoreNorm)) || all(winDataScoreNorm==0),
-        if isnan(obj.windowdata(i).scoreNorm) || obj.windowdata(i).scoreNorm==0
-          if isfield(S.allScores,'scoreNorm')
-            scoreNorm = S.allScores.scoreNorm;
-          elseif isa(classifierfilename,'Macguffin')
-            % AL 20141211: should be deprecated codepath
-            scoreNorm = classifierfilename.classifierStuff.windowdata.scoreNorm;
-          elseif exist(classifierfilename,'file') && ~isempty(whos('-file',classifierfilename,'scoreNorm'))
-            scoreNorm = load(classifierfilename,'scoreNorm');
-          else
-            scoreNorm = 1;
-            uiwait(warndlg(sprintf('Score file %s did not have the score normalization. Setting it to 1',sfn)));
-          end
-          
-          assert(isscalar(scoreNorm),'Expected scalar scoreNorm.');
-          obj.windowdata(i).scoreNorm = scoreNorm;
-        end
-        
-        allScoresCell{i} = S.allScores;
-      end
-      
-      obj.AddScores(expi,allScoresCell,false);
-      
-      obj.ClearStatus();
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function LoadScoresDefault(obj,expi)
-      % MERGESTUPDATED
-      
-      [scorefns,tffound] = obj.GetFile('scores',expi);
-      assert(iscellstr(scorefns));
-      if any(~tffound)
-        warndlg(sprintf('Missing scorefile(s) for experiment %d:%s',expi,obj.expdirs{expi}));
-      else
-        obj.LoadScores(expi,scorefns);
-      end
-    end
    
     
 % Labels and predictions    
@@ -1712,72 +1379,8 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.scoresidx_old = [];
       obj.erroridx = [];
       obj.suggestedidx = [];
-    end
-    
-     
-    % ---------------------------------------------------------------------
-    function scores = GetValidatedScores(obj,expi,flies,T0,T1)
-      % scores: nclassifier-by-(T1-T0+1) array
-      
-      %MERGESTUPDATED
-      
-      if nargin<4
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end
-      
-      n = T1-T0+1;
-      off = 1 - T0;
-      scores = zeros(obj.nclassifiers,n);
-      for iCls = 1:obj.nclassifiers
-        wd = obj.windowdata(iCls);
-        if ~isempty(wd.scores_validated)
-          idxcurr = obj.FlyNdx(expi,flies,iCls) & wd.t>=T0 & wd.t<=T1;
-          scores(iCls,wd.t(idxcurr)+off) = wd.scores_validated(idxcurr);
-        end
-      end      
-    end
- 
-  
-    % ---------------------------------------------------------------------
-    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)      
-      %MERGESTUPDATED      
-      if nargin<4
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end  
-      [scores,predictions] = obj.GetScoresCore(expi,flies,...
-        'loaded','loaded_valid','loaded_pp',T0,T1);
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1)
-      %MERGESTUPDATED
-      if nargin<4
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end
-            
-      if obj.HasCurrentScores
-        [scores,predictions] = obj.GetScoresCore(expi,flies,...
-          'cur','cur_valid','cur_pp',T0,T1);
-      else
-        [scores,predictions] = obj.GetLoadedScores(expi,flies,T0,T1);
-      end      
-    end
-        
-    
-    % ---------------------------------------------------------------------
-    function scores = GetOldScores(obj,expi,flies)
-      %MERGESTUPDATED
-      T0 = max(obj.GetTrxFirstFrame(expi,flies));
-      T1 = min(obj.GetTrxEndFrame(expi,flies));
-      scores = obj.GetScoresCore(expi,flies,'old','old_valid','old_valid',T0,T1);
-      % Using arbitrary/random field old_valid for fldPP; this arg only
-      % used for computing predictions, which we are not using
-    end
-    
+    end    
+         
     
     % ---------------------------------------------------------------------
     function setWindowFeaturesParams(obj,windowFeaturesParams)
@@ -6378,6 +5981,807 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end  
   
+  %% Scores/Postprocessing/Stats
+  
+  methods
+    
+    
+    % ---------------------------------------------------------------------
+    function AddScores(obj,expi,allScoresCell,updateCurrent) 
+      % Set .predictdata from allScores
+      % allScoresCell: cell array of length nclassifiers
+      % 
+      % This sure seems like it should be a private method, but it's called
+      % by JLabelGUIData.  -- ALT, Apr 18, 2013
+      
+      % MERGESTUPDATED
+      
+      if isscalar(allScoresCell) && isstruct(allScoresCell)
+        allScoresCell = {allScoresCell};
+      end
+      assert(iscell(allScoresCell) && numel(allScoresCell)==obj.ntimelines);
+      
+      obj.SetStatus('Updating Predictions ...');
+        
+      for ibeh = 1:obj.ntimelines
+        nFly = numel(allScoresCell{ibeh}.scores);
+        assert(nFly==numel(obj.predictdata{expi}));
+        for ndx = 1:nFly
+          tStart = allScoresCell{ibeh}.tStart(ndx);
+          tEnd = allScoresCell{ibeh}.tEnd(ndx);
+          curScores = allScoresCell{ibeh}.scores{ndx}(tStart:tEnd);
+          Nscore = tEnd-tStart+1;
+          Npredict = numel(obj.predictdata{expi}{ndx}(ibeh).loaded_valid);
+          if Npredict < Nscore
+            warningNoTrace('JLabelData:scoreSizeMismatch',...
+              'Scores for experiment %d, behavior %d, fly %d have more elements (%d) than expected (%d). Truncating scores.',...
+              expi,ibeh,ndx,Nscore,Npredict);
+            curScores = curScores(1:Npredict);            
+          elseif Npredict > Nscore
+            warningNoTrace('JLabelData:scoreSizeMismatch',...
+              'Scores for experiment %d, behavior %d, fly %d have fewer elements (%d) than expected (%d). Padding with nans.',...
+              expi,ibeh,ndx,Nscore,Npredict);
+            curScores(end+1:Npredict) = nan;
+          end
+          if updateCurrent
+            obj.predictdata{expi}{ndx}(ibeh).cur(:) = curScores;
+            obj.predictdata{expi}{ndx}(ibeh).cur_valid(:) = true;
+          else
+            obj.predictdata{expi}{ndx}(ibeh).loaded(:) = curScores;
+            obj.predictdata{expi}{ndx}(ibeh).loaded_valid(:) = true;
+          end
+        end
+      end
+
+      if ~isempty(obj.postprocessparams)
+        [success,msg] = obj.ApplyPostprocessing();
+        if ~success
+          uiwait(warndlg(['Couldn''t apply postprocessing to the scores: ' msg]));
+        end
+      elseif ~updateCurrent,
+        assert(false,'Deprecated codepath');
+        for ibeh = 1:obj.ntimelines 
+          for ndx = 1:numel(allScoresCell{ibeh}.loaded) % Out of date fieldname
+            tStart = allScoresCell{ibeh}.tStart(ndx);
+            tEnd = allScoresCell{ibeh}.tEnd(ndx);
+            if isfield(allScoresCell{ibeh},'postprocessedscores'); % Out of date fieldname
+              obj.postprocessparams = allScoresCell{ibeh}.postprocessparams;
+              curpostprocessedscores = allScoresCell{ibeh}.postprocessedscores{ndx}(tStart:tEnd);
+              obj.predictdata{expi}{ndx}(ibeh).loaded_pp(:) = curpostprocessedscores;
+          else
+              obj.predictdata{expi}{ndx}(ibeh).loaded_pp(:) = 0;
+            end
+          end
+        end
+      end
+      
+      obj.UpdatePredictedIdx();
+      obj.ClearStatus();
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function LoadScores(obj,expi,scorefns)
+      
+      %MERGESTUPDATED 
+      
+      assert(iscellstr(scorefns));
+      Nscore = numel(scorefns);
+      assert(Nscore==obj.nclassifiers); % must be one scorefile per classifier
+      
+      for i = 1:Nscore
+        sfn = scorefns{i};
+        if ~exist(sfn,'file')
+          warndlg('Score file %s does not exist. Not loading scores',sfn);
+          return;
+        end
+      end
+      
+      scorefnstr = civilizedStringFromCellArrayOfStrings(scorefns);
+      obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},scorefnstr);
+      
+      behNames = Labels.verifyBehaviorNames(obj.labelnames);
+      assert(numel(behNames)==Nscore);
+      allScoresCell = cell(1,Nscore);
+
+%       winDataScoreNorm = obj.windowdata.scoreNorm;
+%       % Windowdata.scoreNorm will be updated from scorefiles as appropriate
+%       if numel(winDataScoreNorm)>Nscore
+%         warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too many elements. Truncating, then loading from scorefile(s).');
+%         obj.windowdata.scoreNorm = winDataScoreNorm(1:Nscore);
+%       elseif numel(winDataScoreNorm<Nscore)
+%         %warningNoTrace('JLabelData:windataScoreNormTooBig','windowdata.scoreNorm has too few elements. Padding with nans, then loading from scorefile(s).');
+%         obj.windowdata.scoreNorm(end+1:Nscore) = nan;
+%       end        
+      for i = 1:Nscore
+        sfn = scorefns{i};
+        S = load(sfn); % Could use ScoreFile.load here
+        
+        % check the behavior name
+        if isfield(S,'behaviorName')
+          if ~strcmp(S.behaviorName,behNames{i})
+            warningNoTrace('LoadScores:possibleBehaviorMismatch',...
+              'Possible behavior mismatch. Behavior name in score file: %s. Expected: %s.',S.behaviorName,behNames{i});
+          end
+        end
+        
+        if ~isempty(obj.classifierTS) && obj.classifierTS(i)>0
+          if S.timestamp~=obj.classifierTS(i)
+            uiwait(warndlg(sprintf(['Scores were computed using a classifier trained on %s'...
+              ' while the current classifier was trained on %s'],datestr(S.timestamp),...
+              datestr(obj.classifierTS(i))))),
+          end
+        end
+        % AL 20141211: classifierfilename appears to be deprecated field
+        if isfield(S,'classifierfilename') %~isempty(whos('-file',sfn,'classifierfilename'))
+          classifierfilename = S.classifierfilename;
+        else
+          classifierfilename = '';
+        end
+        
+        % Set windowdata.scoreNorm if necessary
+        %if isempty(winDataScoreNorm) || all(isnan(winDataScoreNorm)) || all(winDataScoreNorm==0),
+        if isnan(obj.windowdata(i).scoreNorm) || obj.windowdata(i).scoreNorm==0
+          if isfield(S.allScores,'scoreNorm')
+            scoreNorm = S.allScores.scoreNorm;
+          elseif isa(classifierfilename,'Macguffin')
+            % AL 20141211: should be deprecated codepath
+            scoreNorm = classifierfilename.classifierStuff.windowdata.scoreNorm;
+          elseif exist(classifierfilename,'file') && ~isempty(whos('-file',classifierfilename,'scoreNorm'))
+            scoreNorm = load(classifierfilename,'scoreNorm');
+          else
+            scoreNorm = 1;
+            uiwait(warndlg(sprintf('Score file %s did not have the score normalization. Setting it to 1',sfn)));
+          end
+          
+          assert(isscalar(scoreNorm),'Expected scalar scoreNorm.');
+          obj.windowdata(i).scoreNorm = scoreNorm;
+        end
+        
+        allScoresCell{i} = S.allScores;
+      end
+      
+      obj.AddScores(expi,allScoresCell,false);
+      
+      obj.ClearStatus();
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function LoadScoresDefault(obj,expi)
+      % MERGESTUPDATED
+      
+      [scorefns,tffound] = obj.GetFile('scores',expi);
+      assert(iscellstr(scorefns));
+      if any(~tffound)
+        warndlg(sprintf('Missing scorefile(s) for experiment %d:%s',expi,obj.expdirs{expi}));
+      else
+        obj.LoadScores(expi,scorefns);
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function tf = HasLoadedScores(obj,iCls)
+      % tf: true if there are loaded scores for all exps/flies
+      
+      %MERGESTUPDATED
+      
+      assert(isscalar(iCls) && any(iCls==1:obj.nclassifiers));
+      
+      tf = true;
+      for expi = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(expi)
+          pdArr = obj.predictdata{expi}{flies};
+          if ~pdArr(iCls).loaded_valid(1)
+            tf = false;
+            return;
+          end
+        end
+      end      
+    end    
+
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = ApplyPostprocessing(obj,expis,allflies)
+    % Applies postprocessing to current, loaded scores.
+    %
+    % Effect: update obj.predictdata{expis}{...}(:).cur_pp and
+    % obj.predictdata{expis}{...}(:).loaded_pp
+    
+    %MERGESTUPDATED
+            
+      if nargin < 2,
+        expis = 1:obj.nexps;
+      end
+      if nargin >= 3,
+        if ~iscell(allflies),
+          allflies = {allflies};
+        end
+      else
+        allflies = {};
+      end
+      for i = 1:numel(expis),
+        if numel(allflies) < i,
+          endx = expis(i);
+          allflies{i} = 1:obj.nflies_per_exp(endx);
+        end
+      end
+      
+      assert(numel(expis)==numel(allflies) && iscell(allflies));
+      % allflies{i} contains list of flies for exp expis{i}
+          
+      %fprintf('Calling ApplyPostprocessing for %d experiments and %d flies...\n',numel(expis),sum(cellfun(@numel,allflies)));  
+      
+      nCls = obj.nclassifiers;
+      assert(numel(obj.windowdata)==nCls);
+      for ibeh = 1:nCls
+        scoreNorm = obj.windowdata(ibeh).scoreNorm;
+        ppparams = obj.postprocessparams{ibeh};
+        for expii = 1:numel(expis),
+          endx = expis(expii);
+          for flies = allflies{expii},
+            idx = obj.predictdata{endx}{flies}(ibeh).cur_valid;
+            ts = obj.predictdata{endx}{flies}(ibeh).t(idx);
+            [sortedts, idxorder] = sort(ts);
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1; 
+            gaps = [1;gaps';numel(ts)+1];
+            for ndx = 1:numel(gaps)-1
+              % Loop over "nongap" or "consecutive-t" subseqs
+              % - idxorder(gaps(ndx):gaps(ndx+1)-1) appears to be indices into ts
+              % for a consecutive subseq
+              % - so curidx represent indices into fields of predictdata{}{}(ibeh)
+              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
+              curs = obj.predictdata{endx}{flies}(ibeh).cur(curidx);
+              obj.predictdata{endx}{flies}(ibeh).cur_pp(curidx) = ...
+                PostProcessor.PostProcess(curs,ppparams,scoreNorm);
+            end
+          end
+        end
+      end
+      
+      for ibeh = 1:nCls
+        scoreNorm = obj.windowdata(ibeh).scoreNorm;
+        ppparams = obj.postprocessparams{ibeh};
+        for expii = 1:numel(expis),
+          endx = expis(expii);
+          for flies = allflies{expii},
+            curidx = obj.predictdata{endx}{flies}(ibeh).loaded_valid;
+            curt = obj.predictdata{endx}{flies}(ibeh).t(curidx);
+            if any(curt(2:end)-curt(1:end-1) ~= 1)
+              msg = 'Scores are not in order';
+              success = false;
+              return;
+              % ALTODO early return has left obj.predictdata partially
+              % updated. Is this an assert?
+            end
+            curs = obj.predictdata{endx}{flies}(ibeh).loaded(curidx);
+            obj.predictdata{endx}{flies}(ibeh).loaded_pp(curidx) = ...
+              PostProcessor.PostProcess(curs,ppparams,scoreNorm);
+          end %flies
+        end
+      end
+      
+      msg = ''; 
+      success = true;     
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function SaveScores(self,allScoresCell,sfn)
+      % Save prediction scores for a whole experiment.
+      % 
+      % allScoresCell: cell array, nclassifiers elements, each el is an
+      %  allScore (see ScoreFile)
+      % sfn: cellstr, full filenames to be saved
+      
+      % MERGESTUPDATED
+      
+      nCls = self.nclassifiers;
+      assert(iscell(allScoresCell) && numel(allScoresCell)==nCls);
+      assert(iscellstr(sfn) && numel(sfn)==nCls);
+
+      if ~self.userHasSpecifiedEverythingFileName
+        error('JLabelData:noJabFileNameSpecified', ...
+          'A .jab file name must be specified before scores can be saved.');
+      end
+      
+      sf = ScoreFile;
+      sf.jabFileNameAbs = self.everythingFileNameAbs;
+      sf.version = self.version;
+      timestamp = self.classifierTS;
+      behnames = self.classifiernames;
+      assert(isequal(nCls,numel(timestamp),numel(behnames)));
+      
+      for iCls = 1:nCls
+        sf.allScores = allScoresCell{iCls};
+        sf.behaviorName = behnames{iCls};
+        sf.timestamp = timestamp(iCls);
+        save(sf,sfn{iCls});
+      end
+    end
+    
+    
+        % ---------------------------------------------------------------------
+    function scores = GetValidatedScores(obj,expi,flies,T0,T1)
+      % scores: nclassifier-by-(T1-T0+1) array
+      
+      %MERGESTUPDATED
+      
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+      
+      n = T1-T0+1;
+      off = 1 - T0;
+      scores = zeros(obj.nclassifiers,n);
+      for iCls = 1:obj.nclassifiers
+        wd = obj.windowdata(iCls);
+        if ~isempty(wd.scores_validated)
+          idxcurr = obj.FlyNdx(expi,flies,iCls) & wd.t>=T0 & wd.t<=T1;
+          scores(iCls,wd.t(idxcurr)+off) = wd.scores_validated(idxcurr);
+        end
+      end      
+    end
+ 
+  
+    % ---------------------------------------------------------------------
+    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)
+      %MERGESTUPDATED      
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end  
+      [scores,predictions] = obj.GetScoresCore(expi,flies,...
+        'loaded','loaded_valid','loaded_pp',T0,T1);
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1)
+      %MERGESTUPDATED
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+            
+      if obj.HasCurrentScores
+        [scores,predictions] = obj.GetScoresCore(expi,flies,...
+          'cur','cur_valid','cur_pp',T0,T1);
+      else
+        [scores,predictions] = obj.GetLoadedScores(expi,flies,T0,T1);
+      end      
+    end
+        
+    
+    % ---------------------------------------------------------------------
+    function scores = GetOldScores(obj,expi,flies)
+      %MERGESTUPDATED
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      scores = obj.GetScoresCore(expi,flies,'old','old_valid','old_valid',T0,T1);
+      % Using arbitrary/random field old_valid for fldPP; this arg only
+      % used for computing predictions, which we are not using
+    end
+
+    
+        % ---------------------------------------------------------------------
+    function [stats,flyStats] = GetFlyStats(obj,expi,flyNum)
+      % Calculates statistics such as number of labeled bouts, predicted bouts
+      % and change in scores.
+      %
+      % stats: scalar struct, overall stats for exp/fly 
+      % flyStats: nclassifier-by-1 struct array classifier-specific stats
+            
+      % MERGESTUPDATED
+      
+      obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
+      
+      stats = struct();
+      flyStats = cell2struct(cell(0,obj.nclassifiers),{});
+      
+      % General stats
+      stats.endframe = obj.endframes_per_exp{expi}(flyNum);
+      stats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
+      stats.trajLength = stats.endframe-stats.firstframe+1;      
+      if obj.hassex
+        if obj.hasperframesex
+          sexfrac = obj.GetSexFrac(expi,flyNum);
+          stats.sexfrac = round(100*sexfrac.M);
+        else
+          stats.sexfrac = 100*strcmpi(obj.GetSex(expi,flyNum),'M');
+        end
+      else
+        stats.sexfrac = [];
+      end
+      
+      % Compile frames/labels for this fly
+      obj.StoreLabelsAndPreLoadWindowData();
+
+      lblIdx2ClsIdx = obj.iLbl2iCls;
+      clsIdx2LblIdx = obj.iCls2iLbl;      
+      curbouts = zeros(1,0); % bout counter, one element per bout, values are CLASSIFIER indices (in 1:nclassifier)
+      curts = zeros(1,0); % all labeled frame indices for this fly (may contain repeats)
+      curlabels = zeros(1,0); % label vector for curts; values are LABEL indices (in 1:2*nclassifier)
+      lblsExp = obj.labels(expi);
+      [tf,iFly] = ismember(flyNum,lblsExp.flies,'rows');
+      if tf
+        nBouts = numel(lblsExp.t0s{iFly});
+        for iBout = 1:nBouts
+          t0 = lblsExp.t0s{iFly}(iBout);
+          t1 = lblsExp.t1s{iFly}(iBout);
+          name = lblsExp.names{iFly}{iBout};
+          lblIdx = find(strcmp(name,obj.labelnames));
+          assert(isscalar(lblIdx));
+          numFrames = t1-t0;
+          
+          curts(1,end+1:end+numFrames) = t0:(t1-1);
+          curlabels(1,end+1:end+numFrames) = lblIdx;
+          curbouts(1,end+1) = lblIdx2ClsIdx(lblIdx); %#ok<AGROW>
+        end
+      end
+      
+      % General label stats
+      nCls = obj.nclassifiers;
+      stats.nbouts = numel(curbouts);
+      stats.posframes = nnz(curlabels<=nCls);
+      stats.negframes = nnz(curlabels>nCls); 
+      stats.totalframes = numel(curts); % with multiple classifiers, this could exceed number of frames in track 
+      
+      for iCls = 1:nCls
+        % label stats
+        tmp = clsIdx2LblIdx{iCls};
+        posLblIdx = tmp(1);
+        negLblIdx = tmp(2);
+
+        tmp = struct();
+        tmp.nBouts = nnz(curbouts==iCls);        
+        tmp.posframes = nnz(curlabels==posLblIdx);
+        tmp.negframes = nnz(curlabels==negLblIdx);
+        tmp.totalframes = tmp.posframes + tmp.negframes;        
+        prefix = fif(obj.gtMode,'gt_','');
+        flds = fieldnames(tmp);
+        for f = flds(:)', f=f{1}; %#ok<FXSET>
+          flyStats(iCls).([prefix f]) = tmp.(f);
+        end
+        
+        pd = obj.predictdata{expi}{flyNum}(iCls);
+        
+        if pd.loaded_valid(1)
+          idxcurr = pd.loaded_valid;
+          flyStats(iCls).nscoreframes_loaded = nnz(idxcurr);
+          flyStats(iCls).nscorepos_loaded = nnz(pd.loaded(idxcurr)>0);
+          flyStats(iCls).nscoreneg_loaded = nnz(pd.loaded(idxcurr)<0);
+        else
+          flyStats(iCls).nscoreframes_loaded = [];
+          flyStats(iCls).nscorepos_loaded = [];
+          flyStats(iCls).nscoreneg_loaded = [];
+        end
+        
+        tfCls = curlabels==posLblIdx | curlabels==negLblIdx;
+        curtsCls = curts(tfCls);
+        curlabelsCls = curlabels(tfCls);
+        assert(numel(unique(curtsCls))==numel(curtsCls),...
+          'For a given classifier each frame may be labeled at most once.');
+        curNdx = pd.cur_valid;
+        if any(curNdx) && ~isempty(obj.classifier)
+          
+          % Ignore labels that don't have predicted scores.
+          haveScores = curNdx(curtsCls - obj.GetFirstFrames(expi,flyNum)+1); 
+          curtsCls(~haveScores) = [];
+          curlabelsCls(~haveScores) = [];
+          
+          if ~isempty(curlabelsCls)
+            curWScores = pd.cur(curtsCls - obj.GetFirstFrames(expi,flyNum)+1);
+            curPosMistakes = nnz( curWScores<0 & curlabelsCls==posLblIdx );
+            curNegMistakes = nnz( curWScores>0 & curlabelsCls==negLblIdx );
+          else
+            curPosMistakes = [];
+            curNegMistakes = [];
+          end
+          
+          curScores = pd.cur(curNdx);          
+          flyStats(iCls).nscoreframes = nnz(curNdx);
+          flyStats(iCls).nscorepos = nnz(curScores>0);
+          flyStats(iCls).nscoreneg = nnz(curScores<0);
+          flyStats(iCls).errorsPos = curPosMistakes;
+          flyStats(iCls).errorsNeg = curNegMistakes;
+        else
+          flyStats(iCls).nscoreframes = [];
+          flyStats(iCls).nscorepos = [];
+          flyStats(iCls).nscoreneg = [];
+          flyStats(iCls).errorsPos = [];
+          flyStats(iCls).errorsNeg = [];
+        end
+        
+        flyStats(iCls).one2two = [];
+        flyStats(iCls).two2one = [];
+        if ~isempty(obj.classifier_old{iCls})
+          curNdx = pd.old_valid;
+          if nnz(curNdx)
+            flyStats(iCls).one2two = nnz(pd.cur(curNdx)<0 & pd.old(curNdx)>0);
+            flyStats(iCls).two2one = nnz(pd.cur(curNdx)>0 & pd.old(curNdx)<0);
+          end
+        end
+        
+        flyStats(iCls).validatedErrorsPos = [];
+        flyStats(iCls).validatedErrorsNeg = [];
+        if ~isempty(obj.windowdata(iCls).scores_validated)
+          curNdx = obj.FlyNdx(expi,flyNum,iCls);
+          if nnz(curNdx)
+            curScores = obj.windowdata(iCls).scores_validated(curNdx);
+            curLabels = obj.windowdata(iCls).labelidx_new(curNdx);
+            assert(all(curLabels==posLblIdx | curLabels==negLblIdx));
+            
+            curPosMistakes = nnz( curScores(:)<0 & curLabels(:)==posLblIdx );
+            curNegMistakes = nnz( curScores(:)>0 & curLabels(:)==negLblIdx );
+            
+            flyStats(iCls).validatedErrorsPos = curPosMistakes;
+            flyStats(iCls).validatedErrorsNeg = curNegMistakes;
+          end
+        end
+        
+        % MAYANK_JAN15_2016: Do we need gtsuggestions if its normal mode?
+        if obj.IsGTMode,
+          flyStats(iCls).gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
+        end
+        
+        %       if ~isempty(obj.windowdata.X)
+        %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
+        %         flyStats.npredictframes = nnz(idxcurr);
+        %         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
+        %
+        %       else
+        %         flyStats.npredictframes = [];
+        %         flyStats.npredictfrac = [];
+        %       end
+      end
+      
+      obj.ClearStatus();
+    end
+
+   
+    % ---------------------------------------------------------------------
+    function scores = NormalizeScores(obj,scores)
+      % Normalize the given scores, using the scoreNorm value in self.
+      % Seems like it might make sense to add an option to all the
+      % methods that get scores out of the JLabelData option, so that
+      % callers can request normalized scores, and then make this a private
+      % function.  --ALT, Apr 19, 2013   
+      %
+      % Effect: scores normalized. Each row scores(iCls,:) normalized by
+      % obj.windowdata(iCls).scoreNorm.
+      %
+      % Side effect: obj.windowdata(:).scoreNorm initialized if necessary,
+      % using obj.windowdata(:).X and current classifiers
+      
+      %MERGESTUPDATED
+      
+      nCls = obj.nclassifiers;
+      assert(isequal(nCls,size(scores,1),numel(obj.windowdata),numel(obj.classifier)));
+
+      for iCls = 1:nCls
+        cls = obj.classifier{iCls};
+        
+        if isempty(obj.windowdata(iCls).scoreNorm) || isnan(obj.windowdata(iCls).scoreNorm)
+          % Need to initialize scoreNorm
+          
+          if isempty(obj.windowdata(iCls).X) || isempty(cls)
+            % Can't compute scoreNorm
+
+            % Old comment:
+            % Just return the unaltered scores in this case
+            % Note that these unaltered scores can have elements outside of
+            % [-1,+1].
+            % Is this really what we want in this case?
+            
+            obj.windowdata(iCls).scoreNorm = nan;
+          else
+            wScores = myBoostClassify(obj.windowdata(iCls).X,cls);
+            obj.windowdata(iCls).scoreNorm = prctile(abs(wScores),80);
+          end
+        end
+
+        scoreNorm = obj.windowdata(iCls).scoreNorm;
+        tfSm = scores(iCls,:)<-scoreNorm;
+        tfLg = scores(iCls,:)>scoreNorm;
+        scores(iCls,tfSm) = -scoreNorm;
+        scores(iCls,tfLg) = scoreNorm;
+        scores(iCls,:) = scores(iCls,:)/scoreNorm;
+        % isnan(scoreNorm) => scores(iCls,:) is nan
+      end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function has = HasCurrentScores(obj)
+      % has: scalar logical. If true, at least one
+      % experiment/fly/classifier has a valid predicted score (for at least
+      % one frame)
+      
+      %MERGEST UPDATED
+      
+      has = false;
+      for expi = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(expi)
+          for ibeh = 1:obj.ntimelines
+            if any(obj.predictdata{expi}{flies}(ibeh).cur_valid)
+              has = true;
+              return;
+            end
+          end
+        end
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function params = GetPostprocessingParams(obj)
+      params = obj.postprocessparams;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetPostprocessingParams(obj,params)
+      assert(iscell(params) && numel(params)==obj.nclassifiers);
+      obj.postprocessparams = params;
+      [success,msg] = obj.ApplyPostprocessing();
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function blen = GetPostprocessedBoutLengths(obj,iCls)
+      % blen: row vector, bout length for classifier iCls over all
+      % exps/flies
+      
+      %MERGESTUPDATED
+      
+      blen = zeros(1,0);
+           
+      if obj.HasCurrentScores()
+        % For predicted scores.
+        for endx = 1:obj.nexps
+          for flies = 1:obj.nflies_per_exp(endx)
+            pd = obj.predictdata{endx}{flies}(iCls);
+            idx = find(pd.cur_valid); % AL20141215 
+            ts = pd.t(idx);            
+            [sortedts,idxorder] = sort(ts);
+            % AL 20141215: added +1 to next line, cf ApplyPostProcessing
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1; 
+            gaps = [1;gaps';numel(ts)+1];
+            for ndx = 1:numel(gaps)-1
+              % loop over 'contiguous' segments of time
+              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1)); % indices into pd.t, pd.cur_valid, pd.cur_pp for current time segment
+              assert(isequal(size(pd.t),size(pd.cur_valid),size(pd.cur_pp)));
+              posts = pd.cur_pp(curidx); 
+              labeled = bwlabel(posts);
+              aa = regionprops(labeled,'Area');  %#ok
+              blen = [blen [aa.Area]];  %#ok
+            end
+          end
+        end        
+      else        
+        % For loaded scores.
+        for endx = 1:obj.nexps
+          for flies = 1:obj.nflies_per_exp(endx)
+            pd = obj.predictdata{endx}{flies}(iCls);
+            curidx = pd.loaded_valid;
+            curt = pd.t(curidx);
+            if any(curt(2:end)-curt(1:end-1) ~= 1)
+              warning('JLabelData:bouts','Scores are not in order');
+              return;
+            end
+            posts = pd.loaded_pp(curidx);
+            labeled = bwlabel(posts);
+            aa = regionprops(labeled,'Area');  %#ok
+            blen = [blen [aa.Area]];  %#ok
+          end
+        end        
+      end
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj,iCls)
+      % labels: current labels for classifier iCls, row vector of -1/1 for no-beh/beh resp
+      % labeledscores: row vector same size as labels
+      % allScores: row vector, predicted scores for iCls over all exps/flies
+      % scoreNorm: scalar
+      
+      %MERGESTUPDATED
+      
+      wd = obj.windowdata(iCls);      
+      if isempty(wd.exp)
+        labels = zeros(1,0);
+        labeledscores = zeros(1,0);
+      else
+        curNdx = wd.labelidx_cur~=0;
+        origlabels = wd.labelidx_cur(curNdx);
+        
+        lblPosNeg = obj.iCls2iLbl{iCls};
+        assert(all(origlabels==lblPosNeg(1) | origlabels==lblPosNeg(2)));
+        labels = ((origlabels==lblPosNeg(1))-0.5)*2;
+        labeledscores = myBoostClassify(wd.X(curNdx,:),obj.classifier{iCls});
+      end
+      
+      allScores = zeros(1,0);
+      for expi = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(expi)
+          pd = obj.predictdata{expi}{flies}(iCls);
+          curidx = pd.cur_valid;
+          allScores = [allScores pd.cur(curidx)]; %#ok<AGROW>
+        end
+      end
+      scoreNorm = wd.scoreNorm;
+    end
+    
+    
+    %     % ---------------------------------------------------------------------
+%     function expStats = GetExpStats(obj,expi)
+%       % Calculates statistics such as number of labeled bouts, predicted bouts
+%       % and change in scores.
+%       
+%       expStats.name = obj.expnames{expi};
+%       expStats.nflies = obj.nflies_per_exp(expi);
+%       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
+%       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
+%       
+%       
+%       if ~isempty(obj.predictdata.exp==expi)
+%         expid = obj.predictdata.exp==expi;
+%         expStats.nscoreframes = nnz(expid);
+%         expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
+% %         if ~isempty(obj.predictdata.classifierfilenames) && ...
+% %             numel(obj.predictdata.classifierfilenames)>=expi
+% %           expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
+% %         else
+% %           expStats.classifierfilename = '';
+% %         end
+%       else
+%         expStats.nscoreframes = [];
+%         expStats.nscorefrac = [];
+%         expStats.classifierfilename = '';
+%       end
+%       
+%     end
+
+    %    % ---------------------------------------------------------------------
+%    function InitPostprocessparams(obj)
+%      % AL no callsites
+%      obj.postprocessparams.method = 'Hysteresis';
+%      obj.postprocessparams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
+%      obj.postprocessparams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
+%      obj.postprocessparams.filtopts(1) = struct('name','Size','tag','size','value',1);
+%      obj.postprocessparams.blen = 1;
+%    end
+
+  end
+  
+  methods (Access=private)
+    function [scores,predictions] = GetScoresCore(obj,expi,flies,...
+        fld,fldValid,fldPP,T0,T1)
+      % scores: nclassifier-by-(T1-T0+1)
+      % predictions: nclassifier-by-(T1-T0+1). fldPP only needed to compute
+      % predictions.
+
+      n = T1-T0+1;
+      off = 1 - T0;
+
+      pdArr = obj.predictdata{expi}{flies};
+      nTL = obj.ntimelines;
+      assert(numel(pdArr)==nTL);
+      scores = zeros(nTL,n);
+      predictions = zeros(nTL,n);
+      for iTL = 1:nTL
+        pd = pdArr(iTL);
+        idxcurr = pd.(fldValid) & pd.t>=T0 & pd.t<=T1;
+        scores(iTL,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
+        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
+      end
+    end
+  end
+  
   %% Save/Load/Import/Export
   
   methods 
@@ -8351,271 +8755,8 @@ classdef JLabelData < matlab.mixin.Copyable
       showSimilarFrames('add_prep_list', obj.frameFig);
     end
     
-  end
+  end  
   
-  %% Fly and exp statistics
-  
-  methods
-    
-    % ---------------------------------------------------------------------
-    function [stats,flyStats] = GetFlyStats(obj,expi,flyNum)
-      % Calculates statistics such as number of labeled bouts, predicted bouts
-      % and change in scores.
-      %
-      % stats: scalar struct, overall stats for exp/fly 
-      % flyStats: nclassifier-by-1 struct array classifier-specific stats
-            
-      % MERGESTUPDATED
-      
-      obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
-      
-      stats = struct();
-      flyStats = cell2struct(cell(0,obj.nclassifiers),{});
-      
-      % General stats
-      stats.endframe = obj.endframes_per_exp{expi}(flyNum);
-      stats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
-      stats.trajLength = stats.endframe-stats.firstframe+1;      
-      if obj.hassex
-        if obj.hasperframesex
-          sexfrac = obj.GetSexFrac(expi,flyNum);
-          stats.sexfrac = round(100*sexfrac.M);
-        else
-          stats.sexfrac = 100*strcmpi(obj.GetSex(expi,flyNum),'M');
-        end
-      else
-        stats.sexfrac = [];
-      end
-      
-      % Compile frames/labels for this fly
-      obj.StoreLabelsAndPreLoadWindowData();
-
-      lblIdx2ClsIdx = obj.iLbl2iCls;
-      clsIdx2LblIdx = obj.iCls2iLbl;      
-      curbouts = zeros(1,0); % bout counter, one element per bout, values are CLASSIFIER indices (in 1:nclassifier)
-      curts = zeros(1,0); % all labeled frame indices for this fly (may contain repeats)
-      curlabels = zeros(1,0); % label vector for curts; values are LABEL indices (in 1:2*nclassifier)
-      lblsExp = obj.labels(expi);
-      [tf,iFly] = ismember(flyNum,lblsExp.flies,'rows');
-      if tf
-        nBouts = numel(lblsExp.t0s{iFly});
-        for iBout = 1:nBouts
-          t0 = lblsExp.t0s{iFly}(iBout);
-          t1 = lblsExp.t1s{iFly}(iBout);
-          name = lblsExp.names{iFly}{iBout};
-          lblIdx = find(strcmp(name,obj.labelnames));
-          assert(isscalar(lblIdx));
-          numFrames = t1-t0;
-          
-          curts(1,end+1:end+numFrames) = t0:(t1-1);
-          curlabels(1,end+1:end+numFrames) = lblIdx;
-          curbouts(1,end+1) = lblIdx2ClsIdx(lblIdx); %#ok<AGROW>
-        end
-      end
-      
-      % General label stats
-      nCls = obj.nclassifiers;
-      stats.nbouts = numel(curbouts);
-      stats.posframes = nnz(curlabels<=nCls);
-      stats.negframes = nnz(curlabels>nCls); 
-      stats.totalframes = numel(curts); % with multiple classifiers, this could exceed number of frames in track 
-      
-      for iCls = 1:nCls
-        % label stats
-        tmp = clsIdx2LblIdx{iCls};
-        posLblIdx = tmp(1);
-        negLblIdx = tmp(2);
-
-        tmp = struct();
-        tmp.nBouts = nnz(curbouts==iCls);        
-        tmp.posframes = nnz(curlabels==posLblIdx);
-        tmp.negframes = nnz(curlabels==negLblIdx);
-        tmp.totalframes = tmp.posframes + tmp.negframes;        
-        prefix = fif(obj.gtMode,'gt_','');
-        flds = fieldnames(tmp);
-        for f = flds(:)', f=f{1}; %#ok<FXSET>
-          flyStats(iCls).([prefix f]) = tmp.(f);
-        end
-        
-        pd = obj.predictdata{expi}{flyNum}(iCls);
-        
-        if pd.loaded_valid(1)
-          idxcurr = pd.loaded_valid;
-          flyStats(iCls).nscoreframes_loaded = nnz(idxcurr);
-          flyStats(iCls).nscorepos_loaded = nnz(pd.loaded(idxcurr)>0);
-          flyStats(iCls).nscoreneg_loaded = nnz(pd.loaded(idxcurr)<0);
-        else
-          flyStats(iCls).nscoreframes_loaded = [];
-          flyStats(iCls).nscorepos_loaded = [];
-          flyStats(iCls).nscoreneg_loaded = [];
-        end
-        
-        tfCls = curlabels==posLblIdx | curlabels==negLblIdx;
-        curtsCls = curts(tfCls);
-        curlabelsCls = curlabels(tfCls);
-        assert(numel(unique(curtsCls))==numel(curtsCls),...
-          'For a given classifier each frame may be labeled at most once.');
-        curNdx = pd.cur_valid;
-        if any(curNdx) && ~isempty(obj.classifier)
-          
-          % Ignore labels that don't have predicted scores.
-          haveScores = curNdx(curtsCls - obj.GetFirstFrames(expi,flyNum)+1); 
-          curtsCls(~haveScores) = [];
-          curlabelsCls(~haveScores) = [];
-          
-          if ~isempty(curlabelsCls)
-            curWScores = pd.cur(curtsCls - obj.GetFirstFrames(expi,flyNum)+1);
-            curPosMistakes = nnz( curWScores<0 & curlabelsCls==posLblIdx );
-            curNegMistakes = nnz( curWScores>0 & curlabelsCls==negLblIdx );
-          else
-            curPosMistakes = [];
-            curNegMistakes = [];
-          end
-          
-          curScores = pd.cur(curNdx);          
-          flyStats(iCls).nscoreframes = nnz(curNdx);
-          flyStats(iCls).nscorepos = nnz(curScores>0);
-          flyStats(iCls).nscoreneg = nnz(curScores<0);
-          flyStats(iCls).errorsPos = curPosMistakes;
-          flyStats(iCls).errorsNeg = curNegMistakes;
-        else
-          flyStats(iCls).nscoreframes = [];
-          flyStats(iCls).nscorepos = [];
-          flyStats(iCls).nscoreneg = [];
-          flyStats(iCls).errorsPos = [];
-          flyStats(iCls).errorsNeg = [];
-        end
-        
-        flyStats(iCls).one2two = [];
-        flyStats(iCls).two2one = [];
-        if ~isempty(obj.classifier_old{iCls})
-          curNdx = pd.old_valid;
-          if nnz(curNdx)
-            flyStats(iCls).one2two = nnz(pd.cur(curNdx)<0 & pd.old(curNdx)>0);
-            flyStats(iCls).two2one = nnz(pd.cur(curNdx)>0 & pd.old(curNdx)<0);
-          end
-        end
-        
-        flyStats(iCls).validatedErrorsPos = [];
-        flyStats(iCls).validatedErrorsNeg = [];
-        if ~isempty(obj.windowdata(iCls).scores_validated)
-          curNdx = obj.FlyNdx(expi,flyNum,iCls);
-          if nnz(curNdx)
-            curScores = obj.windowdata(iCls).scores_validated(curNdx);
-            curLabels = obj.windowdata(iCls).labelidx_new(curNdx);
-            assert(all(curLabels==posLblIdx | curLabels==negLblIdx));
-            
-            curPosMistakes = nnz( curScores(:)<0 & curLabels(:)==posLblIdx );
-            curNegMistakes = nnz( curScores(:)>0 & curLabels(:)==negLblIdx );
-            
-            flyStats(iCls).validatedErrorsPos = curPosMistakes;
-            flyStats(iCls).validatedErrorsNeg = curNegMistakes;
-          end
-        end
-        
-        % MAYANK_JAN15_2016: Do we need gtsuggestions if its normal mode?
-        if obj.IsGTMode,
-          flyStats(iCls).gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
-        end
-        
-        %       if ~isempty(obj.windowdata.X)
-        %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
-        %         flyStats.npredictframes = nnz(idxcurr);
-        %         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
-        %
-        %       else
-        %         flyStats.npredictframes = [];
-        %         flyStats.npredictfrac = [];
-        %       end
-      end
-      
-      obj.ClearStatus();
-    end
-
-   
-    % ---------------------------------------------------------------------
-    function scores = NormalizeScores(obj,scores)
-      % Normalize the given scores, using the scoreNorm value in self.
-      % Seems like it might make sense to add an option to all the
-      % methods that get scores out of the JLabelData option, so that
-      % callers can request normalized scores, and then make this a private
-      % function.  --ALT, Apr 19, 2013   
-      %
-      % Effect: scores normalized. Each row scores(iCls,:) normalized by
-      % obj.windowdata(iCls).scoreNorm.
-      %
-      % Side effect: obj.windowdata(:).scoreNorm initialized if necessary,
-      % using obj.windowdata(:).X and current classifiers
-      
-      %MERGESTUPDATED
-      
-      nCls = obj.nclassifiers;
-      assert(isequal(nCls,size(scores,1),numel(obj.windowdata),numel(obj.classifier)));
-
-      for iCls = 1:nCls
-        cls = obj.classifier{iCls};
-        
-        if isempty(obj.windowdata(iCls).scoreNorm) || isnan(obj.windowdata(iCls).scoreNorm)
-          % Need to initialize scoreNorm
-          
-          if isempty(obj.windowdata(iCls).X) || isempty(cls)
-            % Can't compute scoreNorm
-
-            % Old comment:
-            % Just return the unaltered scores in this case
-            % Note that these unaltered scores can have elements outside of
-            % [-1,+1].
-            % Is this really what we want in this case?
-            
-            obj.windowdata(iCls).scoreNorm = nan;
-          else
-            wScores = myBoostClassify(obj.windowdata(iCls).X,cls);
-            obj.windowdata(iCls).scoreNorm = prctile(abs(wScores),80);
-          end
-        end
-
-        scoreNorm = obj.windowdata(iCls).scoreNorm;
-        tfSm = scores(iCls,:)<-scoreNorm;
-        tfLg = scores(iCls,:)>scoreNorm;
-        scores(iCls,tfSm) = -scoreNorm;
-        scores(iCls,tfLg) = scoreNorm;
-        scores(iCls,:) = scores(iCls,:)/scoreNorm;
-        % isnan(scoreNorm) => scores(iCls,:) is nan
-      end
-    end  % method
-    
-    
-    %     % ---------------------------------------------------------------------
-%     function expStats = GetExpStats(obj,expi)
-%       % Calculates statistics such as number of labeled bouts, predicted bouts
-%       % and change in scores.
-%       
-%       expStats.name = obj.expnames{expi};
-%       expStats.nflies = obj.nflies_per_exp(expi);
-%       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
-%       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
-%       
-%       
-%       if ~isempty(obj.predictdata.exp==expi)
-%         expid = obj.predictdata.exp==expi;
-%         expStats.nscoreframes = nnz(expid);
-%         expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
-% %         if ~isempty(obj.predictdata.classifierfilenames) && ...
-% %             numel(obj.predictdata.classifierfilenames)>=expi
-% %           expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
-% %         else
-% %           expStats.classifierfilename = '';
-% %         end
-%       else
-%         expStats.nscoreframes = [];
-%         expStats.nscorefrac = [];
-%         expStats.classifierfilename = '';
-%       end
-%       
-%     end
-
-    
-  end
    
   %% Ground truthing
   
@@ -8808,28 +8949,6 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
 
-    
-    % ---------------------------------------------------------------------
-    function has = HasCurrentScores(obj)
-      % has: scalar logical. If true, at least one
-      % experiment/fly/classifier has a valid predicted score (for at least
-      % one frame)
-      
-      %MERGEST UPDATED
-      
-      has = false;
-      for expi = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(expi)
-          for ibeh = 1:obj.ntimelines
-            if any(obj.predictdata{expi}{flies}(ibeh).cur_valid)
-              has = true;
-              return;
-            end
-          end
-        end
-      end
-    end
-    
     
     % ---------------------------------------------------------------------
     function crossError = GetGTPerformance(obj)
@@ -9654,108 +9773,7 @@ classdef JLabelData < matlab.mixin.Copyable
   %%
   
   methods
-     
-    % Post Processing functions
-
-    % ---------------------------------------------------------------------
-    function params = GetPostprocessingParams(obj)
-      params = obj.postprocessparams;
-    end
     
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetPostprocessingParams(obj,params)
-      assert(iscell(params) && numel(params)==obj.nclassifiers);
-      obj.postprocessparams = params;
-      [success,msg] = obj.ApplyPostprocessing();
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function blen = GetPostprocessedBoutLengths(obj,iCls)
-      % blen: row vector, bout length for classifier iCls over all
-      % exps/flies
-      
-      %MERGESTUPDATED
-      
-      blen = zeros(1,0);
-           
-      if obj.HasCurrentScores()
-        % For predicted scores.
-        for endx = 1:obj.nexps
-          for flies = 1:obj.nflies_per_exp(endx)
-            pd = obj.predictdata{endx}{flies}(iCls);
-            idx = find(pd.cur_valid); % AL20141215 
-            ts = pd.t(idx);            
-            [sortedts,idxorder] = sort(ts);
-            % AL 20141215: added +1 to next line, cf ApplyPostProcessing
-            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1; 
-            gaps = [1;gaps';numel(ts)+1];
-            for ndx = 1:numel(gaps)-1
-              % loop over 'contiguous' segments of time
-              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1)); % indices into pd.t, pd.cur_valid, pd.cur_pp for current time segment
-              assert(isequal(size(pd.t),size(pd.cur_valid),size(pd.cur_pp)));
-              posts = pd.cur_pp(curidx); 
-              labeled = bwlabel(posts);
-              aa = regionprops(labeled,'Area');  %#ok
-              blen = [blen [aa.Area]];  %#ok
-            end
-          end
-        end        
-      else        
-        % For loaded scores.
-        for endx = 1:obj.nexps
-          for flies = 1:obj.nflies_per_exp(endx)
-            pd = obj.predictdata{endx}{flies}(iCls);
-            curidx = pd.loaded_valid;
-            curt = pd.t(curidx);
-            if any(curt(2:end)-curt(1:end-1) ~= 1)
-              warning('JLabelData:bouts','Scores are not in order');
-              return;
-            end
-            posts = pd.loaded_pp(curidx);
-            labeled = bwlabel(posts);
-            aa = regionprops(labeled,'Area');  %#ok
-            blen = [blen [aa.Area]];  %#ok
-          end
-        end        
-      end
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj,iCls)
-      % labels: current labels for classifier iCls, row vector of -1/1 for no-beh/beh resp
-      % labeledscores: row vector same size as labels
-      % allScores: row vector, predicted scores for iCls over all exps/flies
-      % scoreNorm: scalar
-      
-      %MERGESTUPDATED
-      
-      wd = obj.windowdata(iCls);      
-      if isempty(wd.exp)
-        labels = zeros(1,0);
-        labeledscores = zeros(1,0);
-      else
-        curNdx = wd.labelidx_cur~=0;
-        origlabels = wd.labelidx_cur(curNdx);
-        
-        lblPosNeg = obj.iCls2iLbl{iCls};
-        assert(all(origlabels==lblPosNeg(1) | origlabels==lblPosNeg(2)));
-        labels = ((origlabels==lblPosNeg(1))-0.5)*2;
-        labeledscores = myBoostClassify(wd.X(curNdx,:),obj.classifier{iCls});
-      end
-      
-      allScores = zeros(1,0);
-      for expi = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(expi)
-          pd = obj.predictdata{expi}{flies}(iCls);
-          curidx = pd.cur_valid;
-          allScores = [allScores pd.cur(curidx)]; %#ok<AGROW>
-        end
-      end
-      scoreNorm = wd.scoreNorm;
-    end
     
   % Random stuff
     
@@ -9846,30 +9864,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
   end  % End methods block
-
-  methods (Access=private)
-    function [scores,predictions] = GetScoresCore(obj,expi,flies,...
-        fld,fldValid,fldPP,T0,T1)
-      % scores: nclassifier-by-(T1-T0+1)
-      % predictions: nclassifier-by-(T1-T0+1). fldPP only needed to compute
-      % predictions.
-
-      n = T1-T0+1;
-      off = 1 - T0;
-
-      pdArr = obj.predictdata{expi}{flies};
-      nTL = obj.ntimelines;
-      assert(numel(pdArr)==nTL);
-      scores = zeros(nTL,n);
-      predictions = zeros(nTL,n);
-      for iTL = 1:nTL
-        pd = pdArr(iTL);
-        idxcurr = pd.(fldValid) & pd.t>=T0 & pd.t<=T1;
-        scores(iTL,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
-        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
-      end
-    end
-  end
+ 
  
 
-end % End class
+end
