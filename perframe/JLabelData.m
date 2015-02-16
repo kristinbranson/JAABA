@@ -523,132 +523,6 @@ classdef JLabelData < matlab.mixin.Copyable
     
   % -----------------------------------------------------------------------
   methods %(Access=private)ALTODO: Should this block be private
-    % ---------------------------------------------------------------------
-    function initialize(self)
-      % Set all properties to the state they should have just after the
-      % JLabelData object is created, before any .jab file has been loaded
-      % or a new file is created.  The state of the object after calling
-      % this function does not depend at all on the state prior to calling
-      % it.  Nothing is spared.  Scorched earth.
-      % Also: No attempt is done to close open files, or anything like
-      % that.  It just sets the properties to the values they should have
-      % initially.
-      self.expi = 0;
-      self.flies = [];    
-      self.targettype = 'fly';
-      self.trx = {};
-      self.perframedata = {};
-      self.featureLexiconName='';
-      self.featureLexicon=[];
-      self.windowdata = WindowData.windowdata(0);
-      self.predictdata = {};
-      self.predictblocks = Predict.predictblocks(0);
-      self.fastPredict = Predict.fastPredict(0);
-      self.windowdatachunk_radius = 100;
-      self.predictwindowdatachunk_radius = 10000;
-      self.labels = Labels.labels(0); 
-      self.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
-      self.labelidx_off = 0;
-      self.t0_curr = 0;
-      self.t1_curr = 0;
-      self.predictedidx = [];
-      self.scoresidx = [];  
-      self.scoresidx_old = [];
-      self.scoreTS = [];  
-      self.erroridx = [];
-      self.suggestedidx = [];
-      self.labelnames = {};
-      self.nbehaviors = 0;
-      self.ntimelines = 0;
-      self.labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
-      self.perframe_params = {};
-      self.landmark_params = struct;  % scalar struct with no fields
-      self.classifiertype = 'boosting';
-      self.classifier = [];
-      self.classifier_old = [];
-      self.lastFullClassifierTrainingSize = 0;
-      self.classifierTS = zeros(1,0); 
-      self.trainstats = cell(1,0);
-      self.classifier_params = cell(1,0);
-      self.filetypes = {'movie','trx','perframedir','clipsdir','scores','stfeatures'};
-      self.moviefilename = 0;
-      self.trxfilename = 0;
-      self.scorefilename = 0;
-      self.perframedir = 0;
-      self.clipsdir = 0;
-      self.scores = 0;
-      self.stfeatures = 0;
-      %self.openmovie = false;
-      % self.ismovie = false;
-      self.expdirs = {};
-      self.nflies_per_exp = [];
-      self.firstframes_per_exp = {};
-      self.endframes_per_exp = {};
-      self.frac_sex_per_exp = {};
-      self.sex_per_exp = {};
-      self.hassex = false;
-      self.hasperframesex = false;
-      self.defaultpath = '';
-      self.expdefaultpath = '';
-      self.windowfeaturesparams = cell(0,1);
-      self.windowfeaturescellparams = cell(0,1);
-      self.allperframefns = {};
-      self.curperframefns = {};
-      self.perframeunits = {};
-      self.scoreFeatures = struct('classifierfile',{}, ...
-                                  'ts',{}, ...
-                                  'scorefilename',{});
-      self.fileexists = false(0,numel(self.filetypes));
-      self.filetimestamps = nan(0,numel(self.filetypes));
-      self.allfilesexist = true;
-      self.filesfixable = true;
-      self.perframeGenerate = [];
-      self.perframeOverwrite = [];
-      self.arenawarn = true;
-      self.hasarenaparams = [];
-      self.setstatusfn = '';
-      self.clearstatusfn = '';
-      self.frameFig = [];
-      self.distMat = [];
-      self.bagModels = {};
-      self.fastPredictBag = ...
-        struct('classifier',[], ...
-               'windowfeaturescellparams',[],...
-               'wfs',[], ...
-               'pffs',[], ...
-               'ts',[], ...
-               'tempname',[], ...
-               'curF',[], ...
-               'dist',[], ...
-               'trainDist',[]);
-      self.confThresholds = zeros(0,2);
-      self.doUpdate = true;
-      self.gtMode = [];
-      self.randomGTSuggestions = {};
-      self.thresholdGTSuggestions = [];
-      self.loadedGTSuggestions = {};
-      self.balancedGTSuggestions = {};
-      self.GTSuggestionMode = '';
-      self.cacheSize = 4000;
-      self.postprocessparams = [];
-      self.version = '';
-      self.otherModeLabelsEtc = struct('expDirNames',{cell(1,0)}, ...
-                                       'labels',{struct([])});
-      self.labelGraphicParams=[];
-      self.trxGraphicParams=[];
-      self.labelcolors = [];
-      self.unknowncolor = [0 0 0];
-      self.isInteractive=true;
-      self.thereIsAnOpenFile=false;
-      self.everythingFileNameAbs='';
-      self.userHasSpecifiedEverythingFileName=false;
-      self.needsave=false;
-      self.savewindowdata = false(1,0);
-      self.loadwindowdata = true(1,0);
-      
-      self.usePastOnly = false;
-      
-    end  % method
     
     
 %     % ---------------------------------------------------------------------    
@@ -1404,53 +1278,6 @@ classdef JLabelData < matlab.mixin.Copyable
         valid = true;
       end
     end      
-
-    
-    function params = convertTransTypes2Cell(params)
-      % Convert the trans_types field into cell type
-      if ~isstruct(params), return; end
-      fnames = fieldnames(params);
-      for ndx = 1:numel(fnames)
-        if isstruct(params.(fnames{ndx}))
-          params.(fnames{ndx}) = JLabelData.convertTransTypes2Cell(params.(fnames{ndx}));
-        end
-      end
-      if isfield(params,'trans_types')
-        if ~iscell(params.trans_types)
-          params.trans_types = {params.trans_types};
-        end
-        x = cellfun(@isempty,params.trans_types);
-        params.trans_types(x)=[];
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function cellparams = convertParams2CellParams(params)
-      % Convert the windowFeatureParams structure, which stores a 'list' of
-      % per-frame features and the parameters that determine how each is
-      % converted to a set of window features, to it's corresponding
-      % cell-based form, which is apparently sometimes useful.
-      cellparams = struct;
-      fns1 = fieldnames(params);
-      for i1 = 1:numel(fns1),
-        fn1 = fns1{i1};
-        fns2 = fieldnames(params.(fn1));
-        cellparams.(fn1) = {};
-        feature_types = {};
-        for i2 = 1:numel(fns2),
-          fn2 = fns2{i2};
-          if ~isstruct(params.(fn1).(fn2)),
-            cellparams.(fn1)(end+1:end+2) = {fn2,params.(fn1).(fn2)};
-          else
-            cellparams.(fn1)(end+1:end+2) = {[fn2,'_params'],struct2paramscell(params.(fn1).(fn2))};
-            feature_types{end+1} = fn2; %#ok<AGROW>
-          end
-        end
-        cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
-      end
-    end  % method
-    
     
     % ---------------------------------------------------------------------
     function result = isValidBehaviorName(behaviorName)
@@ -1479,100 +1306,6 @@ classdef JLabelData < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   methods (Access=public)
-    function obj = JLabelData(varargin)
-    % obj = JLabelData(configParams,...)
-    %
-    % constructor: first input should be the config params. All other
-    % inputs are optional. if configfilename is not input, throws an error. 
-    % 
-    % optional inputs: 
-    %
-    % TODO: debug this
-    % override stuff set in the config file: 
-    %
-    % moviefilename, trxfilename, labelfilename, perframedir, clipsdir: names of
-    % files within experiment directories: 
-    % featureparamsfilename: file containing feature parameters
-    % rootoutputdir: in case we don't want to write to the experiment
-    % directory, we will mirror the experiment directory structure in the
-    % rootoutputdir this can be the same as the input root directory
-    %
-    % defaultpath: default location to look for experiments
-    % setstatusfn: handle to function that inputs sprintf-like input and
-    % outputs the corresponding string to a status bar.
-    % clearstatusfn: handle to function that returns the status to the
-    % default string
-    % classifierfilename: name of classifier file to save/load classifier from
- 
-      % Initialize the object
-      obj.initialize();
-    
-      % args should be key-value pairs
-      if mod(numel(varargin),2) ~= 0,
-        error('JLabelData:oddNumberOfArgsToConstructor',  ...
-              'Number of inputs to JLabelData constructor must be even');
-      end
-
-      % parse arguments into keywords and corresponding values
-      keys = varargin(1:2:end);
-      values = varargin(2:2:end);     
-      
-      % Set the function to be called when the SetStatus method is invoked
-      i = find(strcmpi(keys,'setstatusfn'),1);
-      if isempty(i),
-        obj.setstatusfn = @disp;  % do-nothing function
-      else
-        obj.setstatusfn = values{i};
-      end
-
-      % Set the function to be called when the ClearStatus method is
-      % invoked
-      i = find(strcmpi(keys,'clearstatusfn'),1);
-      if isempty(i),
-        obj.clearstatusfn = @()([]);  % do-nothing function
-      else
-        obj.clearstatusfn = values{i};
-      end
-                          
-      % default path
-      i = find(strcmpi(keys,'defaultpath'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetDefaultPath(values{i});
-        if ~success,
-          warning(msg);
-        end
-      end
-      
-      % isInteractive
-      i = find(strcmpi(keys,'isInteractive'),1);
-      if ~isempty(i),
-        obj.isInteractive=values{i};
-      end
-      
-      % cacheSize
-      % Not used for anything as of Apr 30, 2013 --ALT
-      i = find(strcmpi(keys,'cacheSize'),1);
-      if ~isempty(i),
-        obj.cacheSize = values{i};
-      end
-      
-      % Set the JAABA version
-      try 
-        vid = fopen('version.txt','r');
-        vv = textscan(vid,'%s');
-        fclose(vid);
-        obj.version = vv{1}{1};
-      catch ME
-        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  
-        obj.version = '0.0';
-      end
-      
-      % % initialize the status table describing what required files exist
-      % [success,msg] = obj.UpdateStatusTable();
-      % if ~success,
-      %   error(msg);
-      % end      
-    end  % constructor method
 
     
 % Some helper functions.
@@ -1677,92 +1410,6 @@ classdef JLabelData < matlab.mixin.Copyable
       iCls = obj.labelidx.idxBeh2idxTL(tf);
     end
         
-    % ---------------------------------------------------------------------
-    function setNeedSave(obj)
-      % Get the behavior name, a string
-      obj.needsave = true;
-    end
-    
-
-% Status display
-    
-
-    % ---------------------------------------------------------------------
-    function SetStatus(obj,varargin)
-      % SetStatus(obj,<sprintf-like arguments>)
-      % Update an associated status text according to the input sprintf-like
-      % arguments.
-      
-      if isempty(obj.setstatusfn),
-        fprintf(varargin{:});
-        fprintf('\n');
-      else
-        obj.setstatusfn(sprintf(varargin{:}));
-        drawnow;
-      end
-      %       allF = findall(0,'type','figure');
-      %       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-      %       jfig = allF(jfigNdx);
-      %       if ~isempty(jfig),
-      %         set(jfig,'pointer','watch');
-      %       end
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function ClearStatus(obj)
-      % ClearStatus(obj)
-      % Return an associated status text to the default.
-      
-      if ~isempty(obj.clearstatusfn),
-        obj.clearstatusfn();
-        drawnow;
-      end
-    end  % method
-
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetDefaultPath(obj,defaultpath)
-    % [success,msg] = SetDefaultPath(obj,defaultpath)
-    % sets the default path to load experiments from. only checks for
-    % existence of the directory.
-      
-      success = false;
-      msg = '';
-      
-      if ischar(defaultpath),
-        
-        if ~isempty(defaultpath) && ~exist(defaultpath,'file'),
-          msg = sprintf('defaultpath directory %s does not exist',defaultpath);
-          return;
-        end
-          
-        obj.defaultpath = defaultpath;
-        success = true;
-      end
-
-    end
-    
-    function [success,msg] = SetExpDefaultPath(obj,defaultpath)
-    % [success,msg] = SetDefaultPath(obj,defaultpath)
-    % sets the default path to load experiments from. only checks for
-    % existence of the directory.
-      
-      success = false;
-      msg = '';
-      
-      if ischar(defaultpath),
-        
-        if ~isempty(defaultpath) && ~exist(defaultpath,'file'),
-          msg = sprintf('defaultpath directory %s does not exist',defaultpath);
-          return;
-        end
-          
-        obj.expdefaultpath = defaultpath;
-        success = true;
-      end
-
-    end
     
         
 %     % ---------------------------------------------------------------------
@@ -9510,12 +9157,106 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
     
-  %%
+  %% Misc
   
   methods
     
-% Status display
+    function obj = JLabelData(varargin)
+    % obj = JLabelData(configParams,...)
+    %
+    % constructor: first input should be the config params. All other
+    % inputs are optional. if configfilename is not input, throws an error. 
+    % 
+    % optional inputs: 
+    %
+    % TODO: debug this
+    % override stuff set in the config file: 
+    %
+    % moviefilename, trxfilename, labelfilename, perframedir, clipsdir: names of
+    % files within experiment directories: 
+    % featureparamsfilename: file containing feature parameters
+    % rootoutputdir: in case we don't want to write to the experiment
+    % directory, we will mirror the experiment directory structure in the
+    % rootoutputdir this can be the same as the input root directory
+    %
+    % defaultpath: default location to look for experiments
+    % setstatusfn: handle to function that inputs sprintf-like input and
+    % outputs the corresponding string to a status bar.
+    % clearstatusfn: handle to function that returns the status to the
+    % default string
+    % classifierfilename: name of classifier file to save/load classifier from
+ 
+      % Initialize the object
+      obj.initialize();
     
+      % args should be key-value pairs
+      if mod(numel(varargin),2) ~= 0,
+        error('JLabelData:oddNumberOfArgsToConstructor',  ...
+              'Number of inputs to JLabelData constructor must be even');
+      end
+
+      % parse arguments into keywords and corresponding values
+      keys = varargin(1:2:end);
+      values = varargin(2:2:end);     
+      
+      % Set the function to be called when the SetStatus method is invoked
+      i = find(strcmpi(keys,'setstatusfn'),1);
+      if isempty(i),
+        obj.setstatusfn = @disp;  % do-nothing function
+      else
+        obj.setstatusfn = values{i};
+      end
+
+      % Set the function to be called when the ClearStatus method is
+      % invoked
+      i = find(strcmpi(keys,'clearstatusfn'),1);
+      if isempty(i),
+        obj.clearstatusfn = @()([]);  % do-nothing function
+      else
+        obj.clearstatusfn = values{i};
+      end
+                          
+      % default path
+      i = find(strcmpi(keys,'defaultpath'),1);
+      if ~isempty(i),
+        [success,msg] = obj.SetDefaultPath(values{i});
+        if ~success,
+          warning(msg);
+        end
+      end
+      
+      % isInteractive
+      i = find(strcmpi(keys,'isInteractive'),1);
+      if ~isempty(i),
+        obj.isInteractive=values{i};
+      end
+      
+      % cacheSize
+      % Not used for anything as of Apr 30, 2013 --ALT
+      i = find(strcmpi(keys,'cacheSize'),1);
+      if ~isempty(i),
+        obj.cacheSize = values{i};
+      end
+      
+      % Set the JAABA version
+      try 
+        vid = fopen('version.txt','r');
+        vv = textscan(vid,'%s');
+        fclose(vid);
+        obj.version = vv{1}{1};
+      catch ME
+        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  
+        obj.version = '0.0';
+      end
+      
+      % % initialize the status table describing what required files exist
+      % [success,msg] = obj.UpdateStatusTable();
+      % if ~success,
+      %   error(msg);
+      % end      
+    end  % constructor method
+
+  % Status display    
 
     % ---------------------------------------------------------------------
     function SetStatusFn(obj,statusfn)
@@ -9529,7 +9270,330 @@ classdef JLabelData < matlab.mixin.Copyable
     end   
     
 
-% Post Processing functions
+    % ---------------------------------------------------------------------
+    function SetStatus(obj,varargin)
+      % SetStatus(obj,<sprintf-like arguments>)
+      % Update an associated status text according to the input sprintf-like
+      % arguments.
+      
+      if isempty(obj.setstatusfn),
+        fprintf(varargin{:});
+        fprintf('\n');
+      else
+        obj.setstatusfn(sprintf(varargin{:}));
+        drawnow;
+      end
+      %       allF = findall(0,'type','figure');
+      %       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      %       jfig = allF(jfigNdx);
+      %       if ~isempty(jfig),
+      %         set(jfig,'pointer','watch');
+      %       end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function ClearStatus(obj)
+      % ClearStatus(obj)
+      % Return an associated status text to the default.
+      
+      if ~isempty(obj.clearstatusfn),
+        obj.clearstatusfn();
+        drawnow;
+      end
+    end  % method
+
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetDefaultPath(obj,defaultpath)
+    % [success,msg] = SetDefaultPath(obj,defaultpath)
+    % sets the default path to load experiments from. only checks for
+    % existence of the directory.
+      
+      success = false;
+      msg = '';
+      
+      if ischar(defaultpath),
+        
+        if ~isempty(defaultpath) && ~exist(defaultpath,'file'),
+          msg = sprintf('defaultpath directory %s does not exist',defaultpath);
+          return;
+        end
+          
+        obj.defaultpath = defaultpath;
+        success = true;
+      end
+
+    end
+    
+
+    function [success,msg] = SetExpDefaultPath(obj,defaultpath)
+    % [success,msg] = SetDefaultPath(obj,defaultpath)
+    % sets the default path to load experiments from. only checks for
+    % existence of the directory.
+      
+      success = false;
+      msg = '';
+      
+      if ischar(defaultpath),
+        
+        if ~isempty(defaultpath) && ~exist(defaultpath,'file'),
+          msg = sprintf('defaultpath directory %s does not exist',defaultpath);
+          return;
+        end
+          
+        obj.expdefaultpath = defaultpath;
+        success = true;
+      end
+
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function result = classifierIsPresent(obj)
+      result = ~isempty(obj.classifier);
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function someExperimentIsCurrent = getSomeExperimentIsCurrent(self)
+      if self.thereIsAnOpenFile
+        nExp = self.nexps;
+        someExperimentIsCurrent = (1<=self.expi) && ...
+                                  (self.expi<=nExp);
+      else
+        someExperimentIsCurrent = false;
+      end
+    end
+    
+   
+    % ---------------------------------------------------------------------
+    function setToValue(self,jld)
+      % Makes self into a clone of jld.  I.e. sets all the independent
+      % properties of self to have the same _value_ as the corresponding
+      % property of jld.
+      mc=metaclass(self);
+      propertyList=mc.PropertyList;
+      for i=1:length(propertyList)
+        property=propertyList(i);
+        if ~property.Dependent
+          self.(property.Name)=jld.(property.Name);
+        end
+      end
+    end  % method    
+        
+    
+    function isRandom = getColorAssignment(self)
+      if isfield(self.trxGraphicParams,'assignment') && ...
+          strcmp(self.trxGraphicParams.assignment,'static')
+        isRandom = false;
+      else
+        isRandom = true;
+      end
+      
+    end   
+
+    
+    % ---------------------------------------------------------------------
+    function setNeedSave(obj)
+      % Get the behavior name, a string
+      obj.needsave = true;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function delete(~)
+    end
+    
+    
+  end
+  
+  methods % more private
+    
+    % ---------------------------------------------------------------------
+    function initialize(self)
+      % Set all properties to the state they should have just after the
+      % JLabelData object is created, before any .jab file has been loaded
+      % or a new file is created.  The state of the object after calling
+      % this function does not depend at all on the state prior to calling
+      % it.  Nothing is spared.  Scorched earth.
+      % Also: No attempt is done to close open files, or anything like
+      % that.  It just sets the properties to the values they should have
+      % initially.
+      self.expi = 0;
+      self.flies = [];    
+      self.targettype = 'fly';
+      self.trx = {};
+      self.perframedata = {};
+      self.featureLexiconName='';
+      self.featureLexicon=[];
+      self.windowdata = WindowData.windowdata(0);
+      self.predictdata = {};
+      self.predictblocks = Predict.predictblocks(0);
+      self.fastPredict = Predict.fastPredict(0);
+      self.windowdatachunk_radius = 100;
+      self.predictwindowdatachunk_radius = 10000;
+      self.labels = Labels.labels(0); 
+      self.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
+      self.labelidx_off = 0;
+      self.t0_curr = 0;
+      self.t1_curr = 0;
+      self.predictedidx = [];
+      self.scoresidx = [];  
+      self.scoresidx_old = [];
+      self.scoreTS = [];  
+      self.erroridx = [];
+      self.suggestedidx = [];
+      self.labelnames = {};
+      self.nbehaviors = 0;
+      self.ntimelines = 0;
+      self.labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+      self.perframe_params = {};
+      self.landmark_params = struct;  % scalar struct with no fields
+      self.classifiertype = 'boosting';
+      self.classifier = [];
+      self.classifier_old = [];
+      self.lastFullClassifierTrainingSize = 0;
+      self.classifierTS = zeros(1,0); 
+      self.trainstats = cell(1,0);
+      self.classifier_params = cell(1,0);
+      self.filetypes = {'movie','trx','perframedir','clipsdir','scores','stfeatures'};
+      self.moviefilename = 0;
+      self.trxfilename = 0;
+      self.scorefilename = 0;
+      self.perframedir = 0;
+      self.clipsdir = 0;
+      self.scores = 0;
+      self.stfeatures = 0;
+      %self.openmovie = false;
+      % self.ismovie = false;
+      self.expdirs = {};
+      self.nflies_per_exp = [];
+      self.firstframes_per_exp = {};
+      self.endframes_per_exp = {};
+      self.frac_sex_per_exp = {};
+      self.sex_per_exp = {};
+      self.hassex = false;
+      self.hasperframesex = false;
+      self.defaultpath = '';
+      self.expdefaultpath = '';
+      self.windowfeaturesparams = cell(0,1);
+      self.windowfeaturescellparams = cell(0,1);
+      self.allperframefns = {};
+      self.curperframefns = {};
+      self.perframeunits = {};
+      self.scoreFeatures = struct('classifierfile',{}, ...
+                                  'ts',{}, ...
+                                  'scorefilename',{});
+      self.fileexists = false(0,numel(self.filetypes));
+      self.filetimestamps = nan(0,numel(self.filetypes));
+      self.allfilesexist = true;
+      self.filesfixable = true;
+      self.perframeGenerate = [];
+      self.perframeOverwrite = [];
+      self.arenawarn = true;
+      self.hasarenaparams = [];
+      self.setstatusfn = '';
+      self.clearstatusfn = '';
+      self.frameFig = [];
+      self.distMat = [];
+      self.bagModels = {};
+      self.fastPredictBag = ...
+        struct('classifier',[], ...
+               'windowfeaturescellparams',[],...
+               'wfs',[], ...
+               'pffs',[], ...
+               'ts',[], ...
+               'tempname',[], ...
+               'curF',[], ...
+               'dist',[], ...
+               'trainDist',[]);
+      self.confThresholds = zeros(0,2);
+      self.doUpdate = true;
+      self.gtMode = [];
+      self.randomGTSuggestions = {};
+      self.thresholdGTSuggestions = [];
+      self.loadedGTSuggestions = {};
+      self.balancedGTSuggestions = {};
+      self.GTSuggestionMode = '';
+      self.cacheSize = 4000;
+      self.postprocessparams = [];
+      self.version = '';
+      self.otherModeLabelsEtc = struct('expDirNames',{cell(1,0)}, ...
+                                       'labels',{struct([])});
+      self.labelGraphicParams=[];
+      self.trxGraphicParams=[];
+      self.labelcolors = [];
+      self.unknowncolor = [0 0 0];
+      self.isInteractive=true;
+      self.thereIsAnOpenFile=false;
+      self.everythingFileNameAbs='';
+      self.userHasSpecifiedEverythingFileName=false;
+      self.needsave=false;
+      self.savewindowdata = false(1,0);
+      self.loadwindowdata = true(1,0);
+      
+      self.usePastOnly = false;
+      
+    end  % method
+    
+  end
+  
+  methods (Static)
+    
+    function params = convertTransTypes2Cell(params)
+      % Convert the trans_types field into cell type
+      if ~isstruct(params), return; end
+      fnames = fieldnames(params);
+      for ndx = 1:numel(fnames)
+        if isstruct(params.(fnames{ndx}))
+          params.(fnames{ndx}) = JLabelData.convertTransTypes2Cell(params.(fnames{ndx}));
+        end
+      end
+      if isfield(params,'trans_types')
+        if ~iscell(params.trans_types)
+          params.trans_types = {params.trans_types};
+        end
+        x = cellfun(@isempty,params.trans_types);
+        params.trans_types(x)=[];
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function cellparams = convertParams2CellParams(params)
+      % Convert the windowFeatureParams structure, which stores a 'list' of
+      % per-frame features and the parameters that determine how each is
+      % converted to a set of window features, to it's corresponding
+      % cell-based form, which is apparently sometimes useful.
+      cellparams = struct;
+      fns1 = fieldnames(params);
+      for i1 = 1:numel(fns1),
+        fn1 = fns1{i1};
+        fns2 = fieldnames(params.(fn1));
+        cellparams.(fn1) = {};
+        feature_types = {};
+        for i2 = 1:numel(fns2),
+          fn2 = fns2{i2};
+          if ~isstruct(params.(fn1).(fn2)),
+            cellparams.(fn1)(end+1:end+2) = {fn2,params.(fn1).(fn2)};
+          else
+            cellparams.(fn1)(end+1:end+2) = {[fn2,'_params'],struct2paramscell(params.(fn1).(fn2))};
+            feature_types{end+1} = fn2; %#ok<AGROW>
+          end
+        end
+        cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
+      end
+    end  % method
+  
+  end
+  
+  %%
+  
+  methods
+     
+    % Post Processing functions
 
     % ---------------------------------------------------------------------
     function params = GetPostprocessingParams(obj)
@@ -9775,55 +9839,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-    % ---------------------------------------------------------------------
-    function result = classifierIsPresent(obj)
-      result = ~isempty(obj.classifier);
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function someExperimentIsCurrent = getSomeExperimentIsCurrent(self)
-      if self.thereIsAnOpenFile
-        nExp = self.nexps;
-        someExperimentIsCurrent = (1<=self.expi) && ...
-                                  (self.expi<=nExp);
-      else
-        someExperimentIsCurrent = false;
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function delete(~)
-    end
-        
-    
-    % ---------------------------------------------------------------------
-    function setToValue(self,jld)
-      % Makes self into a clone of jld.  I.e. sets all the independent
-      % properties of self to have the same _value_ as the corresponding
-      % property of jld.
-      mc=metaclass(self);
-      propertyList=mc.PropertyList;
-      for i=1:length(propertyList)
-        property=propertyList(i);
-        if ~property.Dependent
-          self.(property.Name)=jld.(property.Name);
-        end
-      end
-    end  % method    
-        
-    
-    function isRandom = getColorAssignment(self)
-      if isfield(self.trxGraphicParams,'assignment') && ...
-          strcmp(self.trxGraphicParams.assignment,'static')
-        isRandom = false;
-      else
-        isRandom = true;
-      end
-      
-    end   
-
     
   end  % End methods block
 
