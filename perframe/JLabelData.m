@@ -768,190 +768,8 @@ classdef JLabelData < matlab.mixin.Copyable
       notPfName = @(string)(~isequal(string,pfName));
       obj.allperframefns = cellFilter(notPfName,obj.allperframefns);      
     end
-  
         
-
-    % ---------------------------------------------------------------------
-    function setLabelsFromStructForAllExps(self,labelsForAll)
-      statusTableString = fif(self.gtMode,'gt_label','label');
-      nExps = length(self.expdirs);
-      for expi = 1:nExps
-        self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
-        %self.labelfilename = 0;
-        self.UpdateStatusTable(statusTableString);   
-      end
-    end
     
-    
-    % ---------------------------------------------------------------------
-    function loadLabelsFromStructForOneExp(self,expi,labels)
-      % Load the labels for a single experiment into self.
-            
-      self.SetStatus('Loading labels for %s',self.expdirs{expi});
-
-      self.labels(expi).t0s = labels.t0s;
-      self.labels(expi).t1s = labels.t1s;
-      self.labels(expi).names = labels.names;
-      self.labels(expi).flies = labels.flies;
-      self.labels(expi).off = labels.off;
-      self.labelstats(expi).nflies_labeled = size(labels.flies,1);
-      self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
-      Nfly = numel(labels.flies);
-      if iscell(labels.timestamp)
-        self.labels(expi).timestamp = labels.timestamp;
-      else
-        for ndx = 1:Nfly
-          nBouts = numel(labels.t0s{ndx});
-          if isempty(labels.timestamp)
-            self.labels(expi).timestamp{ndx}(1:nBouts) = now;
-          else
-            self.labels(expi).timestamp{ndx}(1:nBouts) = labels.timestamp;
-          end
-        end
-      end
-      if isfield(labels,'timelinetimestamp')
-        timelineTS = labels.timelinetimestamp;
-        assert(iscell(timelineTS) && isequal(size(timelineTS),[1 Nfly]));
-        self.labels(expi).timelinetimestamp = timelineTS;
-      else
-        self.labels(expi).timelinetimestamp = cell(1,Nfly);
-        for ndx = 1:Nfly
-          self.labels(expi).timelinetimestamp{ndx} = struct();
-        end
-      end
-      if isfield(labels,'imp_t0s');
-        self.labels(expi).imp_t0s = labels.imp_t0s;
-        self.labels(expi).imp_t1s = labels.imp_t1s;
-      else
-        self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
-        self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
-      end
-
-      self.ClearStatus();
-    end  % method
-
-    
-    % ---------------------------------------------------------------------
-    function ClearCachedPerExpData(obj)
-    % ClearCachedPerExpData(obj)
-    % Clears all cached data for the currently loaded experiment
-      obj.unsetCurrentTarget();
-      obj.trx = {};
-      obj.expi = 0;
-      obj.flies = nan(size(obj.flies));
-      obj.perframedata = {};
-      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
-      obj.labelidx_off = 0;
-      obj.t0_curr = 0;
-      obj.t1_curr = 0;
-      obj.predictedidx = [];
-      obj.scoresidx = [];
-      obj.scoresidx_old = [];
-      obj.erroridx = [];
-      obj.suggestedidx = [];
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function StoreLabelsAndPreLoadWindowData(obj)
-      % Store labels cached in labelidx for the current experiment and flies
-      % to labels structure. This is when the timestamp on labels gets
-      % updated.  Also preloads the window data if not in GT mode.
-      
-      % flies not yet initialized
-      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
-        return;
-      end
-      
-      obj.StoreLabelsForCurrentAnimal();
-            
-%       % preload labeled window data while we have the per-frame data loaded
-%       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
-%       if ~obj.IsGTMode(),
-%         [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
-%         if ~success,
-%           warning(msg);
-%         end
-%       end
-%       
-%       % update windowdata's labelidx_new
-%       if ~isempty(obj.windowdata.exp),
-%         idxcurr = obj.windowdata.exp == obj.expi & ...
-%           all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2);
-%         obj.windowdata.labelidx_new(idxcurr) = obj.labelidx.vals(obj.windowdata.t(idxcurr)+obj.labelidx_off);
-%         obj.windowdata.labelidx_imp(idxcurr) = obj.labelidx.imp(obj.windowdata.t(idxcurr)+obj.labelidx_off);
-%       end
-      
-      %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
-      
-    end  % method
-    
-    % ---------------------------------------------------------------------
-    function bouts = getLabeledBouts(obj,iCls)
-    % Find window data for labeled bouts.
-    %
-    % bouts
-    % .ndx: nBout-by-nsamp logical. bouts.ndx(iBout,:) indexes obj.windowdata(iCls).t etc
-    % .label: 1-by-nBout vector of 1/2 for positive/negative lbls for this classifier
-    % .timestamp: 1-by-nBout vector
-        
-    %MERGESTUPDATED
-    
-      bouts = struct('ndx',[],'label',[],'timestamp',[]);
-      
-      wd = obj.windowdata(iCls);
-      clsLblNames = obj.iCls2LblNames{iCls};
-      % clsLblNames = {posLbl negLbl}
-      
-      for expNdx = 1:obj.nexps
-        for flyNdx = 1:obj.nflies_per_exp(expNdx)
-          
-          labelsShort = obj.GetLabels(expNdx,flyNdx);
-          nBout = numel(labelsShort.t0s);
-          tfFlyNdx = obj.FlyNdx(expNdx,flyNdx,iCls);
-          for iBout = 1:nBout
-            tfClsLbl = strcmp(labelsShort.names{iBout},clsLblNames);
-            if any(tfClsLbl)
-              idx = tfFlyNdx & ...
-                wd.t >= labelsShort.t0s(iBout) & ...
-                wd.t < labelsShort.t1s(iBout) & ...
-                wd.labelidx_imp;
-              if ~all(wd.labelidx_new(idx))
-                continue;
-              end
-              bouts.ndx(end+1,:) = idx;
-              bouts.label(1,end+1) = find(tfClsLbl); % 1/2 for posLbl/negLbl resp
-              bouts.timestamp(1,end+1) = labelsShort.timestamp(iBout);
-            end
-          end
-        end
-      end      
-    end
-
-    
-%     % ---------------------------------------------------------------------
-%     function bouts = GetLabeledBouts_KB(obj)
-%       
-%       bouts = struct('t0s',[],'t1s',[],'flies',[],'expis',[],'timestamps',[],'names',{{}});
-%       for expi = 1:numel(obj.labels),
-%         for flyi = 1:size(obj.labels(expi).flies,1),
-%           flies = obj.labels(expi).flies(flyi,:);
-%           t0s = obj.labels(expi).t0s{flyi};
-%           t1s = obj.labels(expi).t1s{flyi};
-%           if isempty(t0s),
-%             continue;
-%           end
-%           n = numel(t0s);
-%           bouts.t0s(end+1:end+n) = t0s;
-%           bouts.t1s(end+1:end+n) = t1s;
-%           bouts.flies(end+1:end+n,:) = flies;
-%           bouts.expis(end+1:end+n) = expi;
-%           bouts.timestamps(end+1:end+n) = obj.labels(expi).timestamp{flyi};
-%           bouts.names(end+1:end+n) = obj.labels(expi).names{flyi};
-%         end
-%       end
-%       
-%     end  % method
     
     function SetWindowFeatureNames(obj)
       % set windowdata.featurenames based on obj.curperframefns and
@@ -997,103 +815,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.ClearStatus();
 
     end  % method
-
- 
-    % ---------------------------------------------------------------------
-    function StoreLabelsForCurrentAnimal(obj)
-      % Store labels cached in labelidx for the current experiment and flies
-      % to labels structure. This is when the timestamp on labels gets
-      % updated. 
-      if isempty(obj.flies) || obj.expi==0 || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
-        return
-      end      
-      obj.StoreLabelsForGivenAnimal(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
-    end  % method
-
     
-    % ---------------------------------------------------------------------
-    function StoreLabelsForGivenAnimal(obj,expi,flies,labelidx,labelidx_off)
-      
-      % MERGESTUPDATED
-      
-      % Write label info to newlabels structure
-      % TODO: don't know why writing to intermediate variable rather than obj.labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
-      assert(isequal(labelidx.labelnames,obj.labelnames));
-      assert(labelidx.nbeh==obj.nbehaviors);
-      for iTL = 1:labelidx.nTL
-        
-        % Write bouts
-        % ALTODO: Optimization: don't loop over all behaviors/labels, just those relevant
-        % to this timeline
-        for j = 1:obj.nbehaviors,
-          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);          
-          if ~isempty(i0s)
-            n = numel(i0s);
-            newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-            newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
-            newlabels.names(end+1:end+n) = repmat(labelidx.labelnames(j),[1,n]);
-            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
-            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
-          end
-        end
-      end
-      % write importance
-      if labelidx.nTL==1
-        [i0s,i1s] = get_interval_ends(labelidx.imp);
-        if ~isempty(i0s)
-          newlabels.imp_t0s = i0s - labelidx_off;
-          newlabels.imp_t1s = i1s - labelidx_off;
-        end
-      else
-        % ALXXX EXTENDED
-        % Multiclassifier importance for GT
-      end
-      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
-%       % Store labels according to the mode
-%       if obj.IsGTMode(),
-%         labelsToUse = 'gt_labels';
-%         labelstatsToUse = 'gt_labelstats';
-%       else
-%         labelsToUse = 'labels';
-%         labelstatsToUse = 'labelstats';
-%       end
-      
-      if isempty(obj.labels(expi).flies),
-        ism = false;
-      else
-        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
-      end
-      if ~ism,
-        j = size(obj.labels(expi).flies,1)+1;
-      end
-
-      obj.labels(expi).t0s{j} = newlabels.t0s;
-      obj.labels(expi).t1s{j} = newlabels.t1s;
-      obj.labels(expi).names{j} = newlabels.names;
-      obj.labels(expi).flies(j,:) = flies;
-      obj.labels(expi).off(j) = labelidx_off; % ALTODO: Don't understand, if we have adjusted by labelidx_off above, why are we recording this?
-      obj.labels(expi).timestamp{j} = newlabels.timestamp;
-      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
-      NtimelineTS = numel(obj.labels(expi).timelinetimestamp);
-      if NtimelineTS<j
-        obj.labels(expi).timelinetimestamp(NtimelineTS+1:j) = {struct()};
-      end
-      for iTL = 1:labelidx.nTL
-        classifiername = obj.labelnames{iTL};
-        if ~isfield(obj.labels(expi).timelinetimestamp{j},classifiername)
-          obj.labels(expi).timelinetimestamp{j}.(classifiername) = 0;
-        end
-        obj.labels(expi).timelinetimestamp{j}.(classifiername) = ...
-          max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
-      end          
-
-      %ALTODO: isn't obj.labels(expi).flies always unique?
-      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
-    end
-
     
     % ---------------------------------------------------------------------
     function tf = HasLoadedScores(obj,iCls)
@@ -1625,66 +1347,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       obj.classifierfilename = classifierfilename;
 %       obj.FindFastPredictParams();
 %     end  % setClassifierParamsOld() method
-
-        
-    % ---------------------------------------------------------------------
-    function setAllLabels(self, ...
-                          everythingParams)
-      % MERGEST OK
-      
-      % AL 20141125: Unnecessary, SetExpDirs() call handles this
-%       if self.nexps>0
-%         self.RemoveExpDirs(1:self.nexps);
-%       end
-
-      if self.gtMode
-        dirNames = everythingParams.gtExpDirNames;
-        labels = everythingParams.gtLabels;
-        self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.expDirNames}, ...
-                                       'labels',{everythingParams.labels});
-      else
-        % Normal labeling mode (not GT)
-        dirNames = everythingParams.expDirNames;
-        labels = everythingParams.labels;
-        self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.gtExpDirNames}, ...
-                                       'labels',{everythingParams.gtLabels});
-      end
-      assert(numel(dirNames)==numel(labels));
-
-      [success,msg] = self.SetExpDirs(dirNames);
-      if ~success, error(msg); end
-      
-      [success,msg] = self.UpdateStatusTable();
-      if ~success, error(msg); end
-
-      self.setLabelsFromStructForAllExps(labels);
-      
-      % % set the GT labels
-      % self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
-
-      % Preload the first track of the first video, which sets the current
-      % experiment and track to experiment 1, track 1
-      if (self.nexps>0)
-        self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
-        [success1,msg1] = self.setCurrentTarget(1,1);
-        if ~success1
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
-          uiwait(warndlg(msg));
-          self.RemoveExpDirs(1:obj.nexps);
-          self.ClearStatus();
-          return;
-        end
-      end
-                  
-      % % update cached dataset
-      % [success,msg] = self.PreLoadPeriLabelWindowData();  % need to move!!
-      % if ~success,error(msg);end   
-      
-      % clear the cached per-frame, trx data
-      self.ClearCachedPerExpData();
-    end        
-    
+   
     
 % Saving and loading
 
@@ -1908,47 +1571,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.LoadScores(expi,scorefns);
       end
     end
-    
-    
-    %----------------------------------------------------------------------
-    function [labels,gtLabels]=getLabelsAndGTLabels(self)
-      % Returns a single structure containing all the labels, suitable for
-      % saving.
-    
-      % % short-circuit if no labels
-      %if isempty(self.labels) && isempty(self.gt_labels), 
-      %  labels=self.labels;
-      %  gtLabels=self.gt_labels;
-      %  return; 
-      %end
-          
-      % Take the labels currently only in labelidx, and commit them to
-      % self.labels
-      self.StoreLabelsForCurrentAnimal();
-      
-      % Put the right labels in the right place
-      if self.gtMode ,
-        gtLabels=self.labels;
-        labels=self.otherModeLabelsEtc.labels;
-      else
-        labels=self.labels;
-        gtLabels=self.otherModeLabelsEtc.labels;
-      end
-        
-    end
    
-        
-    % ---------------------------------------------------------------------
-    function has = haslabels(obj,expnum)
-      obj.StoreLabelsForCurrentAnimal();
-      has = false;
-      for fly = 1:numel(obj.labels(expnum).flies)
-        if ~isempty(obj.labels(expnum).t0s{fly})
-          has = true;
-        end
-      end
-    end    
-
     
 % Labels and predictions    
     
@@ -2091,61 +1714,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.suggestedidx = [];
     end
     
-    
-    % ---------------------------------------------------------------------
-    function timestamp = GetLabelTimestamps(obj,expis,flies,ts)      
-      timestamp = nan(size(ts));      
-      for expi = 1:obj.nexps,
-        expidx = expis == expi;
-        if ~any(expidx),
-          continue;
-        end
-        % TODO: extend to multiple flies
-        for fly = 1:obj.nflies_per_exp(expi),
-          flyidx = expidx & flies == fly;
-          if ~any(flyidx),
-            continue;
-          end
-          [labelidx,T0] = obj.GetLabelIdx(expi,fly);
-          timestamp(flyidx) = labelidx.timestamp(ts(flyidx)-T0+1);
-        end
-      end
-    end
-    
-    
-    % -----------------------------------------------------------
-    function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
-    % Returns the labelidx for the input experiment and flies read from
-    % labels. 
-    
-      % Access labelidx cache if appropriate
-      if ~isempty(obj.expi) && numel(flies)==numel(obj.flies) && obj.IsCurFly(expi,flies)
-        if nargin < 4
-          labelidx = obj.labelidx;
-          T0 = obj.t0_curr;
-          T1 = obj.t1_curr;
-        else
-          idx = T0+obj.labelidx_off:T1+obj.labelidx_off;
-          labelidx = struct();
-          labelidx.vals = obj.labelidx.vals(:,idx);
-          labelidx.imp = obj.labelidx.imp(:,idx);
-          labelidx.timestamp = obj.labelidx.timestamp(:,idx);
-        end
-        return;
-      end
-      
-      if nargin < 4
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end
-      
-      labelsShort = obj.GetLabels(expi,flies);
-      assert(obj.nbehaviors==numel(obj.labelnames));
-      labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
-      labelidx = Labels.labelIdxInit(labelidx,labelsShort);
-    end
-    
-    
+     
     % ---------------------------------------------------------------------
     function scores = GetValidatedScores(obj,expi,flies,T0,T1)
       % scores: nclassifier-by-(T1-T0+1) array
@@ -2210,264 +1779,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-%     ---------------------------------------------------------------------
-%     function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
-%     [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
-%     Returns whether the behavior is labeled as behaviori for experiment
-%     expi, flies from frames T0 to T1. If T0 and T1 are not input, then
-%     firstframe to endframe are used. 
-% 
-%           
-%       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
-%         if nargin < 4,
-%           idx = obj.labelidx.vals == behaviori;
-%           T0 = obj.t0_curr;
-%           T1 = obj.t1_curr;
-%         else
-%           idx = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
-%         end
-%         return;
-%       end
-%       
-%       if nargin < 4,
-%         T0 = max(obj.GetTrxFirstFrame(expi,flies));
-%         T1 = min(obj.GetTrxEndFrame(expi,flies));
-%       end
-%       n = T1-T0+1;
-%       off = 1 - T0;
-%       labels_curr = obj.GetLabels(expi,flies);
-%       idx = false(1,n);
-%       for j = find(strcmp(labels_curr.names,obj.labelnames{behaviori})),
-%         t0 = labels_curr.t0s(j);
-%         t1 = labels_curr.t1s(j);
-%         idx(t0+off:t1-1+off) = true;
-%       end
-%       
-%     end
-
-    
-    % ---------------------------------------------------------------------
-    function labels_curr = GetLabels(obj,expi,flies)
-      % Returns the labels for the given experiment index, fly(s) index.
-      % This takes into account the current GT mode (normal/GT), and
-      % returns the appropriate labels.
-      %
-      % labels_curr: a 'labelsShort', see Labels.m
-
-      % MERGESTUPDATED
-      
-      labels_curr = Labels.labelsShort();
-              
-      if nargin < 2 || isempty(expi)
-        expi = obj.expi;
-      end
-      if expi < 1
-        % AL: questionable legacy codepath
-        return;
-      end
-      
-      if nargin < 3 || isempty(flies)
-        flies = obj.flies;
-      end
-
-      % cache these labels if current experiment and flies selected
-      if expi == obj.expi && all(flies == obj.flies)
-        %obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
-        obj.StoreLabelsForCurrentAnimal();
-      end
-      
-      [labels_curr,tffly] = Labels.labelsShortInit(labels_curr,obj.labels(expi),flies);
-      if ~tffly
-        t0_curr = max(obj.GetTrxFirstFrame(expi,flies));
-        labels_curr.off = 1-t0_curr;
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
-%     function isstart = IsLabelStart(obj,expi,flies,ts)
-%       % AL: appears to be useless
-%       
-%       if obj.expi == expi && all(flies == obj.flies),
-%         isstart = obj.labelidx.vals(ts+obj.labelidx_off) ~= 0 & ...
-%           obj.labelidx.vals(ts+obj.labelidx_off-1) ~= obj.labelidx.vals(ts+obj.labelidx_off);
-%       else
-%         
-% %         if obj.IsGTMode(),
-% %           labelsToUse = 'gt_labels';
-% %         else
-% %           labelsToUse = 'labels';
-% %         end
-% 
-%         if isempty(obj.labels(expi).flies)
-%           ism = false;
-%         else
-%           [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
-%         end
-% 
-%         if ism,
-%           isstart = ismember(ts,obj.labels(expi).t0s{fliesi});
-%         else
-%           isstart = false(size(ts));
-%         end
-%       end
-%       
-%         end
-
-    
-%     % ---------------------------------------------------------------------
-%     function ClearLabels(obj,expi,flies)
-%       
-%       
-%       if obj.nexps == 0,
-%         return;
-%       end
-%       
-% %       if obj.IsGTMode()
-% %         labelsToUse = 'gt_labels';
-% %         labelstatsToUse = 'gt_labelstats';
-% %       else
-% %         labelsToUse = 'labels';
-% %         labelstatsToUse = 'labelstats';
-% %       end
-%       
-%       %timestamp = now;
-%       
-%       % use all experiments by default
-%       if nargin < 2,
-%         expi = 1:obj.nexps;
-%       end
-%       
-%       % delete all flies by default
-%       if nargin < 3,
-%         for i = expi(:)',
-%           obj.labels(expi).t0s = {};
-%           obj.labels(expi).t1s = {};
-%           obj.labels(expi).names = {};
-%           obj.labels(expi).flies = [];
-%           obj.labels(expi).off = [];
-%           obj.labels(expi).timestamp = {};
-%           obj.labelstats(expi).nflies_labeled = 0;
-%           obj.labelstats(expi).nbouts_labeled = 0;
-%           obj.labels(expi).imp_t0s = {};
-%           obj.labels(expi).imp_t1s = {};
-%         end
-%       else
-%         if numel(expi) > 1,
-%           error('If flies input to ClearLabels, expi must be a single experiment');
-%         end
-%         % no labels
-%         if numel(obj.labels) < expi,
-%           return;
-%         end
-%         % which index of labels
-%         [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
-%         for flyi = flyis(:)',
-%           % keep track of number of bouts so that we can update stats
-%           ncurr = numel(obj.labels(expi).t0s{flyi});
-%           obj.labels(expi).t0s{flyi} = [];
-%           obj.labels(expi).t1s{flyi} = [];
-%           obj.labels(expi).names{flyi} = {};
-%           obj.labels(expi).timestamp{flyi} = [];
-%           obj.labels(expi).imp_t0s{flyi} = [];
-%           obj.labels(expi).imp_t1s{flyi} = [];
-%           % update stats
-%           obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
-%           obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
-%         end
-%       end
-%       
-%       % clear labelidx if nec
-%       if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
-%         obj.labelidx.vals(:) = 0;
-%         obj.labelidx.imp(:) = 0;
-%         obj.labelidx.timestamp(:) = 0;
-%       end
-%       
-%       % clear windowdata labelidx_new
-%       for i = expi(:)',
-%         if nargin < 3,
-%           idx = obj.windowdata.exp == i;
-%         else
-%           idx = obj.windowdata.exp == i & ismember(obj.windowdata.flies,flies,'rows');
-%         end
-%         obj.windowdata.labelidx_new(idx) = 0;
-%         obj.windowdata.labelidx_imp(idx) = 0;
-%         obj.UpdateErrorIdx();
-%       end
-%       
-%     end
-
-    
-    % ---------------------------------------------------------------------
-    function SetLabel(obj,expi,flies,ts,behaviori,important)
-    % SetLabel(obj,expi,flies,ts,behaviori)
-      % Set label for experiment expi, flies, and frames ts. If
-    % expi, flies match current expi, flies, then we only set labelidx.
-      % Otherwise, we set labels.
-      
-      % behaviori, same as JLabel/SetLabelPlot:
-      % - If greater than 0, behavior index to label. Valid vals: [1..numbehaviors]
-      % - If == 0, clear labels for all timelines/behaviors.
-      % - If < 0, timeline index to clear. Valid vals: [1..numtimelines]
-      
-      if behaviori<=0 % clear labels
-        assert(important==0);        
-        if behaviori==0
-          iTL = 1:obj.ntimelines;
-        else
-          iTL = -behaviori;
-        end  
-        lblVal = 0;
-      else % label
-        iTL = obj.labelidx.idxBeh2idxTL(behaviori);
-        lblVal = behaviori;
-      end
-      if obj.IsCurFly(expi,flies),
-        obj.labelidx.vals(iTL,ts+obj.labelidx_off) = lblVal;
-        obj.labelidx.imp(iTL,ts+obj.labelidx_off) = important;
-        obj.labelidx.timestamp(iTL,ts+obj.labelidx_off) = now;
-      else
-        [labelidx,T0] = obj.GetLabelIdx(expi,flies); %#ok<*PROP>
-        labelidx.vals(iTL,ts+1-T0) = lblVal;
-        labelidx.imp(iTL,ts+1-T0) = important;
-        labelidx.timestamp(iTL,ts+1-T0) = now;
-        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);
-      end
-      obj.UpdateErrorIdx();
-      obj.needsave=true;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-%     function SetLabel_KB(obj,expi,flies,ts,behaviori,important)
-% 
-%       % SetLabel_KB(obj,expi,flies,ts,behaviori)
-%       % Set label for experiment expi, flies, and frames ts to behaviori.
-%       % Store everywhere.
-%       
-%       % store in labelidx
-%       if obj.IsCurFly(expi,flies),
-%         obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
-%         obj.labelidx.imp(ts+obj.labelidx_off) = important;
-%         obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
-%       end      
-% 
-%       % store in labels
-%       [labelidx,T0] = obj.GetLabelIdx(expi,flies);
-%       labelidx.vals(ts+1-T0) = behaviori;
-%       labelidx.imp(ts+1-T0) = important;
-%       labelidx.timestamp(ts+1-T0) = now;
-%       obj.StoreLabels1(expi,flies,labelidx,1-T0);
-%       
-%       % store in windowdata
-%       idxcurr = obj.windowdata.exp == expi & obj.windowdata.flies == flies & ismember(obj.windowdata.t,ts);
-%       obj.windowdata.labelidx_new(idxcurr) = behaviori;
-%       obj.windowdata.labelidx_imp(idxcurr) = important;
-%       
-%     end
-    
-    
     % ---------------------------------------------------------------------
     function setWindowFeaturesParams(obj,windowFeaturesParams)
       % Updates the feature params.  Called after user clicks Done in 
@@ -2507,7 +1818,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
     
-  methods % Experiment/Filesystem
+  %% Experiment/Filesystem
+
+  methods 
         
 
     % ---------------------------------------------------------------------
@@ -4098,9 +3411,7 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end
-  
-  %% Experiment/Filesystem
-  
+    
   methods (Static)
     
     % ---------------------------------------------------------------------
@@ -5229,6 +4540,737 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end
+  
+  %% Labels
+  
+  methods
+    
+    
+    % ---------------------------------------------------------------------
+    function timestamp = GetLabelTimestamps(obj,expis,flies,ts)      
+      timestamp = nan(size(ts));      
+      for expi = 1:obj.nexps,
+        expidx = expis == expi;
+        if ~any(expidx),
+          continue;
+        end
+        % TODO: extend to multiple flies
+        for fly = 1:obj.nflies_per_exp(expi),
+          flyidx = expidx & flies == fly;
+          if ~any(flyidx),
+            continue;
+          end
+          [labelidx,T0] = obj.GetLabelIdx(expi,fly);
+          timestamp(flyidx) = labelidx.timestamp(ts(flyidx)-T0+1);
+        end
+      end
+    end
+    
+    
+    % -----------------------------------------------------------
+    function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
+    % Returns the labelidx for the input experiment and flies read from
+    % labels. 
+    
+      % Access labelidx cache if appropriate
+      if ~isempty(obj.expi) && numel(flies)==numel(obj.flies) && obj.IsCurFly(expi,flies)
+        if nargin < 4
+          labelidx = obj.labelidx;
+          T0 = obj.t0_curr;
+          T1 = obj.t1_curr;
+        else
+          idx = T0+obj.labelidx_off:T1+obj.labelidx_off;
+          labelidx = struct();
+          labelidx.vals = obj.labelidx.vals(:,idx);
+          labelidx.imp = obj.labelidx.imp(:,idx);
+          labelidx.timestamp = obj.labelidx.timestamp(:,idx);
+        end
+        return;
+      end
+      
+      if nargin < 4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+      
+      labelsShort = obj.GetLabels(expi,flies);
+      assert(obj.nbehaviors==numel(obj.labelnames));
+      labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
+      labelidx = Labels.labelIdxInit(labelidx,labelsShort);
+    end
+    
+    
+    %----------------------------------------------------------------------
+    function [labels,gtLabels] = getLabelsAndGTLabels(self)
+      % Returns a single structure containing all the labels, suitable for
+      % saving.
+    
+      % % short-circuit if no labels
+      %if isempty(self.labels) && isempty(self.gt_labels), 
+      %  labels=self.labels;
+      %  gtLabels=self.gt_labels;
+      %  return; 
+      %end
+          
+      % Take the labels currently only in labelidx, and commit them to
+      % self.labels
+      self.StoreLabelsForCurrentAnimal();
+      
+      % Put the right labels in the right place
+      if self.gtMode ,
+        gtLabels=self.labels;
+        labels=self.otherModeLabelsEtc.labels;
+      else
+        labels=self.labels;
+        gtLabels=self.otherModeLabelsEtc.labels;
+      end
+        
+    end
+   
+        
+    % ---------------------------------------------------------------------
+    function has = haslabels(obj,expnum)
+      obj.StoreLabelsForCurrentAnimal();
+      has = false;
+      for fly = 1:numel(obj.labels(expnum).flies)
+        if ~isempty(obj.labels(expnum).t0s{fly})
+          has = true;
+        end
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function setAllLabels(self, ...
+                          everythingParams)
+      % MERGEST OK
+      
+      % AL 20141125: Unnecessary, SetExpDirs() call handles this
+%       if self.nexps>0
+%         self.RemoveExpDirs(1:self.nexps);
+%       end
+
+      if self.gtMode
+        dirNames = everythingParams.gtExpDirNames;
+        labels = everythingParams.gtLabels;
+        self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.expDirNames}, ...
+                                       'labels',{everythingParams.labels});
+      else
+        % Normal labeling mode (not GT)
+        dirNames = everythingParams.expDirNames;
+        labels = everythingParams.labels;
+        self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.gtExpDirNames}, ...
+                                       'labels',{everythingParams.gtLabels});
+      end
+      assert(numel(dirNames)==numel(labels));
+
+      [success,msg] = self.SetExpDirs(dirNames);
+      if ~success, error(msg); end
+      
+      [success,msg] = self.UpdateStatusTable();
+      if ~success, error(msg); end
+
+      self.setLabelsFromStructForAllExps(labels);
+      
+      % % set the GT labels
+      % self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
+
+      % Preload the first track of the first video, which sets the current
+      % experiment and track to experiment 1, track 1
+      if (self.nexps>0)
+        self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
+        [success1,msg1] = self.setCurrentTarget(1,1);
+        if ~success1
+          msg = sprintf('Error getting basic trx info: %s',msg1);
+          self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
+          uiwait(warndlg(msg));
+          self.RemoveExpDirs(1:obj.nexps);
+          self.ClearStatus();
+          return;
+        end
+      end
+                  
+      % % update cached dataset
+      % [success,msg] = self.PreLoadPeriLabelWindowData();  % need to move!!
+      % if ~success,error(msg);end   
+      
+      % clear the cached per-frame, trx data
+      self.ClearCachedPerExpData();
+    end        
+    
+    
+    % ---------------------------------------------------------------------
+    function labels_curr = GetLabels(obj,expi,flies)
+      % Returns the labels for the given experiment index, fly(s) index.
+      % This takes into account the current GT mode (normal/GT), and
+      % returns the appropriate labels.
+      %
+      % labels_curr: a 'labelsShort', see Labels.m
+
+      % MERGESTUPDATED
+      
+      labels_curr = Labels.labelsShort();
+              
+      if nargin < 2 || isempty(expi)
+        expi = obj.expi;
+      end
+      if expi < 1
+        % AL: questionable legacy codepath
+        return;
+      end
+      
+      if nargin < 3 || isempty(flies)
+        flies = obj.flies;
+      end
+
+      % cache these labels if current experiment and flies selected
+      if expi == obj.expi && all(flies == obj.flies)
+        %obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
+        obj.StoreLabelsForCurrentAnimal();
+      end
+      
+      [labels_curr,tffly] = Labels.labelsShortInit(labels_curr,obj.labels(expi),flies);
+      if ~tffly
+        t0_curr = max(obj.GetTrxFirstFrame(expi,flies));
+        labels_curr.off = 1-t0_curr;
+      end
+    end
+    
+      
+    % ---------------------------------------------------------------------
+    function SetLabel(obj,expi,flies,ts,behaviori,important)
+    % SetLabel(obj,expi,flies,ts,behaviori)
+      % Set label for experiment expi, flies, and frames ts. If
+    % expi, flies match current expi, flies, then we only set labelidx.
+      % Otherwise, we set labels.
+      
+      % behaviori, same as JLabel/SetLabelPlot:
+      % - If greater than 0, behavior index to label. Valid vals: [1..numbehaviors]
+      % - If == 0, clear labels for all timelines/behaviors.
+      % - If < 0, timeline index to clear. Valid vals: [1..numtimelines]
+      
+      if behaviori<=0 % clear labels
+        assert(important==0);        
+        if behaviori==0
+          iTL = 1:obj.ntimelines;
+        else
+          iTL = -behaviori;
+        end  
+        lblVal = 0;
+      else % label
+        iTL = obj.labelidx.idxBeh2idxTL(behaviori);
+        lblVal = behaviori;
+      end
+      if obj.IsCurFly(expi,flies),
+        obj.labelidx.vals(iTL,ts+obj.labelidx_off) = lblVal;
+        obj.labelidx.imp(iTL,ts+obj.labelidx_off) = important;
+        obj.labelidx.timestamp(iTL,ts+obj.labelidx_off) = now;
+      else
+        [labelidx,T0] = obj.GetLabelIdx(expi,flies); %#ok<*PROP>
+        labelidx.vals(iTL,ts+1-T0) = lblVal;
+        labelidx.imp(iTL,ts+1-T0) = important;
+        labelidx.timestamp(iTL,ts+1-T0) = now;
+        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);
+      end
+      obj.UpdateErrorIdx();
+      obj.needsave=true;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function tf = getAtLeastOneNormalLabelOfEachClassExists(self,labelNames)
+      % Returns true iff at least one normal (non-GT) label exists for each
+      % member of labelNames. 
+      %
+      % labelNames: cellstr, subset of self.labelnames. Defaults to
+      % self.labelnames
+      %
+      % tf: scalar logical
+
+      %MERGESTUPDATED
+      
+      if ~exist('labelNames','var') || isempty(labelNames)
+        labelNames = self.labelnames;
+      else
+        assert(iscellstr(labelNames) && all(ismember(labelNames,self.labelnames)));
+      end
+      
+      tf = Labels.labelsSeen(self.labels,labelNames);      
+      if ~all(tf)
+        % Haven't seen all labels yet, check labelidx
+        iLbl = unique(self.labelidx.vals(:)); % indices into self.labelnames (or 0)
+        iLbl = iLbl(iLbl>0);
+        names = self.labelnames(iLbl); % all unique names seen in .labelidx      
+        tf = tf | ismember(labelNames,names);
+      end
+      
+      % MAYANK_JAN16_2015: For multiclassifier, 
+      % this should return true if labels for behavior and not behavior 
+      % exist for a single behavior. Should require labels for all
+      % behaviors. Below assumes that behaviors are in the first half and 
+      % not behaviors are in the second half.
+      tf = tf(1:end/2) & tf(end/2+1:end);
+      
+      tf = any(tf);      
+    end
+        
+    
+%     % ---------------------------------------------------------------------
+%     function atLeastOneNormalLabelExists=getAtLeastOneNormalLabelExists(self)
+%       % Returns true iff at least one normal (non-GT) label exists.
+%       atLeastOneNormalLabelExists=false;
+%       for i=1:self.nexps
+%         if ~isempty(self.labels(i).t0s)
+%           atLeastOneNormalLabelExists=true;
+%           break
+%         end
+%       end
+%       % If we haven't found any labels yet, check labelidx
+%       if ~atLeastOneNormalLabelExists,
+%         if any(self.labelidx.vals),
+%           atLeastOneNormalLabelExists=true;
+%         end
+%       end
+%     end
+    % ---------------------------------------------------------------------
+%     function SetLabel_KB(obj,expi,flies,ts,behaviori,important)
+% 
+%       % SetLabel_KB(obj,expi,flies,ts,behaviori)
+%       % Set label for experiment expi, flies, and frames ts to behaviori.
+%       % Store everywhere.
+%       
+%       % store in labelidx
+%       if obj.IsCurFly(expi,flies),
+%         obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
+%         obj.labelidx.imp(ts+obj.labelidx_off) = important;
+%         obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
+%       end      
+% 
+%       % store in labels
+%       [labelidx,T0] = obj.GetLabelIdx(expi,flies);
+%       labelidx.vals(ts+1-T0) = behaviori;
+%       labelidx.imp(ts+1-T0) = important;
+%       labelidx.timestamp(ts+1-T0) = now;
+%       obj.StoreLabels1(expi,flies,labelidx,1-T0);
+%       
+%       % store in windowdata
+%       idxcurr = obj.windowdata.exp == expi & obj.windowdata.flies == flies & ismember(obj.windowdata.t,ts);
+%       obj.windowdata.labelidx_new(idxcurr) = behaviori;
+%       obj.windowdata.labelidx_imp(idxcurr) = important;
+%       
+%     end
+
+        % ---------------------------------------------------------------------
+%     function isstart = IsLabelStart(obj,expi,flies,ts)
+%       % AL: appears to be useless
+%       
+%       if obj.expi == expi && all(flies == obj.flies),
+%         isstart = obj.labelidx.vals(ts+obj.labelidx_off) ~= 0 & ...
+%           obj.labelidx.vals(ts+obj.labelidx_off-1) ~= obj.labelidx.vals(ts+obj.labelidx_off);
+%       else
+%         
+% %         if obj.IsGTMode(),
+% %           labelsToUse = 'gt_labels';
+% %         else
+% %           labelsToUse = 'labels';
+% %         end
+% 
+%         if isempty(obj.labels(expi).flies)
+%           ism = false;
+%         else
+%           [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
+%         end
+% 
+%         if ism,
+%           isstart = ismember(ts,obj.labels(expi).t0s{fliesi});
+%         else
+%           isstart = false(size(ts));
+%         end
+%       end
+%       
+%         end
+
+    
+%     % ---------------------------------------------------------------------
+%     function ClearLabels(obj,expi,flies)
+%       
+%       
+%       if obj.nexps == 0,
+%         return;
+%       end
+%       
+% %       if obj.IsGTMode()
+% %         labelsToUse = 'gt_labels';
+% %         labelstatsToUse = 'gt_labelstats';
+% %       else
+% %         labelsToUse = 'labels';
+% %         labelstatsToUse = 'labelstats';
+% %       end
+%       
+%       %timestamp = now;
+%       
+%       % use all experiments by default
+%       if nargin < 2,
+%         expi = 1:obj.nexps;
+%       end
+%       
+%       % delete all flies by default
+%       if nargin < 3,
+%         for i = expi(:)',
+%           obj.labels(expi).t0s = {};
+%           obj.labels(expi).t1s = {};
+%           obj.labels(expi).names = {};
+%           obj.labels(expi).flies = [];
+%           obj.labels(expi).off = [];
+%           obj.labels(expi).timestamp = {};
+%           obj.labelstats(expi).nflies_labeled = 0;
+%           obj.labelstats(expi).nbouts_labeled = 0;
+%           obj.labels(expi).imp_t0s = {};
+%           obj.labels(expi).imp_t1s = {};
+%         end
+%       else
+%         if numel(expi) > 1,
+%           error('If flies input to ClearLabels, expi must be a single experiment');
+%         end
+%         % no labels
+%         if numel(obj.labels) < expi,
+%           return;
+%         end
+%         % which index of labels
+%         [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
+%         for flyi = flyis(:)',
+%           % keep track of number of bouts so that we can update stats
+%           ncurr = numel(obj.labels(expi).t0s{flyi});
+%           obj.labels(expi).t0s{flyi} = [];
+%           obj.labels(expi).t1s{flyi} = [];
+%           obj.labels(expi).names{flyi} = {};
+%           obj.labels(expi).timestamp{flyi} = [];
+%           obj.labels(expi).imp_t0s{flyi} = [];
+%           obj.labels(expi).imp_t1s{flyi} = [];
+%           % update stats
+%           obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
+%           obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
+%         end
+%       end
+%       
+%       % clear labelidx if nec
+%       if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
+%         obj.labelidx.vals(:) = 0;
+%         obj.labelidx.imp(:) = 0;
+%         obj.labelidx.timestamp(:) = 0;
+%       end
+%       
+%       % clear windowdata labelidx_new
+%       for i = expi(:)',
+%         if nargin < 3,
+%           idx = obj.windowdata.exp == i;
+%         else
+%           idx = obj.windowdata.exp == i & ismember(obj.windowdata.flies,flies,'rows');
+%         end
+%         obj.windowdata.labelidx_new(idx) = 0;
+%         obj.windowdata.labelidx_imp(idx) = 0;
+%         obj.UpdateErrorIdx();
+%       end
+%       
+%     end
+
+%     ---------------------------------------------------------------------
+%     function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
+%     [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
+%     Returns whether the behavior is labeled as behaviori for experiment
+%     expi, flies from frames T0 to T1. If T0 and T1 are not input, then
+%     firstframe to endframe are used. 
+% 
+%           
+%       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+%         if nargin < 4,
+%           idx = obj.labelidx.vals == behaviori;
+%           T0 = obj.t0_curr;
+%           T1 = obj.t1_curr;
+%         else
+%           idx = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
+%         end
+%         return;
+%       end
+%       
+%       if nargin < 4,
+%         T0 = max(obj.GetTrxFirstFrame(expi,flies));
+%         T1 = min(obj.GetTrxEndFrame(expi,flies));
+%       end
+%       n = T1-T0+1;
+%       off = 1 - T0;
+%       labels_curr = obj.GetLabels(expi,flies);
+%       idx = false(1,n);
+%       for j = find(strcmp(labels_curr.names,obj.labelnames{behaviori})),
+%         t0 = labels_curr.t0s(j);
+%         t1 = labels_curr.t1s(j);
+%         idx(t0+off:t1-1+off) = true;
+%       end
+%       
+%     end
+
+  end
+  
+  methods % more private
+    
+    % ---------------------------------------------------------------------
+    function setLabelsFromStructForAllExps(self,labelsForAll)
+      statusTableString = fif(self.gtMode,'gt_label','label');
+      nExps = length(self.expdirs);
+      for expi = 1:nExps
+        self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
+        %self.labelfilename = 0;
+        self.UpdateStatusTable(statusTableString);   
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function loadLabelsFromStructForOneExp(self,expi,labels)
+      % Load the labels for a single experiment into self.
+            
+      self.SetStatus('Loading labels for %s',self.expdirs{expi});
+
+      self.labels(expi).t0s = labels.t0s;
+      self.labels(expi).t1s = labels.t1s;
+      self.labels(expi).names = labels.names;
+      self.labels(expi).flies = labels.flies;
+      self.labels(expi).off = labels.off;
+      self.labelstats(expi).nflies_labeled = size(labels.flies,1);
+      self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
+      Nfly = numel(labels.flies);
+      if iscell(labels.timestamp)
+        self.labels(expi).timestamp = labels.timestamp;
+      else
+        for ndx = 1:Nfly
+          nBouts = numel(labels.t0s{ndx});
+          if isempty(labels.timestamp)
+            self.labels(expi).timestamp{ndx}(1:nBouts) = now;
+          else
+            self.labels(expi).timestamp{ndx}(1:nBouts) = labels.timestamp;
+          end
+        end
+      end
+      if isfield(labels,'timelinetimestamp')
+        timelineTS = labels.timelinetimestamp;
+        assert(iscell(timelineTS) && isequal(size(timelineTS),[1 Nfly]));
+        self.labels(expi).timelinetimestamp = timelineTS;
+      else
+        self.labels(expi).timelinetimestamp = cell(1,Nfly);
+        for ndx = 1:Nfly
+          self.labels(expi).timelinetimestamp{ndx} = struct();
+        end
+      end
+      if isfield(labels,'imp_t0s');
+        self.labels(expi).imp_t0s = labels.imp_t0s;
+        self.labels(expi).imp_t1s = labels.imp_t1s;
+      else
+        self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
+        self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
+      end
+
+      self.ClearStatus();
+    end  % method
+   
+    
+    % ---------------------------------------------------------------------
+    function StoreLabelsAndPreLoadWindowData(obj)
+      % Store labels cached in labelidx for the current experiment and flies
+      % to labels structure. This is when the timestamp on labels gets
+      % updated.  Also preloads the window data if not in GT mode.
+      
+      % flies not yet initialized
+      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
+        return;
+      end
+      
+      obj.StoreLabelsForCurrentAnimal();
+            
+%       % preload labeled window data while we have the per-frame data loaded
+%       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
+%       if ~obj.IsGTMode(),
+%         [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
+%         if ~success,
+%           warning(msg);
+%         end
+%       end
+%       
+%       % update windowdata's labelidx_new
+%       if ~isempty(obj.windowdata.exp),
+%         idxcurr = obj.windowdata.exp == obj.expi & ...
+%           all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2);
+%         obj.windowdata.labelidx_new(idxcurr) = obj.labelidx.vals(obj.windowdata.t(idxcurr)+obj.labelidx_off);
+%         obj.windowdata.labelidx_imp(idxcurr) = obj.labelidx.imp(obj.windowdata.t(idxcurr)+obj.labelidx_off);
+%       end
+      
+      %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
+      
+    end  % method
+  
+    
+    % ---------------------------------------------------------------------
+    function StoreLabelsForCurrentAnimal(obj)
+      % Store labels cached in labelidx for the current experiment and flies
+      % to labels structure. This is when the timestamp on labels gets
+      % updated. 
+      if isempty(obj.flies) || obj.expi==0 || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
+        return
+      end      
+      obj.StoreLabelsForGivenAnimal(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function StoreLabelsForGivenAnimal(obj,expi,flies,labelidx,labelidx_off)
+      
+      % MERGESTUPDATED
+      
+      % Write label info to newlabels structure
+      % TODO: don't know why writing to intermediate variable rather than obj.labels
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
+      assert(isequal(labelidx.labelnames,obj.labelnames));
+      assert(labelidx.nbeh==obj.nbehaviors);
+      for iTL = 1:labelidx.nTL
+        
+        % Write bouts
+        % ALTODO: Optimization: don't loop over all behaviors/labels, just those relevant
+        % to this timeline
+        for j = 1:obj.nbehaviors,
+          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);          
+          if ~isempty(i0s)
+            n = numel(i0s);
+            newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
+            newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
+            newlabels.names(end+1:end+n) = repmat(labelidx.labelnames(j),[1,n]);
+            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
+            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
+          end
+        end
+      end
+      % write importance
+      if labelidx.nTL==1
+        [i0s,i1s] = get_interval_ends(labelidx.imp);
+        if ~isempty(i0s)
+          newlabels.imp_t0s = i0s - labelidx_off;
+          newlabels.imp_t1s = i1s - labelidx_off;
+        end
+      else
+        % ALXXX EXTENDED
+        % Multiclassifier importance for GT
+      end
+      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+%       % Store labels according to the mode
+%       if obj.IsGTMode(),
+%         labelsToUse = 'gt_labels';
+%         labelstatsToUse = 'gt_labelstats';
+%       else
+%         labelsToUse = 'labels';
+%         labelstatsToUse = 'labelstats';
+%       end
+      
+      if isempty(obj.labels(expi).flies),
+        ism = false;
+      else
+        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
+      end
+      if ~ism,
+        j = size(obj.labels(expi).flies,1)+1;
+      end
+
+      obj.labels(expi).t0s{j} = newlabels.t0s;
+      obj.labels(expi).t1s{j} = newlabels.t1s;
+      obj.labels(expi).names{j} = newlabels.names;
+      obj.labels(expi).flies(j,:) = flies;
+      obj.labels(expi).off(j) = labelidx_off; % ALTODO: Don't understand, if we have adjusted by labelidx_off above, why are we recording this?
+      obj.labels(expi).timestamp{j} = newlabels.timestamp;
+      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
+      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
+      NtimelineTS = numel(obj.labels(expi).timelinetimestamp);
+      if NtimelineTS<j
+        obj.labels(expi).timelinetimestamp(NtimelineTS+1:j) = {struct()};
+      end
+      for iTL = 1:labelidx.nTL
+        classifiername = obj.labelnames{iTL};
+        if ~isfield(obj.labels(expi).timelinetimestamp{j},classifiername)
+          obj.labels(expi).timelinetimestamp{j}.(classifiername) = 0;
+        end
+        obj.labels(expi).timelinetimestamp{j}.(classifiername) = ...
+          max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
+      end          
+
+      %ALTODO: isn't obj.labels(expi).flies always unique?
+      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
+      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function bouts = getLabeledBouts(obj,iCls)
+    % Find window data for labeled bouts.
+    %
+    % bouts
+    % .ndx: nBout-by-nsamp logical. bouts.ndx(iBout,:) indexes obj.windowdata(iCls).t etc
+    % .label: 1-by-nBout vector of 1/2 for positive/negative lbls for this classifier
+    % .timestamp: 1-by-nBout vector
+        
+    %MERGESTUPDATED
+    
+      bouts = struct('ndx',[],'label',[],'timestamp',[]);
+      
+      wd = obj.windowdata(iCls);
+      clsLblNames = obj.iCls2LblNames{iCls};
+      % clsLblNames = {posLbl negLbl}
+      
+      for expNdx = 1:obj.nexps
+        for flyNdx = 1:obj.nflies_per_exp(expNdx)
+          
+          labelsShort = obj.GetLabels(expNdx,flyNdx);
+          nBout = numel(labelsShort.t0s);
+          tfFlyNdx = obj.FlyNdx(expNdx,flyNdx,iCls);
+          for iBout = 1:nBout
+            tfClsLbl = strcmp(labelsShort.names{iBout},clsLblNames);
+            if any(tfClsLbl)
+              idx = tfFlyNdx & ...
+                wd.t >= labelsShort.t0s(iBout) & ...
+                wd.t < labelsShort.t1s(iBout) & ...
+                wd.labelidx_imp;
+              if ~all(wd.labelidx_new(idx))
+                continue;
+              end
+              bouts.ndx(end+1,:) = idx;
+              bouts.label(1,end+1) = find(tfClsLbl); % 1/2 for posLbl/negLbl resp
+              bouts.timestamp(1,end+1) = labelsShort.timestamp(iBout);
+            end
+          end
+        end
+      end      
+    end
+
+    
+%     % ---------------------------------------------------------------------
+%     function bouts = GetLabeledBouts_KB(obj)
+%       
+%       bouts = struct('t0s',[],'t1s',[],'flies',[],'expis',[],'timestamps',[],'names',{{}});
+%       for expi = 1:numel(obj.labels),
+%         for flyi = 1:size(obj.labels(expi).flies,1),
+%           flies = obj.labels(expi).flies(flyi,:);
+%           t0s = obj.labels(expi).t0s{flyi};
+%           t1s = obj.labels(expi).t1s{flyi};
+%           if isempty(t0s),
+%             continue;
+%           end
+%           n = numel(t0s);
+%           bouts.t0s(end+1:end+n) = t0s;
+%           bouts.t1s(end+1:end+n) = t1s;
+%           bouts.flies(end+1:end+n,:) = flies;
+%           bouts.expis(end+1:end+n) = expi;
+%           bouts.timestamps(end+1:end+n) = obj.labels(expi).timestamp{flyi};
+%           bouts.names(end+1:end+n) = obj.labels(expi).names{flyi};
+%         end
+%       end
+%       
+%     end  % method
+  end  
   
   %% Train/Predict
   
@@ -9538,6 +9580,26 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end  % method
     
+    % ---------------------------------------------------------------------
+    function ClearCachedPerExpData(obj)
+    % ClearCachedPerExpData(obj)
+    % Clears all cached data for the currently loaded experiment
+      obj.unsetCurrentTarget();
+      obj.trx = {};
+      obj.expi = 0;
+      obj.flies = nan(size(obj.flies));
+      obj.perframedata = {};
+      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
+      obj.labelidx_off = 0;
+      obj.t0_curr = 0;
+      obj.t1_curr = 0;
+      obj.predictedidx = [];
+      obj.scoresidx = [];
+      obj.scoresidx_old = [];
+      obj.erroridx = [];
+      obj.suggestedidx = [];
+    end
+    
   end
   
   methods (Static)
@@ -9703,63 +9765,6 @@ classdef JLabelData < matlab.mixin.Copyable
       % per-frame features in use is non-empty, i.e. contains at least one per-frame feature.
       tf = ~cellfun(@isempty,self.curperframefns);
     end   
-    
-%     % ---------------------------------------------------------------------
-%     function atLeastOneNormalLabelExists=getAtLeastOneNormalLabelExists(self)
-%       % Returns true iff at least one normal (non-GT) label exists.
-%       atLeastOneNormalLabelExists=false;
-%       for i=1:self.nexps
-%         if ~isempty(self.labels(i).t0s)
-%           atLeastOneNormalLabelExists=true;
-%           break
-%         end
-%       end
-%       % If we haven't found any labels yet, check labelidx
-%       if ~atLeastOneNormalLabelExists,
-%         if any(self.labelidx.vals),
-%           atLeastOneNormalLabelExists=true;
-%         end
-%       end
-%     end
-    
-    
-    % ---------------------------------------------------------------------
-    function tf = getAtLeastOneNormalLabelOfEachClassExists(self,labelNames)
-      % Returns true iff at least one normal (non-GT) label exists for each
-      % member of labelNames. 
-      %
-      % labelNames: cellstr, subset of self.labelnames. Defaults to
-      % self.labelnames
-      %
-      % tf: scalar logical
-
-      %MERGESTUPDATED
-      
-      if ~exist('labelNames','var') || isempty(labelNames)
-        labelNames = self.labelnames;
-      else
-        assert(iscellstr(labelNames) && all(ismember(labelNames,self.labelnames)));
-      end
-      
-      tf = Labels.labelsSeen(self.labels,labelNames);      
-      if ~all(tf)
-        % Haven't seen all labels yet, check labelidx
-        iLbl = unique(self.labelidx.vals(:)); % indices into self.labelnames (or 0)
-        iLbl = iLbl(iLbl>0);
-        names = self.labelnames(iLbl); % all unique names seen in .labelidx      
-        tf = tf | ismember(labelNames,names);
-      end
-      
-      % MAYANK_JAN16_2015: For multiclassifier, 
-      % this should return true if labels for behavior and not behavior 
-      % exist for a single behavior. Should require labels for all
-      % behaviors. Below assumes that behaviors are in the first half and 
-      % not behaviors are in the second half.
-      tf = tf(1:end/2) & tf(end/2+1:end);
-      
-      tf = any(tf);      
-    end
-        
     
     
     % ---------------------------------------------------------------------
