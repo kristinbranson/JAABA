@@ -895,158 +895,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.allperframefns = cellFilter(notPfName,obj.allperframefns);      
     end
   
-    
-    % ---------------------------------------------------------------------
-    function setMacguffin(obj,everythingParams,loadexps)
-      % This initializes the JLabelData object based on the contents of
-      % everythingParams
-  
-      % Deal with arguments
-      if ~exist('loadexps','var')
-        loadexps=true;
-      end
-      
-      before=obj.copy();  % make a copy of the object, in case something goes wrong
-      try
-        % Note sure what to do here---Macguffin class doesn't have a perframe
-        % property at present
-        if isfield(everythingParams.extra,'perframe'),
-          if isfield(everythingParams.extra.perframe,'params') && isstruct(everythingParams.extra.perframe.params),
-            pf_fields = fieldnames(everythingParams.extra.perframe.params);
-            for ndx = 1:numel(pf_fields),
-              everythingParams.featureLexicon.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});
-            end
-          end
-          if isfield(everythingParams.extra.perframe,'landmarkParams'),
-            obj.landmark_params = everythingParams.extra.perframe.landmarkParams;
-          end
-        end  % isfield(basicParams,'perframe'),
-
-        % feature config file
-        obj.setFeatureSublexicon(everythingParams.featureLexicon, ...
-                                 everythingParams.featureLexiconName, ...
-                                 everythingParams.sublexiconPFNames);
-%         if isequal(everythingParams.featureLexiconName,'custom')
-%           %obj.setFeatureLexiconAndTargetSpeciesCustom(everythingParams.featureLexicon, ...
-%           %                                            everythingParams.behaviors.type);
-%           [success,msg] = obj.setFeatureLexiconAndFLName(everythingParams.featureLexicon,'custom');
-%           obj.targettype=everythingParams.behaviors.type;
-%         else
-%           [success,msg]=obj.setFeatureLexiconAndTargetSpeciesFromFLName(everythingParams.featureLexiconName);
-%         end
-%         if ~success , 
-%           error('JLabelData:unableToSetFeatureSublexicon',msg);
-%         end
-
-        % Set the target species
-        obj.targettype=everythingParams.behaviors.type;
-                
-        obj.labelGraphicParams=everythingParams.labelGraphicParams;
-        obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
-        obj.labelcolors=everythingParams.behaviors.labelcolors;
-        obj.unknowncolor=everythingParams.behaviors.unknowncolor;
-
-        %
-        % load in the rest of the stuff, depending on the fields present
-        %
-
-        % read in behavior names
-        if isfield(everythingParams.behaviors,'names'),
-          obj.labelnames = everythingParams.behaviors.names;
-          assert(iscell(obj.labelnames));        
-          obj.nbehaviors = numel(obj.labelnames);
-        else
-          obj.labelnames = {'Behavior','None'};
-        end
-        assert(numel(obj.labelcolors)==3*numel(obj.labelnames));
-
-        [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
-                
-        if isfield(everythingParams.file,'moviefilename'),
-          [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
-          if ~success1,
-            error('JLabelData:unableToSetMovieFileName', ...
-                  msg);
-          end
-        end
-        if isfield(everythingParams.file,'trxfilename'),
-          [success1,msg] = obj.SetTrxFileName(everythingParams.file.trxfilename);
-          if ~success1,
-            error('JLabelData:unableToSetTrxFileName', ...
-                  msg);
-          end
-        end
-        if isfield(everythingParams.file,'scorefilename'),
-          scorefilename = everythingParams.file.scorefilename;
-        else
-          scorefilename = {sprintf('scores_%s.mat',obj.labelnames{1})};
-        end
-        [success1,msg] = obj.setScoreFileName(scorefilename);
-        if ~success1,
-          error('JLabelData:unableToSetScoreFileName', ...
-                msg);
-        end
-        if isfield(everythingParams.file,'perframedir'),
-          [success1,msg] = obj.SetPerFrameDir(everythingParams.file.perframedir);
-          if ~success1,
-            error('JLabelData:unableToSetPerframeDirName', ...
-                  msg);
-          end
-        end
-        if isfield(everythingParams.file,'clipsdir') && ~isempty(everythingParams.file.clipsdir),
-          [success1,msg] = obj.SetClipsDir(everythingParams.file.clipsdir);
-          if ~success1,
-            error('JLabelData:unableToSetClipsDirName', ...
-                  msg);
-          end
-        end
         
-        obj.stfeatures = 'features.mat'; % temporary hardcode
-        [success1,msg] = obj.UpdateStatusTable('stfeatures');
-        if ~success1
-          error('JLabelData:unableToSetSTFeaturesName',msg);
-        end
-
-        if isfield(everythingParams.extra,'usePastOnly'),
-          obj.usePastOnly = everythingParams.extra.usePastOnly;
-        end
-
-
-  %       if isfield(basicParams,'scoreFeatures') ,
-  %         obj.scoreFeatures = basicParams.scoreFeatures;
-  %         nScoreFeaturess=length(basicParams.scoreFeatures);
-  %         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
-  %         for i = 1:nScoreFeaturess ,
-  %           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
-  %           scoreFeaturesPFNames{i} = pfName;
-  %         end
-  %         obj.allperframefns=[obj.allperframefns ; ...
-  %                             scoreFeaturesPFNames];
-  %       end  % if isfield(basicParams,'scoreFeatures'),
-
-        % Re-load the perframe feature signals, since the PFFs may have changed
-        obj.loadPerframeData(obj.expi,obj.flies);
-
-  %       % initialize the post-processing parameters
-  %       obj.InitPostprocessparams();
-
-        % initialize everything else
-        if loadexps,
-          obj.setAllLabels(everythingParams);
-        end
-        
-        obj.setScoreFeatures(everythingParams.scoreFeatures);
-        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-        obj.setClassifierStuff(everythingParams.classifierStuff);
-        
-      catch excp
-        % If there's a problem, restore the object to its original state.
-        obj.setToValue(before);
-        rethrow(excp);
-      end
-        
-    end  % method    
-    
 
     % ---------------------------------------------------------------------
     function setLabelsFromStructForAllExps(self,labelsForAll)
@@ -1755,30 +1604,6 @@ classdef JLabelData < matlab.mixin.Copyable
     
 % Configuration settings.
 
-    % ---------------------------------------------------------------------
-    function basicParams = getBasicParamsStruct(obj)
-      basicParams=struct();
-      basicParams.featureLexiconName=obj.featureLexiconName;
-      basicParams.scoreFeatures=obj.scoreFeatures;
-      subdialectPFNames=obj.allperframefns;
-      nScoreFeaturess=length(obj.scoreFeatures);
-      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);  
-      basicParams.sublexiconPFNames=sublexiconPFNames;
-
-      %assert(numel(basicParams.behaviors.names)==numel(basicParams.behaviors.labelcolors));
-      %ALTODO labelcolors one less currently
-      %assert(strcmp(obj.labelnames{end},'None'));
-      basicParams.behaviors.names=obj.labelnames;
-      basicParams.behaviors.labelcolors=obj.labelcolors;
-      basicParams.behaviors.unknowncolor=obj.unknowncolor;
-      
-      basicParams.file.moviefilename=obj.moviefilename;
-      basicParams.file.trxfilename=obj.trxfilename;
-      basicParams.file.scorefilename=obj.scorefilename;
-      %basicParams.scoresinput=obj.scoreFeatures;
-      basicParams.labelGraphicParams=obj.labelGraphicParams;
-      basicParams.trxGraphicParams=obj.trxGraphicParams;
-    end
     
     
     % ---------------------------------------------------------------------
@@ -2211,134 +2036,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % clear the cached per-frame, trx data
       self.ClearCachedPerExpData();
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function setClassifierStuff(self,classifierStuff)
-      % classifierStuff: array of ClassifierStuffs
-      %
-      % ALTODO: Seems like classifier-related properties can be
-      % consolidated/cleaned up. Why not just use ClassifierStuff?
-      
-      %MERGESTUPDATED
-      
-      classifierStuff.modernize();
-      
-      nrealbeh = self.ntimelines;
-      assert(numel(classifierStuff)==nrealbeh);
-      self.classifiertype = cell(1,nrealbeh);
-      self.classifier = cell(1,nrealbeh);
-      self.classifier_params = cell(1,nrealbeh);
-      self.classifierTS = nan(1,nrealbeh);
-      self.confThresholds = nan(nrealbeh,2);
-      self.postprocessparams = cell(1,nrealbeh);
-      self.savewindowdata = false(1,nrealbeh);
-      for iBeh = 1:nrealbeh
-        cs = classifierStuff(iBeh);
-        self.classifiertype{iBeh} = cs.type;
-        self.classifier{iBeh} = cs.params;
-        self.classifier_params{iBeh} = cs.trainingParams;
-        self.classifierTS(iBeh) = cs.timeStamp;
-        self.confThresholds(iBeh,:) = cs.confThresholds;
-        self.windowdata(iBeh).scoreNorm = cs.scoreNorm;
-        self.postprocessparams{iBeh} = cs.postProcessParams;
-        self.savewindowdata(iBeh) = cs.savewindowdata;
-      end
-            
-      % AL20141122: Why are we setting windowfeaturenames? This only
-      % depends on self.curperframefns and self.windowfeaturescellparams.
-      self.SetWindowFeatureNames();
-      
-      % AL20141126: initialization of loadwindowdata is change from earlier
-      % behavior
-      self.loadwindowdata = true(1,nrealbeh);
-      
-      % verify windowFeatureNames in classifierStuff
-      for iBeh = 1:nrealbeh
-        cs = classifierStuff(iBeh);
-        if ~isempty(cs.featureNames) && ...
-           ~isempty(cs.featureNames{1}) && ...
-           ~isequal(cs.featureNames,self.windowdata(iBeh).featurenames)
-          warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier ''%s'' shouldn''t be used; retrain a new classifier.',...
-            self.labelnames{iBeh});
-          uiwait(warndlg(warnstr));
-          self.loadwindowdata(iBeh) = false;
-        end
-      end
-            
-      self.trainstats = cell(1,nrealbeh);
-
-      % Update the window data near the labels
-%       [success,msg] = self.PreLoadPeriLabelWindowData();
-%       if ~success,error(msg);end   
-
-      % Move the current predictions out of the way
-      self.MoveCurPredictionsToOld();
-      
-      if ~self.isST
-        
-        % Set up for fast prediction
-        self.FindFastPredictParams();
-
-        % predict for all loaded examples
-        self.PredictLoaded();
-
-      end
-    end  % setClassifierStuff() method
-    
-    function setClassifierParams(self,params)
-      %MERGESTUPDATED
-      
-      assert(iscell(params) && numel(params)==self.nclassifiers);
-      oldParams = self.classifier_params;      
-      
-      for iCls = 1:self.nclassifiers
-        prm0 = oldParams{iCls};
-        prm1 = params{iCls};
-        if prm0.numBins~=prm1.numBins
-          self.windowdata(iCls).binVals = [];
-          self.windowdata(iCls).bins = [];
-        end
-      end
-      self.classifier_params = params(:)';
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function clearClassifierProper(self)
-      % Reset the classifier to a blank slate
-      
-%       % Get the current classifier
-%       classifierStuff=self.getClassifierStuff();
-% 
-%       % Set the core classifier fields to default
-%       classifierStuff.params=struct([]);
-%       classifierStuff.timeStamp=[];
-%       classifierStuff.scoreNorm=[];
-% 
-%       % Set the classifier in the JLabelData object
-%       self.setClassifierStuff(classifierStuff);
-      %self.ClearWindowData();
-      self.classifier = struct('dim',{}, ...
-                             'error',{}, ...
-                             'dir',{}, ....
-                             'tr',{}, ...
-                             'alpha',{});  % 0x1 struct array
-      nCls = self.nclassifiers;
-      self.classifier = repmat({self.classifier},1,nCls); % ALTODO scattered classifier initialization: JLD, ProjectSetup
-      self.classifier_old = self.classifier;
-      self.classifierTS = zeros(1,nCls); 
-      for iCls = 1:nCls
-        self.windowdata(iCls).scoreNorm = 0;
-      end
-      self.invalidatePredictions();
-      self.UpdatePredictedIdx(); % update cached predictions for current target
-      self.needsave = true;
-      %self.PreLoadPeriLabelWindowData();  % do we need to do this?
-    end  
-
-        
+    end        
     
     
 % Saving and loading
@@ -3160,8 +2858,8 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end
     
-  end  
-  
+  end
+    
   methods % Experiment/Filesystem
         
 
@@ -6983,6 +6681,730 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end  
   
+  methods % Save/Load/Import/Export
+    
+    % ---------------------------------------------------------------------
+    function openJabFile(self, ...
+                         fileNameAbs, ...
+                         groundTruthingMode, ...
+                         originalExpDirNames, ...
+                         substituteExpDirNames) 
+                       
+      %MERGESTUPDATED
+      
+      % originalExpDirNames and substituteExpDirNames are optional.
+      % If given, they should be cell arrays of the same length, each
+      % element a string giving an absolute path to an experiment
+      % directory.  Each element of originalExpDirNames should be an
+      % experiment directory in the .jab file, and the corresponding
+      % element of substitureExpDirNames gives an experiment dir name to be
+      % used in place of the original one.  This is to enable the user to
+      % manually locate exp dir names that are missing.  Whether these
+      % experiment dir names are treated as normal exp dir names or
+      % ground-truthing exp dir names depends on groundTruthingMode.
+                       
+      % process the args
+      if ~exist('originalExpDirNames','var')
+        originalExpDirNames = cell(0,1);
+      end
+      if ~exist('substituteExpDirNames','var')
+        substituteExpDirNames = cell(0,1);
+      end
+      assert(numel(originalExpDirNames)==numel(substituteExpDirNames));
+      
+      self.gtMode = groundTruthingMode;
+
+      % Open the file
+      macguffin = loadAnonymous(fileNameAbs);
+      if isstruct(macguffin)
+        macguffin = Macguffin(macguffin);
+      end
+      macguffin.modernize(true);
+      
+      % Do the substiutions, if any
+      substitutionsMade = false;
+      if groundTruthingMode
+        expDirNames = macguffin.gtExpDirNames;
+        labels = macguffin.gtLabels;
+      else
+        expDirNames = macguffin.expDirNames;
+        labels = macguffin.labels;
+      end
+      newExpDirNames = cell(1,0);
+      newLabels = Labels.labels(0);
+      for i = 1:length(expDirNames)
+        expDirName = expDirNames{i};
+        j = whichstr(expDirName,originalExpDirNames);
+        if isempty(j)
+          newExpDirNames{end+1} = expDirNames{i};  %#ok
+          newLabels(end+1) = labels(i);  %#ok
+        else
+          newExpDirName = substituteExpDirNames{j};
+          if ~isempty(newExpDirName)
+            newExpDirNames{end+1} = substituteExpDirNames{j};  %#ok
+            newLabels(end+1) = labels(i);  %#ok
+          else
+            % AL 20140908 
+            % Empty new name for this experiment; experiment will not be added
+            % Is this the intent or should this be asserted false?
+          end
+          substitutionsMade = true;
+        end
+      end
+      if groundTruthingMode
+        macguffin.gtExpDirNames = newExpDirNames;
+        macguffin.gtLabels = newLabels;
+      else
+        macguffin.expDirNames = newExpDirNames;
+        macguffin.labels = newLabels;
+      end
+      
+      % Set the JLD to match the Macguffin
+      self.setMacguffin(macguffin,true);
+      
+      % Store file-related stuff
+      self.thereIsAnOpenFile = true;
+      self.everythingFileNameAbs = fileNameAbs;
+      self.userHasSpecifiedEverythingFileName = true;
+      self.needsave = substitutionsMade; % Only need save if substitutions were made
+      self.defaultpath = fileparts(fileNameAbs);
+     
+      % initialize the status table describing what required files exist
+      [success,msg] = self.UpdateStatusTable();
+      if ~success,
+        error('JLabelData:unableToUpdateStatusTable',msg);
+      end
+      
+      % Load windowdata if appropriate
+      cs = macguffin.classifierStuff;
+      assert(isequal(self.nclassifiers,numel(cs),numel(self.windowdata)));
+      perframeNdx = find(strcmp('perframedir',self.filetypes));
+      for iCls = 1:self.nclassifiers
+        if ~substitutionsMade && ...
+            ~self.IsGTMode() && ... 
+            self.loadwindowdata(iCls) && ...
+            isprop(cs(iCls),'windowdata') && ...
+            isstruct(cs(iCls).windowdata) && ...
+            ~isempty(cs(iCls).savewindowdata) && ...
+            cs(iCls).savewindowdata
+          
+          % determine whether to load windowdata for this classifier
+          tfLoadWinData = true;
+          if self.isInteractive
+            isPerframeNewer = false;
+            for ndx = 1:self.nexps
+              if self.classifierTS(iCls) < self.filetimestamps(ndx,perframeNdx);
+                isPerframeNewer = true;
+                expnamenewer = self.expnames{ndx};
+                perframeTS = self.filetimestamps(ndx,perframeNdx);
+                break;
+              end
+            end
+            
+            if isPerframeNewer
+              qstr{1} = sprintf('One of the perframe files (Generated on %s) ',...
+                datestr(perframeTS));
+              qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS(iCls))); %#ok<AGROW>
+              qstr{end+1} = sprintf('for the experiment %s.',expnamenewer); %#ok<AGROW>
+              qstr{end+1} = ' Still load the windowdata stored in the jab file?'; %#ok<AGROW>
+              res = questdlg(qstr, ...
+                'Load Window Data?', ...
+                'Yes','No', ...
+                'No');
+              tfLoadWinData = strcmpi(res,'Yes');
+            end
+          end
+          % If ~self.isInteractive, or classifiers newer than all PF
+          % dirs, then tfLoadWinData true by default
+          
+          if tfLoadWinData
+            oldScoreNorm = self.windowdata(iCls).scoreNorm;
+            oldfeaturenames = self.windowdata(iCls).featurenames;
+            self.windowdata(iCls) = cs(iCls).windowdata;
+            if isempty(self.windowdata(iCls).scoreNorm) && ~isempty(oldScoreNorm)
+              self.windowdata(iCls).scoreNorm = oldScoreNorm;
+            end
+            if isempty(self.windowdata(iCls).featurenames) && ~isempty(oldfeaturenames)
+              self.windowdata(iCls).featurenames = oldfeaturenames;
+            end
+          end
+        end
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function openJabFileNoExps(self, ...
+        fileNameAbs, ...
+        groundTruthingMode)
+      
+      % originalExpDirNames and substituteExpDirNames are optional.
+      % If given, they should be cell arrays of the same length, each
+      % element a string giving an absolute path to an experiment
+      % directory.  Each element of originalExpDirNames should be an
+      % experiment directory in the .jab file, and the corresponding
+      % element of substitureExpDirNames gives an experiment dir name to be
+      % used in place of the original one.  This is to enable the user to
+      % manually locate exp dir names that are missing.  Whether these
+      % experiment dir names are treated as normal exp dir names of
+      % ground-truthing exp dir names depends on groundTruthingMode.
+      
+      
+      % Set the ground-truthing mode
+      self.gtMode=groundTruthingMode;
+      
+      %
+      % Open the file
+      %
+      
+      % get just the relative file name
+      fileDirPathAbs=fileparts(fileNameAbs);
+      %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
+      %fileNameRel=[baseName ext];
+      
+      % load the file
+      macguffin=loadAnonymous(fileNameAbs);
+      % if we get here, file was read successfully
+      macguffin.modernize(true);
+      
+      % Set the JLD to match the Macguffin
+      self.setMacguffin(macguffin,false);
+      
+      % Store file-related stuff
+      self.thereIsAnOpenFile=true;
+      self.everythingFileNameAbs=fileNameAbs;
+      self.userHasSpecifiedEverythingFileName=true;
+      self.needsave=false;
+      self.defaultpath=fileDirPathAbs;
+      
+      % initialize the status table describing what required files exist
+      [success,msg] = self.UpdateStatusTable();
+      if ~success,
+        error('JLabelData:unableToUpdateStatusTable',msg);
+      end
+    end  % method
+
+
+    % ---------------------------------------------------------------------
+    function newJabFile(obj,macguf,varargin)
+      % Only called by ProjectSetup/new project creation. 
+      % IMPORTANT: macguf has type Macguffin, but it is not a properly
+      % initialized Macguffin object. It is semi-initialized object 
+      % originating from ProjectSetup for the purposes of initialization, 
+      % hence the various massaging here.
+      
+      if mod(numel(varargin),2) ~= 0,
+        error('JLabelData:oddNumberOfOptionalArgsToNewJabFile',  ...
+              'Optional inputs to JLabelData.newJabFile() should be p-v pairs.');
+      end
+
+      keys = varargin(1:2:end);
+      values = varargin(2:2:end);     
+      
+      % If caller set the default path, set that now
+      oldDefaultPath = obj.defaultpath;
+      i = find(strcmpi(keys,'defaultpath'),1);
+      if ~isempty(i),
+        [success,msg] = obj.SetDefaultPath(values{i});
+        if ~success,
+          error('JLabelData:unableToSetDefaultPath',msg);
+        end
+      end
+      
+      obj.gtMode = false;
+                     
+      % Set the file data from the Macguffin object
+      try
+        obj.setMacguffin(macguf);
+      catch excp
+        % roll things back
+        obj.defaultpath = oldDefaultPath;
+        rethrow(excp);
+      end
+      
+      % Make up filename
+      try
+        realbehnames = Labels.verifyBehaviorNames(macguf.behaviors.names);
+        fileNameRel = [sprintf('%s_',realbehnames{1:end-1}) realbehnames{end} '.jab'];
+      catch excp
+        if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
+          fileNameRel = 'untitled.jab';
+        else
+          rethrow(excp);
+        end
+      end  
+      fileNameAbs = fullfile(obj.defaultpath,fileNameRel);
+
+      % Set other file-related instance vars
+      obj.thereIsAnOpenFile = true;
+      obj.everythingFileNameAbs = fileNameAbs;
+      obj.userHasSpecifiedEverythingFileName = false;
+      obj.needsave = true; % b/c new file
+      
+      % initialize the status table describing what required files exist
+      [success,msg] = obj.UpdateStatusTable();
+      if ~success,
+        error(msg);
+      end      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function closeJabFile(self)
+      % The list of things we want to be persistent
+      listOfPersistentSlots={'defaultpath' ...
+                             'expdefaultpath' ...
+                             'setstatusfn' ...
+                             'clearstatusfn' ...
+                             'cacheSize' ...
+                             'version' ...
+                             'perframeGenerate' ...
+                             'perframeOverwrite' ...
+                             'isInteractive'}';
+      
+      % Save the things we want to persist after closing the file
+      nPersistentSlots=length(listOfPersistentSlots);
+      for i=1:1:nPersistentSlots
+        thisSlot=listOfPersistentSlots{i};
+        evalString=sprintf('%s=self.%s;',thisSlot,thisSlot);
+        eval(evalString);
+      end
+      
+      % Nuke the site from orbit.  It's the only way to be sure.
+      self.initialize();
+      
+      % Re-load the things we want to persist
+      for i=1:1:nPersistentSlots
+        thisSlot=listOfPersistentSlots{i};
+        evalString=sprintf('self.%s=%s;',thisSlot,thisSlot);
+        eval(evalString);
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function saveJabFile(self,fileNameAbs)
+      fileNameRel=fileNameRelFromAbs(fileNameAbs);
+      self.SetStatus(sprintf('Saving to %s...',fileNameRel));
+      % Extract the structure that will be saved in the everything file
+      macguffin=self.getMacguffin();
+      % write the everything structure to disk
+      try
+        if exist(fileNameAbs,'file')
+          backupFileNameAbs=[fileNameAbs,'~'];
+          [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
+          if ~success,
+            backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
+            warning('JLabelData:unableToCreateBackup', ...
+                  'Unable to create backup file %s.',backupFileNameRel);
+          end
+        end
+        old=warning('query','MATLAB:structOnObject');
+        warning('off','MATLAB:structOnObject');  % turn off annoying warning
+        macguffinStruct = struct(macguffin);
+        warning(old);  % restore annoying warning
+        saveAnonymous(fileNameAbs,macguffinStruct);
+      catch excp
+        self.ClearStatus();
+        rethrow(excp);
+      end
+      % Do follow-up book-keeping
+      self.everythingFileNameAbs=fileNameAbs;
+      self.userHasSpecifiedEverythingFileName=true;      
+      self.needsave=false;
+      fileDirPathAbs=fileparts(fileNameAbs);
+      self.defaultpath=fileDirPathAbs;      
+      self.ClearStatus();
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function importClassifier(self,fileNameAbs)
+      %MERGEST SEEMSOK 
+      
+      macguffin = loadAnonymous(fileNameAbs);
+
+      self.setScoreFeatures(macguffin.scoreFeatures);
+      self.setFeatureSublexicon(macguffin.featureLexicon, ...
+                                macguffin.featureLexiconName, ...
+                                macguffin.sublexiconPFNames);
+      self.setWindowFeaturesParams(macguffin.windowFeaturesParams);
+      
+%       % Generate the necessary files now, so that any problems occur now.
+%       for iExp=1:self.nexps
+%         [success,msg]=self.GenerateScoreFeaturePerframeFiles(iExp);
+%         if ~success,
+%           error('JLabelData:unableToGenerateScoreFeaturePerframeFile',msg);
+%         end
+%         self.UpdateStatusTable('perframedir',iExp);
+%         allPerframeFilesExist=self.fileexists(iExp,whichstr('perframedir',self.filetypes));
+%         if ~allPerframeFilesExist , 
+%           [success,msg]=self.GeneratePerframeFilesExceptScoreFeatures(iExp);
+%           if ~success,
+%             error('JLabelData:unableToGeneratePerframeFile',msg);
+%           end
+%         end
+%       end
+      
+      % Load the classifier proper, training params, etc.
+      self.setClassifierStuff(macguffin.classifierStuff);
+
+%       % do this to prompt loading of windowdata
+%       force=true;
+%       self.setCurrentTarget(self.expi,self.flies,force);
+      
+      self.needsave=true;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function cs = getClassifierStuff(self)
+      
+      %MERGEST UPDATED
+        
+      % make sure current labels are committed
+      self.StoreLabelsForCurrentAnimal();
+      
+      cs = ClassifierStuff.empty(0,1);
+      for iCls = self.nclassifiers:-1:1
+        csArgs = { ...
+            'type',self.classifiertype{iCls}, ...
+            'params',self.classifier{iCls}, ...
+            'trainingParams',self.classifier_params{iCls}, ...
+            'timeStamp',self.classifierTS(iCls), ...
+            'confThresholds',self.confThresholds(iCls,:), ...
+            'scoreNorm',self.windowdata(iCls).scoreNorm, ...
+            'postProcessParams',self.postprocessparams{iCls}, ...
+            'featureNames',self.windowdata(iCls).featurenames,...
+            'savewindowdata',self.savewindowdata(iCls)};
+        if self.savewindowdata(iCls) && ~self.IsGTMode()
+          csArgs(end+1:end+2) = {'windowdata',self.windowdata(iCls)};
+        end          
+        cs(iCls,1) = ClassifierStuff(csArgs{:});
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function setClassifierStuff(self,classifierStuff)
+      % classifierStuff: array of ClassifierStuffs
+      %
+      % ALTODO: Seems like classifier-related properties can be
+      % consolidated/cleaned up. Why not just use ClassifierStuff?
+      
+      %MERGESTUPDATED
+      
+      classifierStuff.modernize();
+      
+      nrealbeh = self.ntimelines;
+      assert(numel(classifierStuff)==nrealbeh);
+      self.classifiertype = cell(1,nrealbeh);
+      self.classifier = cell(1,nrealbeh);
+      self.classifier_params = cell(1,nrealbeh);
+      self.classifierTS = nan(1,nrealbeh);
+      self.confThresholds = nan(nrealbeh,2);
+      self.postprocessparams = cell(1,nrealbeh);
+      self.savewindowdata = false(1,nrealbeh);
+      for iBeh = 1:nrealbeh
+        cs = classifierStuff(iBeh);
+        self.classifiertype{iBeh} = cs.type;
+        self.classifier{iBeh} = cs.params;
+        self.classifier_params{iBeh} = cs.trainingParams;
+        self.classifierTS(iBeh) = cs.timeStamp;
+        self.confThresholds(iBeh,:) = cs.confThresholds;
+        self.windowdata(iBeh).scoreNorm = cs.scoreNorm;
+        self.postprocessparams{iBeh} = cs.postProcessParams;
+        self.savewindowdata(iBeh) = cs.savewindowdata;
+      end
+            
+      % AL20141122: Why are we setting windowfeaturenames? This only
+      % depends on self.curperframefns and self.windowfeaturescellparams.
+      self.SetWindowFeatureNames();
+      
+      % AL20141126: initialization of loadwindowdata is change from earlier
+      % behavior
+      self.loadwindowdata = true(1,nrealbeh);
+      
+      % verify windowFeatureNames in classifierStuff
+      for iBeh = 1:nrealbeh
+        cs = classifierStuff(iBeh);
+        if ~isempty(cs.featureNames) && ...
+           ~isempty(cs.featureNames{1}) && ...
+           ~isequal(cs.featureNames,self.windowdata(iBeh).featurenames)
+          warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier ''%s'' shouldn''t be used; retrain a new classifier.',...
+            self.labelnames{iBeh});
+          uiwait(warndlg(warnstr));
+          self.loadwindowdata(iBeh) = false;
+        end
+      end
+            
+      self.trainstats = cell(1,nrealbeh);
+
+      % Update the window data near the labels
+%       [success,msg] = self.PreLoadPeriLabelWindowData();
+%       if ~success,error(msg);end   
+
+      % Move the current predictions out of the way
+      self.MoveCurPredictionsToOld();
+      
+      if ~self.isST
+        
+        % Set up for fast prediction
+        self.FindFastPredictParams();
+
+        % predict for all loaded examples
+        self.PredictLoaded();
+
+      end
+    end  % setClassifierStuff() method
+    
+    
+    % ---------------------------------------------------------------------
+    function everythingParams = getMacguffin(self)
+      % Construct the object that will be saved in the everything file
+      everythingParams = Macguffin(self);
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function setMacguffin(obj,everythingParams,loadexps)
+      % This initializes the JLabelData object based on the contents of
+      % everythingParams
+  
+      % Deal with arguments
+      if ~exist('loadexps','var')
+        loadexps=true;
+      end
+      
+      before=obj.copy();  % make a copy of the object, in case something goes wrong
+      try
+        % Note sure what to do here---Macguffin class doesn't have a perframe
+        % property at present
+        if isfield(everythingParams.extra,'perframe'),
+          if isfield(everythingParams.extra.perframe,'params') && isstruct(everythingParams.extra.perframe.params),
+            pf_fields = fieldnames(everythingParams.extra.perframe.params);
+            for ndx = 1:numel(pf_fields),
+              everythingParams.featureLexicon.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});
+            end
+          end
+          if isfield(everythingParams.extra.perframe,'landmarkParams'),
+            obj.landmark_params = everythingParams.extra.perframe.landmarkParams;
+          end
+        end  % isfield(basicParams,'perframe'),
+
+        % feature config file
+        obj.setFeatureSublexicon(everythingParams.featureLexicon, ...
+                                 everythingParams.featureLexiconName, ...
+                                 everythingParams.sublexiconPFNames);
+%         if isequal(everythingParams.featureLexiconName,'custom')
+%           %obj.setFeatureLexiconAndTargetSpeciesCustom(everythingParams.featureLexicon, ...
+%           %                                            everythingParams.behaviors.type);
+%           [success,msg] = obj.setFeatureLexiconAndFLName(everythingParams.featureLexicon,'custom');
+%           obj.targettype=everythingParams.behaviors.type;
+%         else
+%           [success,msg]=obj.setFeatureLexiconAndTargetSpeciesFromFLName(everythingParams.featureLexiconName);
+%         end
+%         if ~success , 
+%           error('JLabelData:unableToSetFeatureSublexicon',msg);
+%         end
+
+        % Set the target species
+        obj.targettype=everythingParams.behaviors.type;
+                
+        obj.labelGraphicParams=everythingParams.labelGraphicParams;
+        obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
+        obj.labelcolors=everythingParams.behaviors.labelcolors;
+        obj.unknowncolor=everythingParams.behaviors.unknowncolor;
+
+        %
+        % load in the rest of the stuff, depending on the fields present
+        %
+
+        % read in behavior names
+        if isfield(everythingParams.behaviors,'names'),
+          obj.labelnames = everythingParams.behaviors.names;
+          assert(iscell(obj.labelnames));        
+          obj.nbehaviors = numel(obj.labelnames);
+        else
+          obj.labelnames = {'Behavior','None'};
+        end
+        assert(numel(obj.labelcolors)==3*numel(obj.labelnames));
+
+        [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
+                
+        if isfield(everythingParams.file,'moviefilename'),
+          [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
+          if ~success1,
+            error('JLabelData:unableToSetMovieFileName', ...
+                  msg);
+          end
+        end
+        if isfield(everythingParams.file,'trxfilename'),
+          [success1,msg] = obj.SetTrxFileName(everythingParams.file.trxfilename);
+          if ~success1,
+            error('JLabelData:unableToSetTrxFileName', ...
+                  msg);
+          end
+        end
+        if isfield(everythingParams.file,'scorefilename'),
+          scorefilename = everythingParams.file.scorefilename;
+        else
+          scorefilename = {sprintf('scores_%s.mat',obj.labelnames{1})};
+        end
+        [success1,msg] = obj.setScoreFileName(scorefilename);
+        if ~success1,
+          error('JLabelData:unableToSetScoreFileName', ...
+                msg);
+        end
+        if isfield(everythingParams.file,'perframedir'),
+          [success1,msg] = obj.SetPerFrameDir(everythingParams.file.perframedir);
+          if ~success1,
+            error('JLabelData:unableToSetPerframeDirName', ...
+                  msg);
+          end
+        end
+        if isfield(everythingParams.file,'clipsdir') && ~isempty(everythingParams.file.clipsdir),
+          [success1,msg] = obj.SetClipsDir(everythingParams.file.clipsdir);
+          if ~success1,
+            error('JLabelData:unableToSetClipsDirName', ...
+                  msg);
+          end
+        end
+        
+        obj.stfeatures = 'features.mat'; % temporary hardcode
+        [success1,msg] = obj.UpdateStatusTable('stfeatures');
+        if ~success1
+          error('JLabelData:unableToSetSTFeaturesName',msg);
+        end
+
+        if isfield(everythingParams.extra,'usePastOnly'),
+          obj.usePastOnly = everythingParams.extra.usePastOnly;
+        end
+
+
+  %       if isfield(basicParams,'scoreFeatures') ,
+  %         obj.scoreFeatures = basicParams.scoreFeatures;
+  %         nScoreFeaturess=length(basicParams.scoreFeatures);
+  %         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
+  %         for i = 1:nScoreFeaturess ,
+  %           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
+  %           scoreFeaturesPFNames{i} = pfName;
+  %         end
+  %         obj.allperframefns=[obj.allperframefns ; ...
+  %                             scoreFeaturesPFNames];
+  %       end  % if isfield(basicParams,'scoreFeatures'),
+
+        % Re-load the perframe feature signals, since the PFFs may have changed
+        obj.loadPerframeData(obj.expi,obj.flies);
+
+  %       % initialize the post-processing parameters
+  %       obj.InitPostprocessparams();
+
+        % initialize everything else
+        if loadexps,
+          obj.setAllLabels(everythingParams);
+        end
+        
+        obj.setScoreFeatures(everythingParams.scoreFeatures);
+        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+        obj.setClassifierStuff(everythingParams.classifierStuff);
+        
+      catch excp
+        % If there's a problem, restore the object to its original state.
+        obj.setToValue(before);
+        rethrow(excp);
+      end
+        
+    end  % method    
+
+  
+    % ---------------------------------------------------------------------
+    function clearClassifierProper(self)
+      % Reset the classifier to a blank slate
+      
+%       % Get the current classifier
+%       classifierStuff=self.getClassifierStuff();
+% 
+%       % Set the core classifier fields to default
+%       classifierStuff.params=struct([]);
+%       classifierStuff.timeStamp=[];
+%       classifierStuff.scoreNorm=[];
+% 
+%       % Set the classifier in the JLabelData object
+%       self.setClassifierStuff(classifierStuff);
+      %self.ClearWindowData();
+      self.classifier = struct('dim',{}, ...
+                             'error',{}, ...
+                             'dir',{}, ....
+                             'tr',{}, ...
+                             'alpha',{});  % 0x1 struct array
+      nCls = self.nclassifiers;
+      self.classifier = repmat({self.classifier},1,nCls); % ALTODO scattered classifier initialization: JLD, ProjectSetup
+      self.classifier_old = self.classifier;
+      self.classifierTS = zeros(1,nCls); 
+      for iCls = 1:nCls
+        self.windowdata(iCls).scoreNorm = 0;
+      end
+      self.invalidatePredictions();
+      self.UpdatePredictedIdx(); % update cached predictions for current target
+      self.needsave = true;
+      %self.PreLoadPeriLabelWindowData();  % do we need to do this?
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function basicParams = getBasicParamsStruct(obj)
+      basicParams=struct();
+      basicParams.featureLexiconName=obj.featureLexiconName;
+      basicParams.scoreFeatures=obj.scoreFeatures;
+      subdialectPFNames=obj.allperframefns;
+      nScoreFeaturess=length(obj.scoreFeatures);
+      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);  
+      basicParams.sublexiconPFNames=sublexiconPFNames;
+
+      %assert(numel(basicParams.behaviors.names)==numel(basicParams.behaviors.labelcolors));
+      %ALTODO labelcolors one less currently
+      %assert(strcmp(obj.labelnames{end},'None'));
+      basicParams.behaviors.names=obj.labelnames;
+      basicParams.behaviors.labelcolors=obj.labelcolors;
+      basicParams.behaviors.unknowncolor=obj.unknowncolor;
+      
+      basicParams.file.moviefilename=obj.moviefilename;
+      basicParams.file.trxfilename=obj.trxfilename;
+      basicParams.file.scorefilename=obj.scorefilename;
+      %basicParams.scoresinput=obj.scoreFeatures;
+      basicParams.labelGraphicParams=obj.labelGraphicParams;
+      basicParams.trxGraphicParams=obj.trxGraphicParams;
+    end
+    
+
+    function setsavewindowdata(self,value)
+      assert(numel(self.savewindowdata)==self.nclassifiers);
+      assert(isscalar(value) || numel(value)==self.nclassifiers);
+      self.savewindowdata(:) = value;
+      self.needsave = true;      
+    end
+  
+     
+    function setClassifierParams(self,params)
+      %MERGESTUPDATED
+      
+      assert(iscell(params) && numel(params)==self.nclassifiers);
+      oldParams = self.classifier_params;      
+      
+      for iCls = 1:self.nclassifiers
+        prm0 = oldParams{iCls};
+        prm1 = params{iCls};
+        if prm0.numBins~=prm1.numBins
+          self.windowdata(iCls).binVals = [];
+          self.windowdata(iCls).bins = [];
+        end
+      end
+      self.classifier_params = params(:)';
+    end
+    
+  end
+  
   methods % Evaluating performance
 
     % ---------------------------------------------------------------------
@@ -9191,33 +9613,6 @@ end
     
   % Random stuff
     
-    % ---------------------------------------------------------------------    
-    function cs = getClassifierStuff(self)
-      
-      %MERGEST UPDATED
-        
-      % make sure current labels are committed
-      self.StoreLabelsForCurrentAnimal();
-      
-      cs = ClassifierStuff.empty(0,1);
-      for iCls = self.nclassifiers:-1:1
-        csArgs = { ...
-            'type',self.classifiertype{iCls}, ...
-            'params',self.classifier{iCls}, ...
-            'trainingParams',self.classifier_params{iCls}, ...
-            'timeStamp',self.classifierTS(iCls), ...
-            'confThresholds',self.confThresholds(iCls,:), ...
-            'scoreNorm',self.windowdata(iCls).scoreNorm, ...
-            'postProcessParams',self.postprocessparams{iCls}, ...
-            'featureNames',self.windowdata(iCls).featurenames,...
-            'savewindowdata',self.savewindowdata(iCls)};
-        if self.savewindowdata(iCls) && ~self.IsGTMode()
-          csArgs(end+1:end+2) = {'windowdata',self.windowdata(iCls)};
-        end          
-        cs(iCls,1) = ClassifierStuff(csArgs{:});
-      end
-    end
-
     % ---------------------------------------------------------------------
     function tf = getPerFrameFeatureSetIsNonEmpty(self)
       % tf: nclassifiers-by-1 logical vec, true iff the current set of 
@@ -9282,12 +9677,6 @@ end
     end
         
     
-    % ---------------------------------------------------------------------
-    function everythingParams = getMacguffin(self)
-      % Construct the object that will be saved in the everything file
-      everythingParams = Macguffin(self);
-    end
-
     
     % ---------------------------------------------------------------------
     function setScoreFeatures(obj,varargin)
@@ -9385,383 +9774,9 @@ end
     
     
     % ---------------------------------------------------------------------
-    function openJabFile(self, ...
-                         fileNameAbs, ...
-                         groundTruthingMode, ...
-                         originalExpDirNames, ...
-                         substituteExpDirNames) 
-                       
-      %MERGESTUPDATED
-      
-      % originalExpDirNames and substituteExpDirNames are optional.
-      % If given, they should be cell arrays of the same length, each
-      % element a string giving an absolute path to an experiment
-      % directory.  Each element of originalExpDirNames should be an
-      % experiment directory in the .jab file, and the corresponding
-      % element of substitureExpDirNames gives an experiment dir name to be
-      % used in place of the original one.  This is to enable the user to
-      % manually locate exp dir names that are missing.  Whether these
-      % experiment dir names are treated as normal exp dir names or
-      % ground-truthing exp dir names depends on groundTruthingMode.
-                       
-      % process the args
-      if ~exist('originalExpDirNames','var')
-        originalExpDirNames = cell(0,1);
-      end
-      if ~exist('substituteExpDirNames','var')
-        substituteExpDirNames = cell(0,1);
-      end
-      assert(numel(originalExpDirNames)==numel(substituteExpDirNames));
-      
-      self.gtMode = groundTruthingMode;
-
-      % Open the file
-      macguffin = loadAnonymous(fileNameAbs);
-      if isstruct(macguffin)
-        macguffin = Macguffin(macguffin);
-      end
-      macguffin.modernize(true);
-      
-      % Do the substiutions, if any
-      substitutionsMade = false;
-      if groundTruthingMode
-        expDirNames = macguffin.gtExpDirNames;
-        labels = macguffin.gtLabels;
-      else
-        expDirNames = macguffin.expDirNames;
-        labels = macguffin.labels;
-      end
-      newExpDirNames = cell(1,0);
-      newLabels = Labels.labels(0);
-      for i = 1:length(expDirNames)
-        expDirName = expDirNames{i};
-        j = whichstr(expDirName,originalExpDirNames);
-        if isempty(j)
-          newExpDirNames{end+1} = expDirNames{i};  %#ok
-          newLabels(end+1) = labels(i);  %#ok
-        else
-          newExpDirName = substituteExpDirNames{j};
-          if ~isempty(newExpDirName)
-            newExpDirNames{end+1} = substituteExpDirNames{j};  %#ok
-            newLabels(end+1) = labels(i);  %#ok
-          else
-            % AL 20140908 
-            % Empty new name for this experiment; experiment will not be added
-            % Is this the intent or should this be asserted false?
-          end
-          substitutionsMade = true;
-        end
-      end
-      if groundTruthingMode
-        macguffin.gtExpDirNames = newExpDirNames;
-        macguffin.gtLabels = newLabels;
-      else
-        macguffin.expDirNames = newExpDirNames;
-        macguffin.labels = newLabels;
-      end
-      
-      % Set the JLD to match the Macguffin
-      self.setMacguffin(macguffin,true);
-      
-      % Store file-related stuff
-      self.thereIsAnOpenFile = true;
-      self.everythingFileNameAbs = fileNameAbs;
-      self.userHasSpecifiedEverythingFileName = true;
-      self.needsave = substitutionsMade; % Only need save if substitutions were made
-      self.defaultpath = fileparts(fileNameAbs);
-     
-      % initialize the status table describing what required files exist
-      [success,msg] = self.UpdateStatusTable();
-      if ~success,
-        error('JLabelData:unableToUpdateStatusTable',msg);
-      end
-      
-      % Load windowdata if appropriate
-      cs = macguffin.classifierStuff;
-      assert(isequal(self.nclassifiers,numel(cs),numel(self.windowdata)));
-      perframeNdx = find(strcmp('perframedir',self.filetypes));
-      for iCls = 1:self.nclassifiers
-        if ~substitutionsMade && ...
-            ~self.IsGTMode() && ... 
-            self.loadwindowdata(iCls) && ...
-            isprop(cs(iCls),'windowdata') && ...
-            isstruct(cs(iCls).windowdata) && ...
-            ~isempty(cs(iCls).savewindowdata) && ...
-            cs(iCls).savewindowdata
-          
-          % determine whether to load windowdata for this classifier
-          tfLoadWinData = true;
-          if self.isInteractive
-            isPerframeNewer = false;
-            for ndx = 1:self.nexps
-              if self.classifierTS(iCls) < self.filetimestamps(ndx,perframeNdx);
-                isPerframeNewer = true;
-                expnamenewer = self.expnames{ndx};
-                perframeTS = self.filetimestamps(ndx,perframeNdx);
-                break;
-              end
-            end
-            
-            if isPerframeNewer
-              qstr{1} = sprintf('One of the perframe files (Generated on %s) ',...
-                datestr(perframeTS));
-              qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS(iCls))); %#ok<AGROW>
-              qstr{end+1} = sprintf('for the experiment %s.',expnamenewer); %#ok<AGROW>
-              qstr{end+1} = ' Still load the windowdata stored in the jab file?'; %#ok<AGROW>
-              res = questdlg(qstr, ...
-                'Load Window Data?', ...
-                'Yes','No', ...
-                'No');
-              tfLoadWinData = strcmpi(res,'Yes');
-            end
-          end
-          % If ~self.isInteractive, or classifiers newer than all PF
-          % dirs, then tfLoadWinData true by default
-          
-          if tfLoadWinData
-            oldScoreNorm = self.windowdata(iCls).scoreNorm;
-            oldfeaturenames = self.windowdata(iCls).featurenames;
-            self.windowdata(iCls) = cs(iCls).windowdata;
-            if isempty(self.windowdata(iCls).scoreNorm) && ~isempty(oldScoreNorm)
-              self.windowdata(iCls).scoreNorm = oldScoreNorm;
-            end
-            if isempty(self.windowdata(iCls).featurenames) && ~isempty(oldfeaturenames)
-              self.windowdata(iCls).featurenames = oldfeaturenames;
-            end
-          end
-        end
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function openJabFileNoExps(self, ...
-        fileNameAbs, ...
-        groundTruthingMode)
-      
-      % originalExpDirNames and substituteExpDirNames are optional.
-      % If given, they should be cell arrays of the same length, each
-      % element a string giving an absolute path to an experiment
-      % directory.  Each element of originalExpDirNames should be an
-      % experiment directory in the .jab file, and the corresponding
-      % element of substitureExpDirNames gives an experiment dir name to be
-      % used in place of the original one.  This is to enable the user to
-      % manually locate exp dir names that are missing.  Whether these
-      % experiment dir names are treated as normal exp dir names of
-      % ground-truthing exp dir names depends on groundTruthingMode.
-      
-      
-      % Set the ground-truthing mode
-      self.gtMode=groundTruthingMode;
-      
-      %
-      % Open the file
-      %
-      
-      % get just the relative file name
-      fileDirPathAbs=fileparts(fileNameAbs);
-      %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
-      %fileNameRel=[baseName ext];
-      
-      % load the file
-      macguffin=loadAnonymous(fileNameAbs);
-      % if we get here, file was read successfully
-      macguffin.modernize(true);
-      
-      % Set the JLD to match the Macguffin
-      self.setMacguffin(macguffin,false);
-      
-      % Store file-related stuff
-      self.thereIsAnOpenFile=true;
-      self.everythingFileNameAbs=fileNameAbs;
-      self.userHasSpecifiedEverythingFileName=true;
-      self.needsave=false;
-      self.defaultpath=fileDirPathAbs;
-      
-      % initialize the status table describing what required files exist
-      [success,msg] = self.UpdateStatusTable();
-      if ~success,
-        error('JLabelData:unableToUpdateStatusTable',msg);
-      end
-    end  % method
-
-
-    % ---------------------------------------------------------------------
-    function newJabFile(obj,macguf,varargin)
-      % Only called by ProjectSetup/new project creation. 
-      % IMPORTANT: macguf has type Macguffin, but it is not a properly
-      % initialized Macguffin object. It is semi-initialized object 
-      % originating from ProjectSetup for the purposes of initialization, 
-      % hence the various massaging here.
-      
-      if mod(numel(varargin),2) ~= 0,
-        error('JLabelData:oddNumberOfOptionalArgsToNewJabFile',  ...
-              'Optional inputs to JLabelData.newJabFile() should be p-v pairs.');
-      end
-
-      keys = varargin(1:2:end);
-      values = varargin(2:2:end);     
-      
-      % If caller set the default path, set that now
-      oldDefaultPath = obj.defaultpath;
-      i = find(strcmpi(keys,'defaultpath'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetDefaultPath(values{i});
-        if ~success,
-          error('JLabelData:unableToSetDefaultPath',msg);
-        end
-      end
-      
-      obj.gtMode = false;
-                     
-      % Set the file data from the Macguffin object
-      try
-        obj.setMacguffin(macguf);
-      catch excp
-        % roll things back
-        obj.defaultpath = oldDefaultPath;
-        rethrow(excp);
-      end
-      
-      % Make up filename
-      try
-        realbehnames = Labels.verifyBehaviorNames(macguf.behaviors.names);
-        fileNameRel = [sprintf('%s_',realbehnames{1:end-1}) realbehnames{end} '.jab'];
-      catch excp
-        if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
-          fileNameRel = 'untitled.jab';
-        else
-          rethrow(excp);
-        end
-      end  
-      fileNameAbs = fullfile(obj.defaultpath,fileNameRel);
-
-      % Set other file-related instance vars
-      obj.thereIsAnOpenFile = true;
-      obj.everythingFileNameAbs = fileNameAbs;
-      obj.userHasSpecifiedEverythingFileName = false;
-      obj.needsave = true; % b/c new file
-      
-      % initialize the status table describing what required files exist
-      [success,msg] = obj.UpdateStatusTable();
-      if ~success,
-        error(msg);
-      end      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function closeJabFile(self)
-      % The list of things we want to be persistent
-      listOfPersistentSlots={'defaultpath' ...
-                             'expdefaultpath' ...
-                             'setstatusfn' ...
-                             'clearstatusfn' ...
-                             'cacheSize' ...
-                             'version' ...
-                             'perframeGenerate' ...
-                             'perframeOverwrite' ...
-                             'isInteractive'}';
-      
-      % Save the things we want to persist after closing the file
-      nPersistentSlots=length(listOfPersistentSlots);
-      for i=1:1:nPersistentSlots
-        thisSlot=listOfPersistentSlots{i};
-        evalString=sprintf('%s=self.%s;',thisSlot,thisSlot);
-        eval(evalString);
-      end
-      
-      % Nuke the site from orbit.  It's the only way to be sure.
-      self.initialize();
-      
-      % Re-load the things we want to persist
-      for i=1:1:nPersistentSlots
-        thisSlot=listOfPersistentSlots{i};
-        evalString=sprintf('self.%s=%s;',thisSlot,thisSlot);
-        eval(evalString);
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------
     function delete(~)
     end
-    
-    
-    % ---------------------------------------------------------------------
-    function saveJabFile(self,fileNameAbs)
-      fileNameRel=fileNameRelFromAbs(fileNameAbs);
-      self.SetStatus(sprintf('Saving to %s...',fileNameRel));
-      % Extract the structure that will be saved in the everything file
-      macguffin=self.getMacguffin();
-      % write the everything structure to disk
-      try
-        if exist(fileNameAbs,'file')
-          backupFileNameAbs=[fileNameAbs,'~'];
-          [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
-          if ~success,
-            backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
-            warning('JLabelData:unableToCreateBackup', ...
-                  'Unable to create backup file %s.',backupFileNameRel);
-          end
-        end
-        old=warning('query','MATLAB:structOnObject');
-        warning('off','MATLAB:structOnObject');  % turn off annoying warning
-        macguffinStruct = struct(macguffin);
-        warning(old);  % restore annoying warning
-        saveAnonymous(fileNameAbs,macguffinStruct);
-      catch excp
-        self.ClearStatus();
-        rethrow(excp);
-      end
-      % Do follow-up book-keeping
-      self.everythingFileNameAbs=fileNameAbs;
-      self.userHasSpecifiedEverythingFileName=true;      
-      self.needsave=false;
-      fileDirPathAbs=fileparts(fileNameAbs);
-      self.defaultpath=fileDirPathAbs;      
-      self.ClearStatus();
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function importClassifier(self,fileNameAbs)
-      %MERGEST SEEMSOK 
-      
-      macguffin = loadAnonymous(fileNameAbs);
-
-      self.setScoreFeatures(macguffin.scoreFeatures);
-      self.setFeatureSublexicon(macguffin.featureLexicon, ...
-                                macguffin.featureLexiconName, ...
-                                macguffin.sublexiconPFNames);
-      self.setWindowFeaturesParams(macguffin.windowFeaturesParams);
-      
-%       % Generate the necessary files now, so that any problems occur now.
-%       for iExp=1:self.nexps
-%         [success,msg]=self.GenerateScoreFeaturePerframeFiles(iExp);
-%         if ~success,
-%           error('JLabelData:unableToGenerateScoreFeaturePerframeFile',msg);
-%         end
-%         self.UpdateStatusTable('perframedir',iExp);
-%         allPerframeFilesExist=self.fileexists(iExp,whichstr('perframedir',self.filetypes));
-%         if ~allPerframeFilesExist , 
-%           [success,msg]=self.GeneratePerframeFilesExceptScoreFeatures(iExp);
-%           if ~success,
-%             error('JLabelData:unableToGeneratePerframeFile',msg);
-%           end
-%         end
-%       end
-      
-      % Load the classifier proper, training params, etc.
-      self.setClassifierStuff(macguffin.classifierStuff);
-
-%       % do this to prompt loading of windowdata
-%       force=true;
-%       self.setCurrentTarget(self.expi,self.flies,force);
-      
-      self.needsave=true;
-    end 
-    
+        
     
     % ---------------------------------------------------------------------
     function setToValue(self,jld)
@@ -9787,15 +9802,7 @@ end
         isRandom = true;
       end
       
-    end
-    
-    
-    function setsavewindowdata(self,value)
-      assert(numel(self.savewindowdata)==self.nclassifiers);
-      assert(isscalar(value) || numel(value)==self.nclassifiers);
-      self.savewindowdata(:) = value;
-      self.needsave = true;      
-    end
+    end   
 
     
   end  % End methods block
