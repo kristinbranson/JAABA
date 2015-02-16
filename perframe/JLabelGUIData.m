@@ -14,17 +14,7 @@ classdef JLabelGUIData < handle
       'NoneAll',100); 
   end
 
-  properties (Access=public)
-    
-    %previousConfigFileName = '';
-    
-    %classifierfilename = '';
-    %configfilename = '';
-    %defaultpath = '';  % now in JLabelData
-    % packageoutputdir = '';  % not used anywhere
-    
-    %isgroundtruthmode = false;  % never used
-    
+  properties (Access=public)    
     status_bar_text_when_clear = '';
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
@@ -38,19 +28,6 @@ classdef JLabelGUIData < handle
     movie_maxy = 100;
     movie_pixelsize = 1;
     movie_filename = [];
-    
-%     thereIsAnOpenFile=false;
-%     everythingFileNameAbs='';  % the name of the everything file, if one
-%                                % is open.  We need this here b/c a new
-%                                % everything file doesn't have a JLabelData
-%                                % object yet.
-%     userHasSpecifiedEverythingFileName=false;  % true iff the everything
-%                                                % file name was specified by
-%                                                % the user, as opposed to
-%                                                % being chosen by default
-%                                                % when a new file was
-%                                                % created
-    %configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];
     axes_previews = [];
@@ -66,10 +43,7 @@ classdef JLabelGUIData < handle
     
     hsplash = [];
     hsplashstatus = [];
-    
-    %henabled = [];
-    %enabled = true;
-
+   
     guipos = struct;
 
     rcfilename = '';
@@ -257,55 +231,6 @@ classdef JLabelGUIData < handle
       % part of the feature vocabulary.)  (But I suppose we could add them
       % if we wanted to...)   
   end
-
-  
-%   properties (Access=public,Dependent=true)
-%     expi
-%     flies
-%     nexps
-%     nflies_curr
-%   end
-
-  
-%   methods
-%     function expi=get.expi(self)
-%       expi=self.data.expi;
-%     end
-%     
-%     function set.expi(self,newValue)  %#ok
-%       % do nothing---to set the current experiment, should call
-%       % self.data.setCurrentTarget()
-%       warning('Trying to set JLabelGUIData.expi');
-%     end
-%     
-%     function flies=get.flies(self)
-%       flies=self.data.flies;
-%     end
-%     
-%     function set.flies(self,newValue)  %#ok
-%       % do nothing---flies is read-only
-%       warning('Trying to set JLabelGUIData.flies');
-%     end
-%     
-%     function nexps=get.nexps(self)
-%       nexps=self.data.nexps;
-%     end
-%     
-%     function set.nexps(self,newValue)  %#ok
-%       % do nothing---this property is read-only
-%       warning('Trying to set JLabelGUIData.nexps');
-%     end
-%     
-%     function nflies_curr=get.nflies_curr(self)
-%       nflies_curr=self.data.nTargetsInCurrentExp;
-%     end
-%     
-%     function set.nflies_curr(self,newValue)  %#ok
-%       % do nothing---this property is read-only
-%       warning('Trying to set JLabelGUIData.nflies_curr');
-%     end
-%   end  % get. and set. methods
-  
   
   methods (Access=public)
     function obj = JLabelGUIData(jld)
@@ -385,26 +310,6 @@ classdef JLabelGUIData < handle
         self.text_timelines(i) = self.text_timeline_props(ii);
       end
     end
-    
-    
-%     % ---------------------------------------------------------------------
-%     function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
-%       if self.thereIsAnOpenFile && ~isempty(self.data)
-%         nExp=self.data.nexps;
-%         someExperimentIsCurrent=(1<=self.expi) && ...
-%                                 (self.expi<=nExp) ;
-%       else
-%         someExperimentIsCurrent=false;
-%       end
-%     end
-    
-    
-%     % ---------------------------------------------------------------------    
-%     function s=getMacguffin(self)
-%       % Construct the structure that will be saved in the everything file
-%       s=self.data.getMacguffin();
-%     end
-    
     
     % ---------------------------------------------------------------------
     function setLayout(self,figureJLabel)
@@ -491,52 +396,6 @@ classdef JLabelGUIData < handle
       self.guipos.preview_edit_bottom_border = edit_pos(2);
     end  % method    
     
-    
-%     % ---------------------------------------------------------------------
-%     function initializeGivenBasicParams(self,basicParams,figureJLabel,groundTruthingMode)  %#ok
-%       % initialize data structure
-%       self.data = ...
-%         JLabelData('groundTruthingMode',groundTruthingMode, ...
-%                    'basicParams',basicParams, ...
-%                    'defaultpath',self.defaultpath,...
-%                    'setstatusfn',@nop,...
-%                    'clearstatusfn',@nop,...
-%                    'cacheSize',self.cacheSize);
-% %                    'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
-% %                    'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
-%       self.initializeAfterBasicParamsSet();
-%     end
-
-    
-%     % ---------------------------------------------------------------------
-%     function initializeGivenMacguffin(self, ...
-%                                       everythingParams, ...
-%                                       figureJLabel, ...
-%                                       groundTruthingMode, ...
-%                                       setStatusCallback, ...
-%                                       clearStatusCallback)  %#ok
-%                                     
-%       % deal with args
-%       if ~exist('setStatusCallback','var')
-%         setStatusCallback=@nop;
-%       end
-%       if ~exist('clearStatusCallback','var')
-%         clearStatusCallback=@nop;
-%       end
-%       
-%       % initialize data structure
-%       self.data.openFileGivenMacguffin('groundTruthingMode',groundTruthingMode, ...
-%                                        'macguffin',everythingParams, ...
-%                                        'defaultpath',self.defaultpath,...
-%                                        'setstatusfn',setStatusCallback,...
-%                                        'clearstatusfn',clearStatusCallback,...
-%                                        'cacheSize',self.cacheSize);
-% %                    'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
-% %                    'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
-%       self.initializeAfterBasicParamsSet();
-%     end
-
-    
     % ---------------------------------------------------------------------
     function initializeAfterBasicParamsSet(self)
       % number of flies to label at a time
@@ -618,68 +477,6 @@ classdef JLabelGUIData < handle
                          'Error parsing config unknown colors'));
         end
       end
-
-%       self.flies_extra_markersize = repmat(12,[1,self.nextra_markers]);
-%       if isfield(basicParamsStruct,'trxGraphicParams') && ...
-%          isfield(basicParamsStruct.trxGraphicParams,'extra_markersize') && ...
-%          ~isempty(basicParamsStruct.trxGraphicParams.extra_markersize),
-%         if ~ischar(basicParamsStruct.trxGraphicParams.extra_markersize),
-%           extra_markersize = basicParamsStruct.trxGraphicParams.extra_markersize;
-%         else
-%           tmp = regexp(basicParamsStruct.trxGraphicParams.extra_markersize,',','split');
-%           extra_markersize = str2double(tmp);
-%           if any(isnan(extra_markersize)),
-%             warndlg(sprintf('Could not parse some entries of trxGraphicParams.extra_markersize: %s',tmp{isnan(extra_markersize)}), ...
-%                     'Problem parsing trxGraphicParams.extra_markersize');
-%             extra_markersize(isnan(extra_markersize)) = 12;
-%           end
-%         end
-%         if numel(extra_markersize) < self.nextra_markers,
-%           warndlg('Number of extra marker size entries less than number of extra markers', ...
-%                   'Problem parsing trxGraphicParams.extra_markersize');
-%         end
-%         for j = 1:self.nextra_markers,
-%           self.flies_extra_markersize(j) = extra_markersize(min(j,numel(extra_markersize)));
-%         end
-%       end
-% 
-%       self.flies_extra_marker = repmat({'o'},[1,self.nextra_markers]);
-%       if isfield(basicParamsStruct,'trxGraphicParams') && ...
-%          isfield(basicParamsStruct.trxGraphicParams,'extra_marker') && ...
-%          ~isempty(basicParamsStruct.trxGraphicParams.extra_marker),
-%         if ischar(basicParamsStruct.trxGraphicParams.extra_marker),
-%           extra_marker = regexp(basicParamsStruct.trxGraphicParams.extra_marker,',','split');
-%         else
-%           extra_marker = basicParamsStruct.trxGraphicParams.extra_marker;
-%         end
-%         if numel(extra_marker) < self.nextra_markers,
-%           warndlg('Number of extra marker entries less than number of extra markers', ...
-%                   'Problem parsing trxGraphicParams.extra_marker');
-%           self.flies_extra_marker = [extra_marker,...
-%             repmat({'None'},[1,self.nextra_markers-numel(extra_marker)])];
-%         else
-%           self.flies_extra_marker = extra_marker(1:self.nextra_markers);
-%         end
-%       end
-%       
-%       self.flies_extra_linestyle = repmat({'-'},[1,self.nextra_markers]);
-%       if isfield(basicParamsStruct,'trxGraphicParams') && ...
-%          isfield(basicParamsStruct.trxGraphicParams,'extra_linestyle') && ...
-%          ~isempty(basicParamsStruct.trxGraphicParams.extra_linestyle),
-%         if ischar(basicParamsStruct.trxGraphicParams.extra_linestyle),
-%           extra_linestyle = regexp(basicParamsStruct.trxGraphicParams.extra_linestyle,',','split');
-%         else
-%           extra_linestyle = basicParamsStruct.trxGraphicParams.extra_linestyle;
-%         end
-%         if numel(extra_linestyle) < self.nextra_markers,
-%           warndlg('Number of extra linestyle entries less than number of extra markers', ...
-%                   'Problem parsing trxGraphicParams.extra_linestyle');
-%           self.flies_extra_linestyle = [extra_linestyle,...
-%             repmat({'None'},[1,self.nextra_markers-numel(extra_linestyle)])];
-%         else
-%           self.flies_extra_linestyle = extra_linestyle(1:self.nextra_markers);
-%         end  
-%       end
            
       for channel = 1:3
         midValue = self.labelunknowncolor(channel);
@@ -778,41 +575,11 @@ classdef JLabelGUIData < handle
 
       % play/stop
       self.hplaying = nan;
-      %self.play_FPS = 2;
-
-      %self.traj_nprev = 25;
-      %self.traj_npost = 25;
-
-      % whether to show trajectories
-      %set(handles.menu_view_plot_tracks,'Checked','on');
-      %handles.doplottracks = true;
 
       % bookmarked clips windows
       self.bookmark_windows = [];
 
-      % Just leave these alone, since they're already set
-      % % whether to plot manual labels or automatic labels
-      % self.plot_labels_manual = true;
-      % self.plot_labels_automatic = false;
-      % set(handles.menu_view_manual_labels,'Checked','on');
-      % set(handles.menu_view_automatic_labels,'Checked','off');
-
-%       buttonNames = {'pushbutton_train','pushbutton_predict',...
-%                     'togglebutton_select','pushbutton_clearselection',...
-%                     'pushbutton_playselection','pushbutton_playstop',...
-%                     'similarFramesButton','bagButton'};
-% 
-%       for buttonNum = 1:numel(buttonNames)
-%         %SetButtonImage(handles.(buttonNames{buttonNum}));
-%         adjustNonLabelButtonColor(handles.(buttonNames{buttonNum}));
-%       end
-
       self.doFastUpdates = true;
-      %set(handles.similarFramesButton,'Enable','off');
-
-      %SetGUIModeMenuChecks(handles);
-
-      %guidata(handles.figure_JLabel,handles);  % write handles to the guidata
     end  % method
     
     function debugDumpLabelButtonState(obj)
@@ -863,97 +630,7 @@ classdef JLabelGUIData < handle
 %     
       
     end
-%     % ---------------------------------------------------------------------
-%     function SaveScores(obj,allScores,expi,sfn)  %#ok
-%     % Save prediction scores for the whole experiment.
-%     % The scores are stored as a cell array.
-%     % This method should be a method of JLabelData
-%       if nargin< 4
-%        sfn = obj.data.GetFile('scores',expi,true);
-%       end
-%       %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
-% 
-%       %didbak = false;
-%       if exist(sfn,'file'),
-%         [didbak,msg] = copyfile(sfn,[sfn,'~']);
-%         if ~didbak,
-%           warning('Could not create backup of %s: %s',sfn,msg);  
-%         end
-%       end
-%       timestamp = obj.data.classifierTS;  %#ok
-%       version = obj.data.version;  %#ok
-%       if obj.data.userHasSpecifiedEverythingFileName, 
-%         jabFileNameAbs=obj.data.everythingFileNameAbs;  %#ok
-%       else
-%         error('User must specify a .jab file name before scores can be saved.');
-%       end
-%       save(sfn,'allScores','timestamp','version','jabFileNameAbs');
-%       %obj.data.ClearStatus();
-%     end  % method
-%     
-%     
-%     % ---------------------------------------------------------------------
-%     function PredictSaveMovie(obj,expi,sfn)
-%     % Predicts for the whole movie and saves the scores.
-%       if nargin < 3
-%         sfn = obj.data.GetFile('scores',expi);
-%       end
-%       allScores = obj.data.PredictWholeMovie(expi);
-%       obj.SaveScores(allScores,expi,sfn);
-%       obj.data.AddScores(expi,allScores,now(),'',true);
-%       
-%       if obj.data.predictdata{expi}{1}.loaded_valid(1),
-%         obj.data.LoadScores(expi,sfn);
-%       end
-%     end  % method
-%     
-%     
-%     % ---------------------------------------------------------------------
-%     function SaveCurScores(obj,expi,sfn)
-%     % Saves the current scores to a file.
-%       if nargin < 3
-%         sfn = obj.data.GetFile('scores',expi,true);
-%       end
-%     
-%       if ~obj.data.HasCurrentScores(),
-%         uiwait(warndlg('No scores to save'));
-%         return;
-%       end
-%       
-%       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-%         'postprocessed',{{}},'postprocessedparams',[]);
-%       scores_valid = true;
-%       for fly = 1:obj.data.nflies_per_exp(expi)
-%         
-%         curt = obj.data.predictdata{expi}{fly}.t;
-%         if any(curt(2:end)-curt(1:end-1) ~= 1)
-%           uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
-%           return;
-%         end
-%         
-%         if ~all(obj.data.predictdata{expi}{fly}.cur_valid), 
-%           scores_valid = false; 
-%           break; 
-%         end
-%         
-%         tStart = obj.data.firstframes_per_exp{expi}(fly);
-%         tEnd = obj.data.endframes_per_exp{expi}(fly);
-%         
-%         allScores.scores{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur;
-%         allScores.tStart(fly) = tStart;
-%         allScores.tEnd(fly) = tEnd;
-%         allScores.postprocessed{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur_pp;
-%       end
-%       
-%       if ~scores_valid,
-%         uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
-%          '%s. Cannot save the scores.'],obj.data.expnames{expi}));
-%         return;
-%       end
-%       allScores.postprocessedparams = obj.data.postprocessparams;
-%       allScores.scoreNorm = obj.data.windowdata.scoreNorm;
-%       obj.SaveScores(allScores,expi,sfn);      
-%     end  % method
     
   end
+  
 end
