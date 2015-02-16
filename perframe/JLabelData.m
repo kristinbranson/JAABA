@@ -473,8 +473,9 @@ classdef JLabelData < matlab.mixin.Copyable
   end
 
   
-  % -----------------------------------------------------------------------
-  methods  % getters and setters need to be in a methods block with no access specifiers
+  %% Getters/Setters
+  
+  methods
     
     function v = get.nclassifiers(self)
       v = self.ntimelines;
@@ -520,94 +521,135 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end
+ 
+  
+  %% Project Config
+  
+  methods
     
-  % -----------------------------------------------------------------------
-  methods %(Access=private)ALTODO: Should this block be private
-    
-    
-%     % ---------------------------------------------------------------------    
-%     function [success,msg] = setFeatureLexiconAndTargetSpeciesRaw(obj,featureLexicon,targetSpecies,varargin)
-%       % This sets the feature lexicon to the given one, and also sets the target species.  If the
-%       % featureLexicon is not one of the named ones, then either no
-%       % featureLexiconName should be given, or the name should be 'custom'.
-%             
-%       obj.targettype=targetSpecies;  % what species the targets are
-%       [success,msg] = ...
-%         obj.setFeatureLexiconAndFLName(featureLexicon,varargin{:});
-%     end  % method
-    
-    
-%     % ---------------------------------------------------------------------    
-%     function [success,msg] = setFeatureLexiconAndTargetSpeciesFromFLName(obj,featureLexiconName)
-%       % This sets the feature lexicon to the one named by
-%       % featureLexiconName
-%       
-% %       % Only do stuff if the new lexicon name is different than the current
-% %       % one
-% %       if isequal(featureLexiconName,obj.featureLexiconName)
-% %         success=true;
-% %         return
-% %       end
-%       
-%       % Get the lexicon itself and the associated animal type
-%       [featureLexicon,animalType]= ...
-%         featureLexiconFromFeatureLexiconName(featureLexiconName);     
-% 
-%       % Store the lexicon-associated stuff in obj
-%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,featureLexiconName);
-%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,featureLexiconName);
-%       
-%       % Set the animal type
-%       obj.targettype=animalType;
-%     end  % method
-    
-    
-%     % ---------------------------------------------------------------------    
-%     function [success,msg] = setFeatureLexiconAndFLName(obj,featureLexicon,featureLexiconName)
-%       % This sets the feature lexicon to the given one.  If the
-%       % featureLexicon is not one of the named ones, then either no
-%       % featureLexiconName should be given, or the name should be 'custom'.
-%       
-%       % process args
-%       if ~exist('featureLexiconName','var')
-%         featureLexiconName='custom';
+    % ---------------------------------------------------------------------
+    function setWindowFeaturesParams(obj,windowFeaturesParams)
+      % Updates the feature params.  Called after user clicks Done in 
+      % Select Features...
+      
+      % MERGESTUPDATED
+      
+      if iscell(windowFeaturesParams)
+        assert(numel(windowFeaturesParams)==obj.nclassifiers);
+      else
+        % convenience API, 'scalar expansion'
+        assert(isstruct(windowFeaturesParams) && isscalar(windowFeaturesParams));
+        windowFeaturesParams = repmat({windowFeaturesParams},1,obj.nclassifiers);
+      end
+            
+      obj.windowfeaturesparams = windowFeaturesParams;
+      obj.windowfeaturescellparams = cellfun(...
+        @JLabelData.convertParams2CellParams,windowFeaturesParams,'uni',0);
+      obj.curperframefns = cellfun(@fieldnames,windowFeaturesParams,'uni',0);
+      oldScoreNorm = {obj.windowdata.scoreNorm};
+
+      obj.clearClassifierProper();
+      obj.initWindowData();
+      obj.SetWindowFeatureNames();
+%       [success,msg]=obj.PreLoadPeriLabelWindowData();
+%       if ~success, 
+%         error('JLabelData:unableToLoadPerLabelWindowData',msg);
 %       end
-%       
-%       % Setup the default return values
-%       %success = false;
-%       msg = '';
-% 
-%       % Store the lexicon-associated stuff in obj
-%       obj.featureLexiconName=featureLexiconName;
-%       obj.featureLexicon=featureLexicon;  % save to obj
-%       %obj.targettype=targetSpecies;  % what species the targets are
-%       
-%       % Update obj.perframe_params based on the new feature lexicon
-%       if isfield(featureLexicon,'perframe_params'),
-%         obj.perframe_params=featureLexicon.perframe_params;
-%         % pf_fields = fieldnames(featureLexicon.perframe_params);
-%         % for ndx = 1:numel(pf_fields),
-%         %   obj.perframe_params.(pf_fields{ndx}) = ...
-%         %     featureLexicon.perframe_params.(pf_fields{ndx});
-%         % end
-%       end
-% 
-%       % Update obj.allperframefns based on the new feature lexicon
-%       obj.allperframefns =  fieldnames(featureLexicon.perframe);
-%       
-%       % Re-load the perframe feature signals, since the PFFs may have changed
-%       obj.loadPerframeData(obj.expi,obj.flies);
-% 
-%       % Clear the classifier, since the feature lexicon has changed
-%       % This also clears the features currently in use by the classifier
-%       % trainer
-%       obj.clearClassifierProper();
-%       
-%       % If we got this far, all is good
-%       obj.needsave=true;
-%       success = true;
-%     end  % method
+      obj.needsave = true;
+      
+      for iCls = 1:obj.nclassifiers
+        if obj.HasLoadedScores(iCls)
+            obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
+        end
+      end
+    end
     
+    
+    % ---------------------------------------------------------------------
+    function renameBehavior(obj,oldBeh,newBeh)
+      % oldBeh/newBeh: char, old/new behavior name
+      %
+      % This method operates atomically for now, eg if there is a throw it
+      % will occur before obj is modified.
+    
+      % Substance here is to update .labelnames, .labels, .labelidx,
+      % .otherModeLabelsEtc.labels.
+      
+      assert(ischar(oldBeh) && ischar(newBeh));
+
+      iCls = find(strcmp(oldBeh,obj.classifiernames));
+      if ~isscalar(iCls)
+        error('JLabelData:behaviorNotPresent',...
+          'Behavior ''%s'' is not present in the project.',oldBeh);
+      end
+      if strcmp(newBeh,oldBeh)
+        % no change
+        return;
+      end
+      if ~JLabelData.isValidBehaviorName(newBeh)
+        error('JLabelData:invalidBehaviorName',...
+          '''%s'' is an invalid behavior name.',newBeh);
+      end
+      if any(strcmp(newBeh,obj.labelnames))
+        error('JLabelData:duplicateName',...
+          'The project already contains a behavior with name ''%s''.',newBeh);
+      end
+      
+      % update .labelnames, .labels, .labelidx
+      nCls = obj.nclassifiers;
+      oldNoBeh = obj.labelnames{iCls+nCls};
+      newNoBeh = Labels.noneOrNoBehaviorName(newBeh,nCls);
+      assert(isequal(obj.labelidx.labelnames,obj.labelnames));
+      obj.labelnames{iCls} = newBeh;
+      obj.labelnames{iCls+nCls} = newNoBeh;
+      obj.labelidx.labelnames = obj.labelnames;
+      obj.labels = Labels.renameBehavior(obj.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
+      
+      if ~isempty(obj.otherModeLabelsEtc.labels)
+        warning('JLabelData:untestedCodepath',...
+          'Untested functionality: Updating other-mode labels.');
+          obj.otherModeLabelsEtc.labels = Labels.renameBehavior(...
+            obj.otherModeLabelsEtc.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
+      end
+      
+      obj.needsave = true;        
+    end
+        
+        
+    % ---------------------------------------------------------------------
+    function n = getBehaviorNames(obj)
+      n = obj.classifiernames;
+    end
+    
+    
+    function tf = isBehaviorName(obj,name)
+      % as opposed to no-behavior name
+      tf = any(strcmp(name,obj.classifiernames));
+    end
+    
+    
+    function tf = isNoBehaviorName(obj,name)
+      tf = any(strcmp(name,obj.nobehaviornames));      
+    end
+    
+    
+    function iCls = classifierIndexForName(obj,name)
+      tf = strcmp(name,obj.labelnames);
+      assert(nnz(tf)==1);
+      iCls = obj.labelidx.idxBeh2idxTL(tf);
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function result = isValidBehaviorName(behaviorName)
+      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
+        isvarname(behaviorName); 
+      % AL: second condition because labels.timelinetimestamp, see Labels.m
+    end
+     
+  end
+  
+  methods % more private
     
     % ---------------------------------------------------------------------    
     function setFeatureSublexicon(obj,featureLexicon,featureLexiconName,sublexiconPFNames)
@@ -770,6 +812,90 @@ classdef JLabelData < matlab.mixin.Copyable
     end
         
     
+     % ---------------------------------------------------------------------
+    function tf = getPerFrameFeatureSetIsNonEmpty(self)
+      % tf: nclassifiers-by-1 logical vec, true iff the current set of 
+      % per-frame features in use is non-empty, i.e. contains at least one per-frame feature.
+      tf = ~cellfun(@isempty,self.curperframefns);
+    end   
+    
+    
+    % ---------------------------------------------------------------------
+    function setScoreFeatures(obj,varargin)
+      % Update obj.scoreFeatures, preserving invariants. If an exception
+      % occurs, this function will roll back the object to its original
+      % state.
+      
+      %MERGEST OK
+
+      % Process arguments
+      if length(varargin)==1
+        scoreFeaturesNew = varargin{1};
+      elseif length(varargin)==3
+        % collect the args into a scorefeatures struct array
+        scoreFeaturesFileNameListNew = varargin{1};
+        timeStampListNew = varargin{2};
+        scoreFileBaseNameListNew = varargin{3};
+        scoreFeaturesNew = ...
+          collectScoreFeatures(scoreFeaturesFileNameListNew, ...
+                               timeStampListNew, ...
+                               scoreFileBaseNameListNew);
+      else
+        error('JLabelData:internalError', ...
+              'Internal error: Wrong number of arguments to JLabelData.setScoreFeatures()');
+      end
+      
+      scoreFeaturesOld = obj.scoreFeatures;
+      featureNamesInSubdialectOld = obj.allperframefns;
+      % Get some other things, in case we need to roll-back
+      perframeDataOld = obj.perframedata;
+      perframeUnitsOld = obj.perframeunits;
+
+      % Use try block, so we can easily roll back if anything goes amiss
+      try 
+        % determine which elements of each are kept, added
+        [kept,added] = ...
+          setDifferencesScoreFeatures(scoreFeaturesOld,scoreFeaturesNew);
+        deleted = ~kept;
+
+        % delete each of the deleted score features
+        scoreFeaturesDeleted = scoreFeaturesOld(deleted);
+        nDeleted = length(scoreFeaturesDeleted);
+        for i = 1:nDeleted
+          obj.deleteSingleScoreFeature(scoreFeaturesDeleted(i));
+        end
+
+        % add each of the added score features
+        scoreFeaturesAdded = scoreFeaturesNew(added);
+        nAdded = length(scoreFeaturesAdded);
+        for i = 1:nAdded
+          obj.addSingleScoreFeature(scoreFeaturesAdded(i));
+        end
+
+        % Re-load the perframe feature signals, since the PFFs may have changed
+        [success,msg] = obj.loadPerframeData(obj.expi,obj.flies);
+        if ~success
+          error('JLabelData:unableToSetScoreFeatures',msg);
+        end
+      catch excp
+        if isequal(excp.identifier,'JLabelData:unableToSetScoreFeatures') || ...
+           isequal(excp.identifier,'JLabelData:errorGeneratingPerframeFileFromScoreFile')
+          % unroll changes
+          obj.scoreFeatures = scoreFeaturesOld;
+          obj.allperframefns = featureNamesInSubdialectOld;
+          obj.perframedata = perframeDataOld;
+          obj.perframeunits = perframeUnitsOld;
+        end
+        % We always rethrow the exception, so the caller can inform the user
+        rethrow(excp);
+      end
+      
+      obj.clearClassifierProper();
+      
+      % note that we now have unsaved changes
+      obj.needsave = true;
+    end
+    
     
     function SetWindowFeatureNames(obj)
       % set windowdata.featurenames based on obj.curperframefns and
@@ -815,167 +941,94 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.ClearStatus();
 
     end  % method
-   
-    
-  end  % private methods
-
-  
-  % -----------------------------------------------------------------------
-  % -----------------------------------------------------------------------
-  methods (Access=public,Static=true)    
-    
-    % ---------------------------------------------------------------------
-    function result = isValidBehaviorName(behaviorName)
-      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
-        isvarname(behaviorName); 
-      % AL: second condition because labels.timelinetimestamp, see Labels.m
-    end
-     
-    
-%     % ------------------------------------------------------------------------
-%     function basicParams=basicParamsFromMacguffin(everythingParams)
-%       basicParams=struct();
-%       basicParams.featureLexiconName=everythingParams.featureLexiconName;
-%       basicParams.featureLexicon=everythingParams.featureLexicon;
-%       %basicParams.scoreFeatures=everythingParams.scoreFeatures;
-%       basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
-%       basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
-%       basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
-%       basicParams.file=everythingParams.file;
-%       basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
-%       basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
-%       basicParams.landmarkParams=everythingParams.landmarkParams;
-%     end    
-  end  % class methods
-  
-  
-  % -----------------------------------------------------------------------
-  methods (Access=public)
-    
-    
-% Configuration settings.
 
     
+    %     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesRaw(obj,featureLexicon,targetSpecies,varargin)
+%       % This sets the feature lexicon to the given one, and also sets the target species.  If the
+%       % featureLexicon is not one of the named ones, then either no
+%       % featureLexiconName should be given, or the name should be 'custom'.
+%             
+%       obj.targettype=targetSpecies;  % what species the targets are
+%       [success,msg] = ...
+%         obj.setFeatureLexiconAndFLName(featureLexicon,varargin{:});
+%     end  % method
     
-    % ---------------------------------------------------------------------
-    function renameBehavior(obj,oldBeh,newBeh)
-      % oldBeh/newBeh: char, old/new behavior name
-      %
-      % This method operates atomically for now, eg if there is a throw it
-      % will occur before obj is modified.
     
-      % Substance here is to update .labelnames, .labels, .labelidx,
-      % .otherModeLabelsEtc.labels.
-      
-      assert(ischar(oldBeh) && ischar(newBeh));
-
-      iCls = find(strcmp(oldBeh,obj.classifiernames));
-      if ~isscalar(iCls)
-        error('JLabelData:behaviorNotPresent',...
-          'Behavior ''%s'' is not present in the project.',oldBeh);
-      end
-      if strcmp(newBeh,oldBeh)
-        % no change
-        return;
-      end
-      if ~JLabelData.isValidBehaviorName(newBeh)
-        error('JLabelData:invalidBehaviorName',...
-          '''%s'' is an invalid behavior name.',newBeh);
-      end
-      if any(strcmp(newBeh,obj.labelnames))
-        error('JLabelData:duplicateName',...
-          'The project already contains a behavior with name ''%s''.',newBeh);
-      end
-      
-      % update .labelnames, .labels, .labelidx
-      nCls = obj.nclassifiers;
-      oldNoBeh = obj.labelnames{iCls+nCls};
-      newNoBeh = Labels.noneOrNoBehaviorName(newBeh,nCls);
-      assert(isequal(obj.labelidx.labelnames,obj.labelnames));
-      obj.labelnames{iCls} = newBeh;
-      obj.labelnames{iCls+nCls} = newNoBeh;
-      obj.labelidx.labelnames = obj.labelnames;
-      obj.labels = Labels.renameBehavior(obj.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
-      
-      if ~isempty(obj.otherModeLabelsEtc.labels)
-        warning('JLabelData:untestedCodepath',...
-          'Untested functionality: Updating other-mode labels.');
-          obj.otherModeLabelsEtc.labels = Labels.renameBehavior(...
-            obj.otherModeLabelsEtc.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
-      end
-      
-      obj.needsave = true;        
-    end
-        
-        
-    % ---------------------------------------------------------------------
-    function n = getBehaviorNames(obj)
-      n = obj.classifiernames;
-    end
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesFromFLName(obj,featureLexiconName)
+%       % This sets the feature lexicon to the one named by
+%       % featureLexiconName
+%       
+% %       % Only do stuff if the new lexicon name is different than the current
+% %       % one
+% %       if isequal(featureLexiconName,obj.featureLexiconName)
+% %         success=true;
+% %         return
+% %       end
+%       
+%       % Get the lexicon itself and the associated animal type
+%       [featureLexicon,animalType]= ...
+%         featureLexiconFromFeatureLexiconName(featureLexiconName);     
+% 
+%       % Store the lexicon-associated stuff in obj
+%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,featureLexiconName);
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,featureLexiconName);
+%       
+%       % Set the animal type
+%       obj.targettype=animalType;
+%     end  % method
     
-    function tf = isBehaviorName(obj,name)
-      % as opposed to no-behavior name
-      tf = any(strcmp(name,obj.classifiernames));
-    end
     
-    function tf = isNoBehaviorName(obj,name)
-      tf = any(strcmp(name,obj.nobehaviornames));      
-    end
-    
-    function iCls = classifierIndexForName(obj,name)
-      tf = strcmp(name,obj.labelnames);
-      assert(nnz(tf)==1);
-      iCls = obj.labelidx.idxBeh2idxTL(tf);
-    end
-    
-  end
-  
-  methods (Access=public)
-   
-    
-% Labels and predictions    
-    
-
-    
-    % ---------------------------------------------------------------------
-    function setWindowFeaturesParams(obj,windowFeaturesParams)
-      % Updates the feature params.  Called after user clicks Done in 
-      % Select Features...
-      
-      % MERGESTUPDATED
-      
-      if iscell(windowFeaturesParams)
-        assert(numel(windowFeaturesParams)==obj.nclassifiers);
-      else
-        % convenience API, 'scalar expansion'
-        assert(isstruct(windowFeaturesParams) && isscalar(windowFeaturesParams));
-        windowFeaturesParams = repmat({windowFeaturesParams},1,obj.nclassifiers);
-      end
-            
-      obj.windowfeaturesparams = windowFeaturesParams;
-      obj.windowfeaturescellparams = cellfun(...
-        @JLabelData.convertParams2CellParams,windowFeaturesParams,'uni',0);
-      obj.curperframefns = cellfun(@fieldnames,windowFeaturesParams,'uni',0);
-      oldScoreNorm = {obj.windowdata.scoreNorm};
-
-      obj.clearClassifierProper();
-      obj.initWindowData();
-      obj.SetWindowFeatureNames();
-%       [success,msg]=obj.PreLoadPeriLabelWindowData();
-%       if ~success, 
-%         error('JLabelData:unableToLoadPerLabelWindowData',msg);
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndFLName(obj,featureLexicon,featureLexiconName)
+%       % This sets the feature lexicon to the given one.  If the
+%       % featureLexicon is not one of the named ones, then either no
+%       % featureLexiconName should be given, or the name should be 'custom'.
+%       
+%       % process args
+%       if ~exist('featureLexiconName','var')
+%         featureLexiconName='custom';
 %       end
-      obj.needsave = true;
-      
-      for iCls = 1:obj.nclassifiers
-        if obj.HasLoadedScores(iCls)
-            obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
-        end
-      end
-    end
-    
+%       
+%       % Setup the default return values
+%       %success = false;
+%       msg = '';
+% 
+%       % Store the lexicon-associated stuff in obj
+%       obj.featureLexiconName=featureLexiconName;
+%       obj.featureLexicon=featureLexicon;  % save to obj
+%       %obj.targettype=targetSpecies;  % what species the targets are
+%       
+%       % Update obj.perframe_params based on the new feature lexicon
+%       if isfield(featureLexicon,'perframe_params'),
+%         obj.perframe_params=featureLexicon.perframe_params;
+%         % pf_fields = fieldnames(featureLexicon.perframe_params);
+%         % for ndx = 1:numel(pf_fields),
+%         %   obj.perframe_params.(pf_fields{ndx}) = ...
+%         %     featureLexicon.perframe_params.(pf_fields{ndx});
+%         % end
+%       end
+% 
+%       % Update obj.allperframefns based on the new feature lexicon
+%       obj.allperframefns =  fieldnames(featureLexicon.perframe);
+%       
+%       % Re-load the perframe feature signals, since the PFFs may have changed
+%       obj.loadPerframeData(obj.expi,obj.flies);
+% 
+%       % Clear the classifier, since the feature lexicon has changed
+%       % This also clears the features currently in use by the classifier
+%       % trainer
+%       obj.clearClassifierProper();
+%       
+%       % If we got this far, all is good
+%       obj.needsave=true;
+%       success = true;
+%     end  % method
+
   end
-    
+  
+  
   %% Experiment/Filesystem
 
   methods 
@@ -7508,6 +7561,21 @@ classdef JLabelData < matlab.mixin.Copyable
 %       obj.FindFastPredictParams();
 %     end  % setClassifierParamsOld() method
 
+%     % ------------------------------------------------------------------------
+%     function basicParams=basicParamsFromMacguffin(everythingParams)
+%       basicParams=struct();
+%       basicParams.featureLexiconName=everythingParams.featureLexiconName;
+%       basicParams.featureLexicon=everythingParams.featureLexicon;
+%       %basicParams.scoreFeatures=everythingParams.scoreFeatures;
+%       basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
+%       basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
+%       basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
+%       basicParams.file=everythingParams.file;
+%       basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
+%       basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
+%       basicParams.landmarkParams=everythingParams.landmarkParams;
+%     end    
+
   end
   
   
@@ -9771,102 +9839,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
   
   end
-  
-  %%
-  
-  methods
-    
-    
-  % Random stuff
-    
-    % ---------------------------------------------------------------------
-    function tf = getPerFrameFeatureSetIsNonEmpty(self)
-      % tf: nclassifiers-by-1 logical vec, true iff the current set of 
-      % per-frame features in use is non-empty, i.e. contains at least one per-frame feature.
-      tf = ~cellfun(@isempty,self.curperframefns);
-    end   
-    
-    
-    % ---------------------------------------------------------------------
-    function setScoreFeatures(obj,varargin)
-      % Update obj.scoreFeatures, preserving invariants. If an exception
-      % occurs, this function will roll back the object to its original
-      % state.
-      
-      %MERGEST OK
-
-      % Process arguments
-      if length(varargin)==1
-        scoreFeaturesNew = varargin{1};
-      elseif length(varargin)==3
-        % collect the args into a scorefeatures struct array
-        scoreFeaturesFileNameListNew = varargin{1};
-        timeStampListNew = varargin{2};
-        scoreFileBaseNameListNew = varargin{3};
-        scoreFeaturesNew = ...
-          collectScoreFeatures(scoreFeaturesFileNameListNew, ...
-                               timeStampListNew, ...
-                               scoreFileBaseNameListNew);
-      else
-        error('JLabelData:internalError', ...
-              'Internal error: Wrong number of arguments to JLabelData.setScoreFeatures()');
-      end
-      
-      scoreFeaturesOld = obj.scoreFeatures;
-      featureNamesInSubdialectOld = obj.allperframefns;
-      % Get some other things, in case we need to roll-back
-      perframeDataOld = obj.perframedata;
-      perframeUnitsOld = obj.perframeunits;
-
-      % Use try block, so we can easily roll back if anything goes amiss
-      try 
-        % determine which elements of each are kept, added
-        [kept,added] = ...
-          setDifferencesScoreFeatures(scoreFeaturesOld,scoreFeaturesNew);
-        deleted = ~kept;
-
-        % delete each of the deleted score features
-        scoreFeaturesDeleted = scoreFeaturesOld(deleted);
-        nDeleted = length(scoreFeaturesDeleted);
-        for i = 1:nDeleted
-          obj.deleteSingleScoreFeature(scoreFeaturesDeleted(i));
-        end
-
-        % add each of the added score features
-        scoreFeaturesAdded = scoreFeaturesNew(added);
-        nAdded = length(scoreFeaturesAdded);
-        for i = 1:nAdded
-          obj.addSingleScoreFeature(scoreFeaturesAdded(i));
-        end
-
-        % Re-load the perframe feature signals, since the PFFs may have changed
-        [success,msg] = obj.loadPerframeData(obj.expi,obj.flies);
-        if ~success
-          error('JLabelData:unableToSetScoreFeatures',msg);
-        end
-      catch excp
-        if isequal(excp.identifier,'JLabelData:unableToSetScoreFeatures') || ...
-           isequal(excp.identifier,'JLabelData:errorGeneratingPerframeFileFromScoreFile')
-          % unroll changes
-          obj.scoreFeatures = scoreFeaturesOld;
-          obj.allperframefns = featureNamesInSubdialectOld;
-          obj.perframedata = perframeDataOld;
-          obj.perframeunits = perframeUnitsOld;
-        end
-        % We always rethrow the exception, so the caller can inform the user
-        rethrow(excp);
-      end
-      
-      obj.clearClassifierProper();
-      
-      % note that we now have unsaved changes
-      obj.needsave = true;
-    end
-    
-    
-    
-  end  % End methods block
- 
- 
+   
 
 end
