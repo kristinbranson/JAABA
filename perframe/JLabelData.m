@@ -4452,7 +4452,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods (Static) % Experiment/Filesystem
+  %% Experiment/Filesystem
+  
+  methods (Static)
     
     % ---------------------------------------------------------------------
     function result = isValidScoreFileName(scoreFileName)
@@ -4479,7 +4481,7 @@ classdef JLabelData < matlab.mixin.Copyable
    
   end
   
-  methods (Static,Access=private) % Experiment/Filesystem
+  methods (Static,Access=private)
     
     function [tffound,filename,timestamp] = GetFileRaw(fileType,parentDir,fileNameLocal)
       % Look for a filename in a parent dir.
@@ -4528,7 +4530,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end 
   
-  methods % Tracking information
+  %% Tracking 
+  
+  methods
 
     % --------------------------------------------------------------------------
     function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
@@ -4957,7 +4961,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods (Static) % Tracking information
+  methods (Static)
     
      % --------------------------------------------------------------------------
     function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex,hasPerFrameSex] = ...
@@ -5023,7 +5027,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods % Windowdata 
+  %% WindowData
+  
+  methods
     
     
     function res = HasWindowdata(self,iCls)
@@ -5520,7 +5526,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods (Static) % WindowData
+  methods (Static)
     
     function [X,feature_names] = ...
       ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,...
@@ -5577,7 +5583,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods % Train/Predict (more public)
+  %% Train/Predict
+  
+  methods % (more public)
 
     % ---------------------------------------------------------------------
     function allScoresCell = PredictSaveMovie(self,expi,sfn)
@@ -6121,7 +6129,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods % Train/Predict (more private)
+  methods % (more private)
         
     
     % ---------------------------------------------------------------------
@@ -6655,7 +6663,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
   end
   
-  methods (Static,Access=private) % Train/Predict
+  methods (Static,Access=private)
     
     function tf = AllPredictedScoresValid(predDataExp,nclassifier)
       % predDataExp: JLD.predictdata for one experiment, eg
@@ -6681,7 +6689,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end  
   
-  methods % Save/Load/Import/Export
+  %% Save/Load/Import/Export
+  
+  methods 
     
     % ---------------------------------------------------------------------
     function openJabFile(self, ...
@@ -7405,7 +7415,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods % Evaluating performance
+  %% Evaluating performance
+  
+  methods
 
     % ---------------------------------------------------------------------
     function [success,msg,crossErrorCell,tlabels] = CrossValidate(obj,varargin)
@@ -7857,7 +7869,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
   end
   
-  methods (Access=private) % Evaluating performance
+  methods (Access=private)
     
     % ---------------------------------------------------------------------
     function errorRates = createConfMat(obj,iCls,scores,modLabels)
@@ -7913,7 +7925,9 @@ classdef JLabelData < matlab.mixin.Copyable
 
   end
   
-  methods % Show similar frames
+  %% Show Similar Frames
+  
+  methods
     
     % ---------------------------------------------------------------------
     function DoFastBagging(obj)
@@ -8456,7 +8470,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods (Access=private) % Show similar frames
+  methods (Access=private)
     
     % ---------------------------------------------------------------------
     function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
@@ -8650,7 +8664,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods % Fly and exp statistics
+  %% Fly and exp statistics
+  
+  methods
     
     % ---------------------------------------------------------------------
     function [stats,flyStats] = GetFlyStats(obj,expi,flyNum)
@@ -8911,8 +8927,10 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
   end
-    
-  methods % Ground truthing
+   
+  %% Ground truthing
+  
+  methods 
 
     % ---------------------------------------------------------------------
     function [success,msg] = setGTSuggestionMode(obj,modeString,varargin)
@@ -9219,7 +9237,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
   end
   
-  methods (Access=private) % Ground truthing
+  methods (Access=private) 
     
     % ---------------------------------------------------------------------
     function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
@@ -9490,8 +9508,10 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.GTSuggestionMode = 'Threshold';
     end
     
-end
+  end
     
+  %%
+  
   methods
     
 % Status display
