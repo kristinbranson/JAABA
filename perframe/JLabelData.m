@@ -1601,69 +1601,6 @@ classdef JLabelData < matlab.mixin.Copyable
         cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
       end
     end  % method
-
-    
-    % --------------------------------------------------------------------------
-    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex,hasPerFrameSex] = ...
-        readTrxInfoFromFile(trxFileName)
-      % Read the trx file
-      [trx,~,success] = load_tracks(trxFileName);
-      if ~success,
-        error('JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile', ...
-              'Unable to read .trx file');
-      end
-      
-      % Set the returned things which can be read directly from the .trx
-      % file
-      nFlies = numel(trx);
-      firstFrames = [trx.firstframe];
-      endFrames = [trx.endframe];
-      hasArenaParams=isfield(trx,'arena');
-      hasSex = isfield(trx,'sex');
-      hasPerFrameSex = false;
-        
-      % Compute fracSex and sex from the trx file contents
-      fracSex = struct('M',repmat({nan},[1 nFlies]), ...
-                       'F',repmat({nan},[1 nFlies]));
-      sex = repmat({'?'},[1 nFlies]);
-      if hasSex,
-        % this track file has sex
-        if nFlies==0,
-          hasPerFrameSex=true;  % vacuous truth
-        else
-          hasPerFrameSex = iscell(trx(1).sex);
-        end
-        if hasPerFrameSex,
-          % this trx file has per-frame sex
-          for iFly = 1:nFlies,
-            n = numel(trx(iFly).sex);
-            nMale = nnz(max(strcmpi(trx(iFly).sex,'M'),strcmpi(trx(iFly).sex,'male')));
-            nFemale = nnz(max(strcmpi(trx(iFly).sex,'F'),strcmpi(trx(iFly).sex,'female')));
-            fracSex(iFly).M = nMale/n;
-            fracSex(iFly).F = nFemale/n;
-            if nMale > nFemale,
-              sex{iFly} = 'M';
-            elseif nFemale > nMale,
-              sex{iFly} = 'F';
-            else
-              sex{iFly} = '?';
-            end
-          end
-        else
-          % this trx files does not have per-frame sex
-          for iFly = 1:nFlies,
-            sex{iFly} = trx(iFly).sex;
-            if strcmpi(trx(iFly).sex,'M'),
-              fracSex(iFly).M = 1;
-              fracSex(iFly).F = 0;
-            elseif strcmpi(trx(iFly).sex,'F'),
-              fracSex(iFly).M = 0;
-              fracSex(iFly).F = 1;
-            end
-          end
-        end
-      end
-    end  % method
     
     
     % ---------------------------------------------------------------------
@@ -1814,46 +1751,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function nflies = GetNumFlies(obj,expi)
       nflies = obj.nflies_per_exp(expi);
     end
-
     
-    % ---------------------------------------------------------------------
-    function firstframes = GetFirstFrames(obj,expi,flies)
-      
-      if nargin < 2,
-        firstframes = obj.firstframes_per_exp;
-      elseif nargin < 3,
-        firstframes = obj.firstframes_per_exp(expi);
-      else
-        firstframes = obj.firstframes_per_exp{expi}(flies);
-      end
-      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function endframes = GetEndFrames(obj,expi,flies)
-      
-      if nargin < 2,
-        endframes = obj.endframes_per_exp;
-      elseif nargin < 3,
-        endframes = obj.endframes_per_exp(expi);
-      else
-        endframes = obj.endframes_per_exp{expi}(flies);
-      end
-      
-    end
-
-    % ---------------------------------------------------------------------
-    function minFirstframes = GetMinFirstFrame(obj)
-      minFirstframes = min(obj.firstframes_per_exp{obj.expi});
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function maxEndframe = GetMaxEndFrame(obj)
-      maxEndframe = max(obj.endframes_per_exp{obj.expi});
-    end
-        
     
 % Configuration settings.
 
@@ -2707,413 +2605,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end    
 
     
-    
-% Tracking information   
-
-
-    % --------------------------------------------------------------------------
-    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
-    % [success,msg] = GetTrxInfo(obj,expi)
-    % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
-    % for experiment expi. This may require loading in trajectories. 
-      success = true;
-      msg = '';
-      if nargin < 3,
-        canusecache = true;
-      end
-%       canusecache = false;
-      istrxinput = nargin >= 4;
-      
-      obj.SetStatus('Reading trx info for experiment %s',obj.expdirs{expi});
-      if numel(obj.nflies_per_exp) < expi || ...
-          numel(obj.sex_per_exp) < expi || ...
-          numel(obj.frac_sex_per_exp) < expi || ...
-          numel(obj.firstframes_per_exp) < expi || ...
-          numel(obj.endframes_per_exp) < expi || ...
-          isnan(obj.nflies_per_exp(expi)),
-        if ~istrxinput,
-
-          trxfile = fullfile(obj.expdirs{expi},obj.GetFileName('trx'));
-          if ~exist(trxfile,'file'),
-            msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
-            success = false;
-            return;
-          else
-          
-            if isempty(obj.expi) || obj.expi == 0,
-              % TODO: make this work for multiple flies
-              obj.setCurrentTarget(expi,1);
-              trx = obj.trx;
-            elseif canusecache && expi == obj.expi,
-              trx = obj.trx;
-            else
-%               try
-                % REMOVE THIS
-                global CACHED_TRX; %#ok<TLEV>
-                global CACHED_TRX_EXPNAME; %#ok<TLEV>
-                if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-                    ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',...
-                    obj.expnames{expi}),'interpreter','none');
-                  trx = load_tracks(trxfile);
-                  if ishandle(hwait), delete(hwait); end
-                  CACHED_TRX = trx;
-                  CACHED_TRX_EXPNAME = obj.expnames{expi};
-                else
-                  fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-                  trx = CACHED_TRX;
-                end
-%               catch ME,
-%                 msg = sprintf(['Could not load trx file for experiment %s '...
-%                     'to count flies: %s'],obj.expdirs{expi},getReport(ME));
-%               end
-            end
-          end
-        end
-        
-        obj.nflies_per_exp(expi) = numel(trx);
-        obj.firstframes_per_exp{expi} = [trx.firstframe];
-        obj.endframes_per_exp{expi} = [trx.endframe];
-
-        obj.hassex = obj.hassex || isfield(trx,'sex');
-        
-        % store sex info
-        tmp = repmat({nan},[1,numel(trx)]);
-        obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
-        obj.sex_per_exp{expi} = repmat({'?'},[1,numel(trx)]);
-        if isfield(trx,'sex'),
-          obj.hasperframesex = iscell(trx(1).sex);
-          if obj.hasperframesex,
-            for fly = 1:numel(trx),
-              n = numel(trx(fly).sex);
-              nmale = nnz(strcmpi(trx(fly).sex,'M'));
-              nfemale = nnz(strcmpi(trx(fly).sex,'F'));
-              obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
-              obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
-              if nmale > nfemale,
-                obj.sex_per_exp{expi}{fly} = 'M';
-              elseif nfemale > nmale,
-                obj.sex_per_exp{expi}{fly} = 'F';
-              else
-                obj.sex_per_exp{expi}{fly} = '?';
-              end
-            end
-          else
-            for fly = 1:numel(trx),
-              obj.sex_per_exp{expi}{fly} = trx(fly).sex;
-              if strcmpi(trx(fly).sex,'M'),
-                obj.frac_sex_per_exp{expi}(fly).M = 1;
-                obj.frac_sex_per_exp{expi}(fly).F = 0;
-              elseif strcmpi(trx(fly).sex,'F'),
-                obj.frac_sex_per_exp{expi}(fly).M = 0;
-                obj.frac_sex_per_exp{expi}(fly).F = 1;
-              end
-            end
-          end
-        end
-      end
-      if isfield(trx,'arena')
-        obj.hasarenaparams(expi) = true;
-      else
-        obj.hasarenaparams(expi) = false;
-      end
-      
-      obj.ClearStatus();
-      
-    end
-
-    
-    % --------------------------------------------------------------------------
-    function out = GetTrxValues(obj,infoType,expi,flies,ts)
-    % A generic function that return track info.
-
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.setCurrentTarget(expi,1);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 4,     % No flies given
-        switch infoType
-          case 'Trx'
-            out = obj.trx;
-          case 'X'
-            out = {obj.trx.x};
-          case 'Y'
-            out = {obj.trx.y};
-          case 'A'
-            out = {obj.trx.a};
-          case 'B'
-            out = {obj.trx.b};
-          case 'Theta'
-            out = {obj.trx.theta};
-          otherwise
-            error('Incorrect infotype requested from GetTrxValues with less than 4 arguments');
-        end
-        return;
-
-      
-      elseif nargin < 5, % No ts given
-        switch infoType
-          case 'Trx'
-            out = obj.trx(flies);
-          case 'X'
-            out = {obj.trx(flies).x};
-          case 'Y'
-            out = {obj.trx(flies).y};
-          case 'A'
-            out = {obj.trx(flies).a};
-          case 'B'
-            out = {obj.trx(flies).b};
-          case 'Theta'
-            out = {obj.trx(flies).theta};
-          case 'X1'
-            out = [obj.trx(flies).x];
-          case 'Y1'
-            out = [obj.trx(flies).y];
-          case 'A1'
-            out = [obj.trx(flies).a];
-          case 'B1'
-            out = [obj.trx(flies).b];
-          case 'Theta1'
-            out = [obj.trx(flies).theta];
-          otherwise
-            error('Incorrect infotype requested from GetTrxValues');
-        end
-        return
-      else               % Everything is given
-        nflies = numel(flies);
-        fly = flies(1);
-        switch infoType
-          case 'Trx'
-            c = cell(1,nflies);
-            trx = struct('x',c,'y',c,'a',c,'b',c,'theta',c,'ts',c,'firstframe',c,'endframe',c);
-            for i = 1:numel(flies),
-              fly = flies(i);
-              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-              trx(i).x = obj.trx(fly).x(js);
-              trx(i).y = obj.trx(fly).y(js);
-              trx(i).a = obj.trx(fly).a(js);
-              trx(i).b = obj.trx(fly).b(js);
-              trx(i).theta = obj.trx(fly).theta(js);
-              trx(i).ts = js-obj.trx(fly).off;
-              trx(i).firstframe = trx(i).ts(1);
-              trx(i).endframe = trx(i).ts(end);
-            end
-            out = trx;
-          case 'X'
-            x = cell(1,nflies);
-            for i = 1:numel(flies),
-              fly = flies(i);
-              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-              x{i} = obj.trx(fly).x(js);
-            end
-            out = x;
-          case 'Y'
-            x = cell(1,nflies);
-            for i = 1:numel(flies),
-              fly = flies(i);
-              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-              x{i} = obj.trx(fly).y(js);
-            end
-            out = x;
-          case 'A'
-            x = cell(1,nflies);
-            for i = 1:numel(flies),
-              fly = flies(i);
-              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-              x{i} = obj.trx(fly).a(js);
-            end
-            out = x;
-          case 'B'
-            x = cell(1,nflies);
-            for i = 1:numel(flies),
-              fly = flies(i);
-              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-              x{i} = obj.trx(fly).b(js);
-            end
-            out = x;
-          case 'Theta'
-            x = cell(1,nflies);
-            for i = 1:numel(flies),
-              fly = flies(i);
-              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-              x{i} = obj.trx(fly).theta(js);
-            end
-            out = x;
-          case 'X1'
-            out = obj.trx(fly).x(ts + obj.trx(fly).off);
-          case 'Y1'
-            out = obj.trx(fly).y(ts + obj.trx(fly).off);
-          case 'A1'
-            out = obj.trx(fly).a(ts + obj.trx(fly).off);
-          case 'B1'
-            out = obj.trx(fly).b(ts + obj.trx(fly).off);
-          case 'Theta1'
-            out = obj.trx(fly).theta(ts + obj.trx(fly).off);
-          otherwise
-            error('Incorrect infotype requested from GetTrxValues');
-         end
-      end
-      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function pos = GetTrxPos1(varargin)
-    % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
-    % Returns the position for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-
-      % moved to separate file so that function could be easily modified
-      pos = JLabelData_GetTrxPos(varargin{:});
-
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function sex = GetSex(obj,expi,fly,ts,fast)
-    % x = GetSex(obj,expi,fly,ts)
-    % Returns the sex for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-
-      if ~obj.hassex,
-        sex = '?';
-        return;
-      end
-      
-      if nargin < 5,
-        fast = false;
-      end
-      
-      if ~obj.hasperframesex || fast,
-        sex = obj.sex_per_exp{expi}(fly);
-        return;
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.setCurrentTarget(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-      
-      if nargin < 4,
-        sex = obj.trx(fly).sex;
-        return;
-      end
-      
-      sex = obj.trx(fly).sex(ts + obj.trx(fly).off);
-
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function sex = GetSex1(obj,expi,fly,t)
-    % x = GetSex1(obj,expi,fly,t)
-    % Returns the sex for the input experiment, SINGLE fly, and
-    % SINGLE frame. 
-
-      if ~obj.hassex,
-        sex = '?';
-        return;
-      end
-            
-      if ~obj.hasperframesex,
-        sex = obj.sex_per_exp{expi}(fly);
-        if iscell(sex),
-          sex = sex{1};
-        end
-        return;
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.setCurrentTarget(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-            
-      sex = obj.trx(fly).sex{t + obj.trx(fly).off};
-
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function sexfrac = GetSexFrac(obj,expi,fly)
-    % x = GetSexFrac(obj,expi,fly)
-    % Returns a struct indicating the fraction of frames for which the sex
-    % of the fly is M, F
-
-      sexfrac = obj.frac_sex_per_exp{expi}(fly);
-
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function t0 = GetTrxFirstFrame(obj,expi,flies)
-    % t0 = GetTrxFirstFrame(obj,expi,flies)
-    % Returns the firstframes for the input experiment and flies. If flies
-    % is not input, then all flies are returned. 
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if nargin < 3,
-        t0 = obj.firstframes_per_exp{expi};
-        return;
-      end
-
-      t0 = obj.firstframes_per_exp{expi}(flies);
-      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function t1 = GetTrxEndFrame(obj,expi,flies)
-    % t1 = GetTrxEndFrame(obj,expi,flies)
-    % Returns the endframes for the input experiment and flies. If flies
-    % is not input, then all flies are returned. 
-
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if nargin < 3,
-        t1 = obj.endframes_per_exp{expi};
-        return;
-      end
-
-      t1 = obj.endframes_per_exp{expi}(flies);
-      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function SetConfidenceThreshold(obj,thresholds,ndx)
-      assert(obj.nclassifiers==1);
-      assert(isscalar(ndx) && any(ndx==[1 2]));
-      obj.confThresholds(1,ndx) = thresholds;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function t = GetConfidenceThreshold(obj,ndx)
-      % thresholds = GetConfidenceThreshold(obj,ndx)
-      % ndx: indices into handles.data.labelnames      
-      
-      t = obj.confThresholds(ndx); 
-    end
-    
-    
 % Labels and predictions    
     
 
@@ -3670,6 +3161,501 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
   end  
+  
+  methods % Tracking information
+
+    % --------------------------------------------------------------------------
+    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
+    % [success,msg] = GetTrxInfo(obj,expi)
+    % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
+    % for experiment expi. This may require loading in trajectories. 
+      success = true;
+      msg = '';
+      if nargin < 3,
+        canusecache = true;
+      end
+%       canusecache = false;
+      istrxinput = nargin >= 4;
+      
+      obj.SetStatus('Reading trx info for experiment %s',obj.expdirs{expi});
+      if numel(obj.nflies_per_exp) < expi || ...
+          numel(obj.sex_per_exp) < expi || ...
+          numel(obj.frac_sex_per_exp) < expi || ...
+          numel(obj.firstframes_per_exp) < expi || ...
+          numel(obj.endframes_per_exp) < expi || ...
+          isnan(obj.nflies_per_exp(expi)),
+        if ~istrxinput,
+
+          trxfile = fullfile(obj.expdirs{expi},obj.GetFileName('trx'));
+          if ~exist(trxfile,'file'),
+            msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
+            success = false;
+            return;
+          else
+          
+            if isempty(obj.expi) || obj.expi == 0,
+              % TODO: make this work for multiple flies
+              obj.setCurrentTarget(expi,1);
+              trx = obj.trx;
+            elseif canusecache && expi == obj.expi,
+              trx = obj.trx;
+            else
+%               try
+                % REMOVE THIS
+                global CACHED_TRX; %#ok<TLEV>
+                global CACHED_TRX_EXPNAME; %#ok<TLEV>
+                if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+                    ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',...
+                    obj.expnames{expi}),'interpreter','none');
+                  trx = load_tracks(trxfile);
+                  if ishandle(hwait), delete(hwait); end
+                  CACHED_TRX = trx;
+                  CACHED_TRX_EXPNAME = obj.expnames{expi};
+                else
+                  fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+                  trx = CACHED_TRX;
+                end
+%               catch ME,
+%                 msg = sprintf(['Could not load trx file for experiment %s '...
+%                     'to count flies: %s'],obj.expdirs{expi},getReport(ME));
+%               end
+            end
+          end
+        end
+        
+        obj.nflies_per_exp(expi) = numel(trx);
+        obj.firstframes_per_exp{expi} = [trx.firstframe];
+        obj.endframes_per_exp{expi} = [trx.endframe];
+
+        obj.hassex = obj.hassex || isfield(trx,'sex');
+        
+        % store sex info
+        tmp = repmat({nan},[1,numel(trx)]);
+        obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
+        obj.sex_per_exp{expi} = repmat({'?'},[1,numel(trx)]);
+        if isfield(trx,'sex'),
+          obj.hasperframesex = iscell(trx(1).sex);
+          if obj.hasperframesex,
+            for fly = 1:numel(trx),
+              n = numel(trx(fly).sex);
+              nmale = nnz(strcmpi(trx(fly).sex,'M'));
+              nfemale = nnz(strcmpi(trx(fly).sex,'F'));
+              obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
+              obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
+              if nmale > nfemale,
+                obj.sex_per_exp{expi}{fly} = 'M';
+              elseif nfemale > nmale,
+                obj.sex_per_exp{expi}{fly} = 'F';
+              else
+                obj.sex_per_exp{expi}{fly} = '?';
+              end
+            end
+          else
+            for fly = 1:numel(trx),
+              obj.sex_per_exp{expi}{fly} = trx(fly).sex;
+              if strcmpi(trx(fly).sex,'M'),
+                obj.frac_sex_per_exp{expi}(fly).M = 1;
+                obj.frac_sex_per_exp{expi}(fly).F = 0;
+              elseif strcmpi(trx(fly).sex,'F'),
+                obj.frac_sex_per_exp{expi}(fly).M = 0;
+                obj.frac_sex_per_exp{expi}(fly).F = 1;
+              end
+            end
+          end
+        end
+      end
+      if isfield(trx,'arena')
+        obj.hasarenaparams(expi) = true;
+      else
+        obj.hasarenaparams(expi) = false;
+      end
+      
+      obj.ClearStatus();
+      
+    end
+
+    
+    % --------------------------------------------------------------------------
+    function out = GetTrxValues(obj,infoType,expi,flies,ts)
+    % A generic function that return track info.
+
+      if numel(expi) ~= 1,
+        error('expi must be a scalar');
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.setCurrentTarget(expi,1);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+
+      if nargin < 4,     % No flies given
+        switch infoType
+          case 'Trx'
+            out = obj.trx;
+          case 'X'
+            out = {obj.trx.x};
+          case 'Y'
+            out = {obj.trx.y};
+          case 'A'
+            out = {obj.trx.a};
+          case 'B'
+            out = {obj.trx.b};
+          case 'Theta'
+            out = {obj.trx.theta};
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues with less than 4 arguments');
+        end
+        return;
+
+      
+      elseif nargin < 5, % No ts given
+        switch infoType
+          case 'Trx'
+            out = obj.trx(flies);
+          case 'X'
+            out = {obj.trx(flies).x};
+          case 'Y'
+            out = {obj.trx(flies).y};
+          case 'A'
+            out = {obj.trx(flies).a};
+          case 'B'
+            out = {obj.trx(flies).b};
+          case 'Theta'
+            out = {obj.trx(flies).theta};
+          case 'X1'
+            out = [obj.trx(flies).x];
+          case 'Y1'
+            out = [obj.trx(flies).y];
+          case 'A1'
+            out = [obj.trx(flies).a];
+          case 'B1'
+            out = [obj.trx(flies).b];
+          case 'Theta1'
+            out = [obj.trx(flies).theta];
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues');
+        end
+        return
+      else               % Everything is given
+        nflies = numel(flies);
+        fly = flies(1);
+        switch infoType
+          case 'Trx'
+            c = cell(1,nflies);
+            trx = struct('x',c,'y',c,'a',c,'b',c,'theta',c,'ts',c,'firstframe',c,'endframe',c);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              trx(i).x = obj.trx(fly).x(js);
+              trx(i).y = obj.trx(fly).y(js);
+              trx(i).a = obj.trx(fly).a(js);
+              trx(i).b = obj.trx(fly).b(js);
+              trx(i).theta = obj.trx(fly).theta(js);
+              trx(i).ts = js-obj.trx(fly).off;
+              trx(i).firstframe = trx(i).ts(1);
+              trx(i).endframe = trx(i).ts(end);
+            end
+            out = trx;
+          case 'X'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).x(js);
+            end
+            out = x;
+          case 'Y'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).y(js);
+            end
+            out = x;
+          case 'A'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).a(js);
+            end
+            out = x;
+          case 'B'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).b(js);
+            end
+            out = x;
+          case 'Theta'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).theta(js);
+            end
+            out = x;
+          case 'X1'
+            out = obj.trx(fly).x(ts + obj.trx(fly).off);
+          case 'Y1'
+            out = obj.trx(fly).y(ts + obj.trx(fly).off);
+          case 'A1'
+            out = obj.trx(fly).a(ts + obj.trx(fly).off);
+          case 'B1'
+            out = obj.trx(fly).b(ts + obj.trx(fly).off);
+          case 'Theta1'
+            out = obj.trx(fly).theta(ts + obj.trx(fly).off);
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues');
+         end
+      end
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function pos = GetTrxPos1(varargin)
+    % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
+    % Returns the position for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+
+      % moved to separate file so that function could be easily modified
+      pos = JLabelData_GetTrxPos(varargin{:});
+
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function sex = GetSex(obj,expi,fly,ts,fast)
+    % x = GetSex(obj,expi,fly,ts)
+    % Returns the sex for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+
+      if ~obj.hassex,
+        sex = '?';
+        return;
+      end
+      
+      if nargin < 5,
+        fast = false;
+      end
+      
+      if ~obj.hasperframesex || fast,
+        sex = obj.sex_per_exp{expi}(fly);
+        return;
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.setCurrentTarget(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        sex = obj.trx(fly).sex;
+        return;
+      end
+      
+      sex = obj.trx(fly).sex(ts + obj.trx(fly).off);
+
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function sex = GetSex1(obj,expi,fly,t)
+    % x = GetSex1(obj,expi,fly,t)
+    % Returns the sex for the input experiment, SINGLE fly, and
+    % SINGLE frame. 
+
+      if ~obj.hassex,
+        sex = '?';
+        return;
+      end
+            
+      if ~obj.hasperframesex,
+        sex = obj.sex_per_exp{expi}(fly);
+        if iscell(sex),
+          sex = sex{1};
+        end
+        return;
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.setCurrentTarget(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+            
+      sex = obj.trx(fly).sex{t + obj.trx(fly).off};
+
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function sexfrac = GetSexFrac(obj,expi,fly)
+    % x = GetSexFrac(obj,expi,fly)
+    % Returns a struct indicating the fraction of frames for which the sex
+    % of the fly is M, F
+
+      sexfrac = obj.frac_sex_per_exp{expi}(fly);
+
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function t0 = GetTrxFirstFrame(obj,expi,flies)
+    % t0 = GetTrxFirstFrame(obj,expi,flies)
+    % Returns the firstframes for the input experiment and flies. If flies
+    % is not input, then all flies are returned. 
+      if numel(expi) ~= 1,
+        error('expi must be a scalar');
+      end
+      
+      if nargin < 3,
+        t0 = obj.firstframes_per_exp{expi};
+        return;
+      end
+
+      t0 = obj.firstframes_per_exp{expi}(flies);
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function t1 = GetTrxEndFrame(obj,expi,flies)
+    % t1 = GetTrxEndFrame(obj,expi,flies)
+    % Returns the endframes for the input experiment and flies. If flies
+    % is not input, then all flies are returned. 
+
+      if numel(expi) ~= 1,
+        error('expi must be a scalar');
+      end
+      
+      if nargin < 3,
+        t1 = obj.endframes_per_exp{expi};
+        return;
+      end
+
+      t1 = obj.endframes_per_exp{expi}(flies);
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function firstframes = GetFirstFrames(obj,expi,flies)
+      
+      if nargin < 2,
+        firstframes = obj.firstframes_per_exp;
+      elseif nargin < 3,
+        firstframes = obj.firstframes_per_exp(expi);
+      else
+        firstframes = obj.firstframes_per_exp{expi}(flies);
+      end
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function endframes = GetEndFrames(obj,expi,flies)
+      
+      if nargin < 2,
+        endframes = obj.endframes_per_exp;
+      elseif nargin < 3,
+        endframes = obj.endframes_per_exp(expi);
+      else
+        endframes = obj.endframes_per_exp{expi}(flies);
+      end
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function minFirstframes = GetMinFirstFrame(obj)
+      minFirstframes = min(obj.firstframes_per_exp{obj.expi});
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function maxEndframe = GetMaxEndFrame(obj)
+      maxEndframe = max(obj.endframes_per_exp{obj.expi});
+    end
+    
+  end
+  
+  methods (Static) % Tracking information
+    
+     % --------------------------------------------------------------------------
+    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex,hasPerFrameSex] = ...
+        readTrxInfoFromFile(trxFileName)
+      % Read the trx file
+      [trx,~,success] = load_tracks(trxFileName);
+      if ~success,
+        error('JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile', ...
+              'Unable to read .trx file');
+      end
+      
+      % Set the returned things which can be read directly from the .trx
+      % file
+      nFlies = numel(trx);
+      firstFrames = [trx.firstframe];
+      endFrames = [trx.endframe];
+      hasArenaParams=isfield(trx,'arena');
+      hasSex = isfield(trx,'sex');
+      hasPerFrameSex = false;
+        
+      % Compute fracSex and sex from the trx file contents
+      fracSex = struct('M',repmat({nan},[1 nFlies]), ...
+                       'F',repmat({nan},[1 nFlies]));
+      sex = repmat({'?'},[1 nFlies]);
+      if hasSex,
+        % this track file has sex
+        if nFlies==0,
+          hasPerFrameSex=true;  % vacuous truth
+        else
+          hasPerFrameSex = iscell(trx(1).sex);
+        end
+        if hasPerFrameSex,
+          % this trx file has per-frame sex
+          for iFly = 1:nFlies,
+            n = numel(trx(iFly).sex);
+            nMale = nnz(max(strcmpi(trx(iFly).sex,'M'),strcmpi(trx(iFly).sex,'male')));
+            nFemale = nnz(max(strcmpi(trx(iFly).sex,'F'),strcmpi(trx(iFly).sex,'female')));
+            fracSex(iFly).M = nMale/n;
+            fracSex(iFly).F = nFemale/n;
+            if nMale > nFemale,
+              sex{iFly} = 'M';
+            elseif nFemale > nMale,
+              sex{iFly} = 'F';
+            else
+              sex{iFly} = '?';
+            end
+          end
+        else
+          % this trx files does not have per-frame sex
+          for iFly = 1:nFlies,
+            sex{iFly} = trx(iFly).sex;
+            if strcmpi(trx(iFly).sex,'M'),
+              fracSex(iFly).M = 1;
+              fracSex(iFly).F = 0;
+            elseif strcmpi(trx(iFly).sex,'F'),
+              fracSex(iFly).M = 0;
+              fracSex(iFly).F = 1;
+            end
+          end
+        end
+      end
+    end  % method   
+    
+  end
   
   methods % Windowdata 
     
@@ -4749,6 +4735,24 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end
    
+    
+    % ---------------------------------------------------------------------
+    function SetConfidenceThreshold(obj,thresholds,ndx)
+      assert(obj.nclassifiers==1);
+      assert(isscalar(ndx) && any(ndx==[1 2]));
+      obj.confThresholds(1,ndx) = thresholds;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function t = GetConfidenceThreshold(obj,ndx)
+      % thresholds = GetConfidenceThreshold(obj,ndx)
+      % ndx: indices into handles.data.labelnames      
+      
+      t = obj.confThresholds(ndx); 
+    end
+    
+    
   end
   
   methods % Train/Predict (more private)
