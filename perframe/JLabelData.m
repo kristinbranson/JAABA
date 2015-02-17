@@ -5151,7 +5151,7 @@ classdef JLabelData < matlab.mixin.Copyable
     end
 
     
-     % ---------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     function [prediction,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
       % Get the prediction for experiment expi, target flies, over the time
       % span from T0 to T1.  The returned prediction variable is a scalar
@@ -6139,9 +6139,10 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-        % ---------------------------------------------------------------------
-    function scores = GetValidatedScores(obj,expi,flies,T0,T1)
-      % scores: nclassifier-by-(T1-T0+1) array
+    % ---------------------------------------------------------------------
+    function scores = GetValidatedScores(obj,expi,flies,T0,T1,clsIdx)
+      % clsIdx: array of classifier indices. Defaults to 1:obj.nclassifiers.
+      % scores: numel(clsIdx)-by-(T1-T0+1) array
       
       %MERGESTUPDATED
       
@@ -6149,61 +6150,79 @@ classdef JLabelData < matlab.mixin.Copyable
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
+      if nargin<6
+        clsIdx = 1:obj.nclassifiers;
+      end
       
       n = T1-T0+1;
-      off = 1 - T0;
-      scores = zeros(obj.nclassifiers,n);
-      for iCls = 1:obj.nclassifiers
+      off = 1-T0;
+      nCls = numel(clsIdx);
+      scores = zeros(nCls,n); % AL: nan instead?
+      
+      for i = 1:nCls
+        iCls = clsIdx(i);
         wd = obj.windowdata(iCls);
         if ~isempty(wd.scores_validated)
           idxcurr = obj.FlyNdx(expi,flies,iCls) & wd.t>=T0 & wd.t<=T1;
-          scores(iCls,wd.t(idxcurr)+off) = wd.scores_validated(idxcurr);
+          scores(i,wd.t(idxcurr)+off) = wd.scores_validated(idxcurr);
         end
       end      
     end
  
   
     % ---------------------------------------------------------------------
-    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)
-      %MERGESTUPDATED      
-      if nargin<4
-        T0 = max(obj.GetTrxFirstFrame(expi,flies));
-        T1 = min(obj.GetTrxEndFrame(expi,flies));
-      end  
-      [scores,predictions] = obj.GetScoresCore(expi,flies,...
-        'loaded','loaded_valid','loaded_pp',T0,T1);
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1)
+    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1,clsIdx)
       %MERGESTUPDATED
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
-            
+      if nargin<6
+        clsIdx = 1:obj.nclassifiers;
+      end
+      
+      [scores,predictions] = obj.GetScoresCore(expi,flies,...
+        'loaded','loaded_valid','loaded_pp',T0,T1,clsIdx);
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1,clsIdx)
+      %MERGESTUPDATED
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+      if nargin<6
+        clsIdx = 1:obj.nclassifiers;
+      end
+      
       if obj.HasCurrentScores
         [scores,predictions] = obj.GetScoresCore(expi,flies,...
-          'cur','cur_valid','cur_pp',T0,T1);
+          'cur','cur_valid','cur_pp',T0,T1,clsIdx);
       else
-        [scores,predictions] = obj.GetLoadedScores(expi,flies,T0,T1);
+        [scores,predictions] = obj.GetLoadedScores(expi,flies,T0,T1,clsIdx);
       end      
     end
         
     
     % ---------------------------------------------------------------------
-    function scores = GetOldScores(obj,expi,flies)
+    function scores = GetOldScores(obj,expi,flies,clsIdx)
+      if nargin<4
+        clsIdx = 1:obj.nclassifiers;
+      end
+      
       %MERGESTUPDATED
+      
       T0 = max(obj.GetTrxFirstFrame(expi,flies));
       T1 = min(obj.GetTrxEndFrame(expi,flies));
-      scores = obj.GetScoresCore(expi,flies,'old','old_valid','old_valid',T0,T1);
+      scores = obj.GetScoresCore(expi,flies,'old','old_valid','old_valid',T0,T1,clsIdx);
       % Using arbitrary/random field old_valid for fldPP; this arg only
       % used for computing predictions, which we are not using
     end
 
     
-        % ---------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     function [stats,flyStats] = GetFlyStats(obj,expi,flyNum)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
@@ -6380,25 +6399,33 @@ classdef JLabelData < matlab.mixin.Copyable
 
    
     % ---------------------------------------------------------------------
-    function scores = NormalizeScores(obj,scores)
+    function scores = NormalizeScores(obj,scores,clsIdx)
+      % scores: numel(clsIdx)-by-nsamp score array
+      % clsIdx: vector of classifier indices labeling rows of scores. 
+      % Defaults to 1:obj.nclassifiers.
+      % 
       % Normalize the given scores, using the scoreNorm value in self.
       % Seems like it might make sense to add an option to all the
       % methods that get scores out of the JLabelData option, so that
       % callers can request normalized scores, and then make this a private
       % function.  --ALT, Apr 19, 2013   
       %
-      % Effect: scores normalized. Each row scores(iCls,:) normalized by
-      % obj.windowdata(iCls).scoreNorm.
+      % Effect: scores normalized. Each row scores(i,:) normalized by
+      % obj.windowdata(clsIdx(i)).scoreNorm.
       %
       % Side effect: obj.windowdata(:).scoreNorm initialized if necessary,
       % using obj.windowdata(:).X and current classifiers
       
       %MERGESTUPDATED
       
-      nCls = obj.nclassifiers;
-      assert(isequal(nCls,size(scores,1),numel(obj.windowdata),numel(obj.classifier)));
+      if ~exist('clsIdx','var')
+        clsIdx = 1:obj.nclassifiers;
+      end
+      nCls = numel(clsIdx);
+      assert(size(scores,1)==nCls);
 
-      for iCls = 1:nCls
+      for i = 1:nCls
+        iCls = clsIdx(i);
         cls = obj.classifier{iCls};
         
         if isempty(obj.windowdata(iCls).scoreNorm) || isnan(obj.windowdata(iCls).scoreNorm)
@@ -6421,14 +6448,14 @@ classdef JLabelData < matlab.mixin.Copyable
         end
 
         scoreNorm = obj.windowdata(iCls).scoreNorm;
-        tfSm = scores(iCls,:)<-scoreNorm;
-        tfLg = scores(iCls,:)>scoreNorm;
-        scores(iCls,tfSm) = -scoreNorm;
-        scores(iCls,tfLg) = scoreNorm;
-        scores(iCls,:) = scores(iCls,:)/scoreNorm;
-        % isnan(scoreNorm) => scores(iCls,:) is nan
+        tfSm = scores(i,:)<-scoreNorm;
+        tfLg = scores(i,:)>scoreNorm;
+        scores(i,tfSm) = -scoreNorm;
+        scores(i,tfLg) = scoreNorm;
+        scores(i,:) = scores(i,:)/scoreNorm;
+        % isnan(scoreNorm) => scores(i,:) is nan
       end
-    end  % method
+    end
     
     
     % ---------------------------------------------------------------------
@@ -6596,25 +6623,32 @@ classdef JLabelData < matlab.mixin.Copyable
   end
   
   methods (Access=private)
+    
     function [scores,predictions] = GetScoresCore(obj,expi,flies,...
-        fld,fldValid,fldPP,T0,T1)
-      % scores: nclassifier-by-(T1-T0+1)
-      % predictions: nclassifier-by-(T1-T0+1). fldPP only needed to compute
-      % predictions.
+        fld,fldValid,fldPP,T0,T1,clsIdx)
+      % clsIdx: array of classifier indices. Defaults to 1:obj.nclassifiers.
+      %
+      % scores: numel(clsIdx)-by-(T1-T0+1) 
+      % predictions: numel(clsIdx)-by-(T1-T0+1). fldPP only needed to 
+      % compute predictions.
+      
+      if ~exist('clsIdx','var')
+        clsIdx = 1:obj.nclassifiers;
+      end
 
       n = T1-T0+1;
-      off = 1 - T0;
-
+      off = 1-T0;
       pdArr = obj.predictdata{expi}{flies};
-      nTL = obj.ntimelines;
-      assert(numel(pdArr)==nTL);
-      scores = zeros(nTL,n);
-      predictions = zeros(nTL,n);
-      for iTL = 1:nTL
+      nCls = numel(clsIdx);
+
+      scores = zeros(nCls,n); % AL: nan instead?
+      predictions = zeros(nCls,n); % AL: nan instead?
+      for i = 1:nCls
+        iTL = clsIdx(i);
         pd = pdArr(iTL);
         idxcurr = pd.(fldValid) & pd.t>=T0 & pd.t<=T1;
-        scores(iTL,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
-        predictions(iTL,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
+        scores(i,pd.t(idxcurr)+off) = pd.(fld)(idxcurr);
+        predictions(i,pd.t(idxcurr)+off) = 2-pd.(fldPP)(idxcurr);
       end
     end
   end
