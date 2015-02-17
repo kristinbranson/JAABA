@@ -38,6 +38,8 @@ if usePastOnly,
   end  
 end
 
+scores = scores(:)';
+
 posts = PostProcessor.PostProcess(scores,postProcessParams,scoreNorm);
 [t0s,t1s] = get_interval_ends(posts);
 
