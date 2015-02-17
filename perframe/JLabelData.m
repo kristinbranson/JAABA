@@ -4912,6 +4912,8 @@ classdef JLabelData < matlab.mixin.Copyable
      
       %MERGESTUPDATED
       
+      assert(~obj.isST,'Time-restricted prediction unsupported for multi-classifier projects.');
+      
       % TODO: don't store window data just because predicting. 
 
       if isempty(t0) || t0>t1
@@ -4966,6 +4968,8 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % MERGESTUPDATED
       
+      assert(isscalar(expi));
+
       if isempty(obj.classifier)
         return;
       end
@@ -4982,80 +4986,95 @@ classdef JLabelData < matlab.mixin.Copyable
       
         obj.SetStatus(sprintf('Classifying movie %d:%s, %s...',expi,...
           obj.expnames{expi},clsNames{iCls}));
-
-        windowfeaturescellparams = obj.fastPredict(iCls).windowfeaturescellparams;
-        curperframefns = obj.fastPredict(iCls).pffs;
-        classifier = obj.fastPredict(iCls).classifier;
-        if ~obj.fastPredict(iCls).wfidx_valid
-          [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-            allperframefns,perframefile,1,windowfeaturescellparams,1,1);
-          obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(...
-            obj.fastPredict(iCls),feature_names);
-        end
-        wfidx = obj.fastPredict(iCls).wfidx;
         
-        %       tfile = tempname();
-        %       wbar = waitbar(0,'Predicting..');
-        %       pause(0.01);
-        scoresA = cell(1,numFlies);
-        postprocessedscoresA = cell(1,numFlies);
-        parfor flies = 1:numFlies
-          blockSize = 5000*2;
-          tStart = tStartAll(flies);
-          tEnd = tEndAll(flies);
+        if obj.isST
+          expdir = obj.expdirs{expi};
+          classifier = obj.classifier{iCls};
+          ppParams = obj.postprocessparams{iCls};
+          scoreNorm = obj.windowdata(iCls).scoreNorm;
+          usePastOnly = obj.usePastOnly;
           
-          scores = nan(1,tEnd);
-          
-          if tEnd-tStart < 3,
-            scores(tStart:tEnd) = -1;
-            fprintf('Not predicting for %d fly, Trajectory is too short\n',flies);
-          else            
-            for curt0 = tStart:blockSize:tEnd
-              curt1 = min(curt0+blockSize-1,tEnd);
-              X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-                allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
-              
-              scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
-            end
-            %         fid = fopen(tfile,'a');
-            %         fprintf(fid,'.');
-            %         fclose(fid);
-            %         fid = fopen(tfile,'r');
-            %         xx = fgetl(fid);
-            %         fclose(fid);
-            %         numdone = numel(xx);
-            %         waitbar(numdone/numFlies,wbar);
-            fprintf('Prediction done for %s: %d fly, total number of flies:%d\n',clsNames{iCls},flies,numFlies);
+          allScores = classifySTCore(expdir,classifier,ppParams,...
+            scoreNorm,'usePastOnly',usePastOnly,'numTargets',numFlies);
+          assert(all(tStartAll==allScores.tStart)); % allScores.tStart currently hardcoded to 1 in classifySTCore
+          assert(all(tEndAll==allScores.tEnd));
+          allScoresCell{iCls} = allScores;
+        else
+          windowfeaturescellparams = obj.fastPredict(iCls).windowfeaturescellparams;
+          curperframefns = obj.fastPredict(iCls).pffs;
+          classifier = obj.fastPredict(iCls).classifier;
+          if ~obj.fastPredict(iCls).wfidx_valid
+            [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+              allperframefns,perframefile,1,windowfeaturescellparams,1,1);
+            obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(...
+              obj.fastPredict(iCls),feature_names);
           end
-          scoresA{flies} = scores;
-        end        
-        for flies = 1:numFlies
-          % AL: not sure why this isn't in the parfor
-          postprocessedscoresA{flies} = nan(1,tEndAll(flies));
-          postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
-            PostProcessor.PostProcess(scoresA{flies}(tStartAll(flies):tEndAll(flies)),...
-            obj.postprocessparams{iCls},obj.windowdata(iCls).scoreNorm);
+          wfidx = obj.fastPredict(iCls).wfidx;
+          
+          %       tfile = tempname();
+          %       wbar = waitbar(0,'Predicting..');
+          %       pause(0.01);
+          scoresA = cell(1,numFlies);
+          postprocessedscoresA = cell(1,numFlies);
+          parfor flies = 1:numFlies
+            blockSize = 5000*2;
+            tStart = tStartAll(flies);
+            tEnd = tEndAll(flies);
+            
+            scores = nan(1,tEnd);
+            
+            if tEnd-tStart < 3,
+              scores(tStart:tEnd) = -1;
+              fprintf('Not predicting for %d fly, Trajectory is too short\n',flies);
+            else
+              for curt0 = tStart:blockSize:tEnd
+                curt1 = min(curt0+blockSize-1,tEnd);
+                X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+                  allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
+                
+                scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
+              end
+              %         fid = fopen(tfile,'a');
+              %         fprintf(fid,'.');
+              %         fclose(fid);
+              %         fid = fopen(tfile,'r');
+              %         xx = fgetl(fid);
+              %         fclose(fid);
+              %         numdone = numel(xx);
+              %         waitbar(numdone/numFlies,wbar);
+              fprintf('Prediction done for %s: %d fly, total number of flies:%d\n',clsNames{iCls},flies,numFlies);
+            end
+            scoresA{flies} = scores;
+          end
+          for flies = 1:numFlies
+            % AL: not sure why this isn't in the parfor
+            postprocessedscoresA{flies} = nan(1,tEndAll(flies));
+            postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
+              PostProcessor.PostProcess(scoresA{flies}(tStartAll(flies):tEndAll(flies)),...
+              obj.postprocessparams{iCls},obj.windowdata(iCls).scoreNorm);
+          end
+          
+          allScores = struct; % See ScoreFile.allScrs
+          allScores.scores = scoresA;
+          allScores.tStart = tStartAll;
+          allScores.tEnd = tEndAll;
+          allScores.postprocessed = postprocessedscoresA;
+          allScores.postprocessparams = obj.postprocessparams{iCls};
+          for flies = 1:numFlies
+            [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
+            allScores.t0s{flies} = i0s;
+            allScores.t1s{flies} = i1s;
+          end
+          allScores.scoreNorm = obj.windowdata(iCls).scoreNorm;
+          
+          allScoresCell{iCls} = allScores;
         end
         
-        allScores = struct; % See ScoreFile.allScrs
-        allScores.scores = scoresA;
-        allScores.tStart = tStartAll;
-        allScores.tEnd = tEndAll;
-        allScores.postprocessed = postprocessedscoresA;
-        allScores.postprocessparams = obj.postprocessparams{iCls};
-        for flies = 1:numFlies
-          [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
-          allScores.t0s{flies} = i0s;
-          allScores.t1s{flies} = i1s;
-        end
-        allScores.scoreNorm = obj.windowdata(iCls).scoreNorm;
-        
-        allScoresCell{iCls} = allScores;
       end
       
       obj.ClearStatus();
     end
-    
+   
     
     % ---------------------------------------------------------------------
     function PredictWholeMovieNoSave(obj,expi)
@@ -5069,10 +5088,12 @@ classdef JLabelData < matlab.mixin.Copyable
     % Predicts for the whole movie and saves the scores.
     % 
     % expi: scalar, index of movie to predict
-    % sfn: Either cellstr of length self.nclassifiers containing score
-    %   filenames, or 0, in which case scores are not saved (but are returned)
+    % sfn: Optional. Either cellstr of length self.nclassifiers containing 
+    %   scorefilenames, or 0, in which case scores are not saved (but are 
+    %   returned). If not supplied, current/default scorefilenames for expi 
+    %   are used.
     %
-    % allScoresCell: cell array of lenght self.nclassifiers containing
+    % allScoresCell: cell array of length self.nclassifiers containing
     % scores for each classifier
     
     % MERGESTUPDATED
@@ -5120,7 +5141,11 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       self.AddScores(expi,allScoresCell,true);
       
-      if self.predictdata{expi}{1}(1).loaded_valid(1) % AL: not sure what intent is here
+      if self.predictdata{expi}{1}(1).loaded_valid(1) 
+        % AL: not sure what intent is here; guess condition is whether 
+        % scores have been loaded before. But we have already called 
+        % .AddScores, so why load on top of the previously loaded scores,
+        % which may be different?
         self.LoadScores(expi,sfn);
       end
     end
@@ -5793,8 +5818,12 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function AddScores(obj,expi,allScoresCell,updateCurrent) 
-      % Set .predictdata from allScores
+      % Set .predictdata from allScoresCell
+      %
       % allScoresCell: cell array of length nclassifiers
+      % updateCurrent: logical scalar. If true, then .predictdata{}{}().cur
+      % and .cur_valid are updated; otherwise, .loaded and .loaded_valid
+      % are updated.
       % 
       % This sure seems like it should be a private method, but it's called
       % by JLabelGUIData.  -- ALT, Apr 18, 2013
@@ -5806,17 +5835,25 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       assert(iscell(allScoresCell) && numel(allScoresCell)==obj.ntimelines);
       
+      if updateCurrent
+        fldScore = 'cur';
+        fldValid = 'cur_valid';
+      else
+        fldScore = 'loaded';
+        fldValid = 'loaded_valid';
+      end
+        
       obj.SetStatus('Updating Predictions ...');
         
       for ibeh = 1:obj.ntimelines
         nFly = numel(allScoresCell{ibeh}.scores);
-        assert(nFly==numel(obj.predictdata{expi}));
+        assert(isequal(nFly,obj.GetNumFlies(expi),numel(obj.predictdata{expi})));
         for ndx = 1:nFly
           tStart = allScoresCell{ibeh}.tStart(ndx);
           tEnd = allScoresCell{ibeh}.tEnd(ndx);
           curScores = allScoresCell{ibeh}.scores{ndx}(tStart:tEnd);
           Nscore = tEnd-tStart+1;
-          Npredict = numel(obj.predictdata{expi}{ndx}(ibeh).loaded_valid);
+          Npredict = numel(obj.predictdata{expi}{ndx}(ibeh).(fldValid));
           if Npredict < Nscore
             warningNoTrace('JLabelData:scoreSizeMismatch',...
               'Scores for experiment %d, behavior %d, fly %d have more elements (%d) than expected (%d). Truncating scores.',...
@@ -5828,13 +5865,8 @@ classdef JLabelData < matlab.mixin.Copyable
               expi,ibeh,ndx,Nscore,Npredict);
             curScores(end+1:Npredict) = nan;
           end
-          if updateCurrent
-            obj.predictdata{expi}{ndx}(ibeh).cur(:) = curScores;
-            obj.predictdata{expi}{ndx}(ibeh).cur_valid(:) = true;
-          else
-            obj.predictdata{expi}{ndx}(ibeh).loaded(:) = curScores;
-            obj.predictdata{expi}{ndx}(ibeh).loaded_valid(:) = true;
-          end
+          obj.predictdata{expi}{ndx}(ibeh).(fldScore)(:) = curScores;
+          obj.predictdata{expi}{ndx}(ibeh).(fldValid)(:) = true;
         end
       end
 
