@@ -467,6 +467,7 @@ classdef JLabelData < matlab.mixin.Copyable
     nTargetsInCurrentExp
     ismovie    % true iff the movie file name is nonempty.  If movie file name is empty, it means we don't try to open movies.
     nclassifiers
+    isMultiClassifier
     classifiernames % 1-by-nclassifiers cellstr
     nobehaviornames % 1-by-nclassifiers cellstr  
     iCls2LblNames % nclassifiers-by-1 cell array, each el is 1-by-2 cellstr
@@ -479,6 +480,10 @@ classdef JLabelData < matlab.mixin.Copyable
     
     function v = get.nclassifiers(self)
       v = self.ntimelines;
+    end
+    
+    function v = get.isMultiClassifier(self)
+      v = self.nclassifiers>1;
     end
     
     function v = get.classifiernames(self)
@@ -4678,67 +4683,6 @@ classdef JLabelData < matlab.mixin.Copyable
   
   methods % (more public)
 
-    % ---------------------------------------------------------------------
-    function allScoresCell = PredictSaveMovie(self,expi,sfn)
-    % Predicts for the whole movie and saves the scores.
-    % 
-    % expi: scalar, index of movie to predict
-    % sfn: Either cellstr of length self.nclassifiers containing score
-    %   filenames, or 0, in which case scores are not saved (but are returned)
-    %
-    % allScoresCell: cell array of lenght self.nclassifiers containing
-    % scores for each classifier
-    
-    % MERGESTUPDATED
-          
-      if nargin < 3
-        sfn = self.GetFile('scores',expi);
-      end
-      assert(isequal(sfn,0) || iscellstr(sfn) && numel(sfn)==self.nclassifiers);
-      tfSaveScores = iscellstr(sfn);
-
-      pdExp = self.predictdata{expi};
-      nFly = self.nflies_per_exp(expi);
-      firstFrms = self.firstframes_per_exp{expi};
-      endFrms = self.endframes_per_exp{expi};
-      assert(iscell(pdExp) && numel(pdExp)==nFly);
-      assert(isequal(nFly,numel(firstFrms),numel(endFrms)));
-      
-      tf = JLabelData.AllPredictedScoresValid(pdExp,self.nclassifiers);
-      if ~all(tf)
-        allScoresCell = self.PredictWholeMovie(expi);
-      else        
-        self.SetStatus(sprintf('Exporting existing scores for movie %d:%s...',expi,self.expnames{expi}));
-                
-        % compile allScores from prediction data
-        allScoresCell = cell(self.nclassifiers,1);
-        for iCls = 1:self.nclassifiers
-          allScores = ScoreFile.allScrs(nFly);
-          allScores = ScoreFile.AllScrsInitFromPredData(allScores,pdExp,iCls,firstFrms,endFrms);
-          allScores.postprocessparams = self.postprocessparams{iCls};
-          allScores.scoreNorm = self.windowdata(iCls).scoreNorm;
-          allScoresCell{iCls} = allScores;
-        end
-      end
-      
-      if tfSaveScores
-        try
-          self.SaveScores(allScoresCell,sfn);
-        catch ME
-          if nargout > 0
-            warning('Could not save scores for experiment %s: %s',self.expnames{expi},getReport(ME));
-          else
-            error(getReport(ME));
-          end
-        end
-      end
-      self.AddScores(expi,allScoresCell,true);
-      
-      if self.predictdata{expi}{1}(1).loaded_valid(1) % AL: not sure what intent is here
-        self.LoadScores(expi,sfn);
-      end
-    end
-
     
     % ---------------------------------------------------------------------
     function Train(obj,doFastUpdates,timerange)
@@ -4957,12 +4901,6 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.needsave = true;
     end
-    
-    
-    % ---------------------------------------------------------------------
-    function predictForCurrentTargetAndTimeSpan(obj)
-      obj.Predict(obj.expi,obj.flies,obj.t0_curr,obj.t1_curr)
-    end
       
     
     % ---------------------------------------------------------------------
@@ -5013,6 +4951,12 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.ClearStatus();
     end
       
+    
+    % ---------------------------------------------------------------------
+    function predictForCurrentTargetAndTimeSpan(obj)
+      obj.Predict(obj.expi,obj.flies,obj.t0_curr,obj.t1_curr)
+    end
+    
     
     % ---------------------------------------------------------------------
     function allScoresCell = PredictWholeMovie(obj,expi)
@@ -5119,6 +5063,68 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.AddScores(expi,allScores,true);
     end
     
+    
+    % ---------------------------------------------------------------------
+    function allScoresCell = PredictSaveMovie(self,expi,sfn)
+    % Predicts for the whole movie and saves the scores.
+    % 
+    % expi: scalar, index of movie to predict
+    % sfn: Either cellstr of length self.nclassifiers containing score
+    %   filenames, or 0, in which case scores are not saved (but are returned)
+    %
+    % allScoresCell: cell array of lenght self.nclassifiers containing
+    % scores for each classifier
+    
+    % MERGESTUPDATED
+          
+      if nargin < 3
+        sfn = self.GetFile('scores',expi);
+      end
+      assert(isequal(sfn,0) || iscellstr(sfn) && numel(sfn)==self.nclassifiers);
+      tfSaveScores = iscellstr(sfn);
+
+      pdExp = self.predictdata{expi};
+      nFly = self.nflies_per_exp(expi);
+      firstFrms = self.firstframes_per_exp{expi};
+      endFrms = self.endframes_per_exp{expi};
+      assert(iscell(pdExp) && numel(pdExp)==nFly);
+      assert(isequal(nFly,numel(firstFrms),numel(endFrms)));
+      
+      tf = JLabelData.AllPredictedScoresValid(pdExp,self.nclassifiers);
+      if ~all(tf)
+        allScoresCell = self.PredictWholeMovie(expi);
+      else        
+        self.SetStatus(sprintf('Exporting existing scores for movie %d:%s...',expi,self.expnames{expi}));
+                
+        % compile allScores from prediction data
+        allScoresCell = cell(self.nclassifiers,1);
+        for iCls = 1:self.nclassifiers
+          allScores = ScoreFile.allScrs(nFly);
+          allScores = ScoreFile.AllScrsInitFromPredData(allScores,pdExp,iCls,firstFrms,endFrms);
+          allScores.postprocessparams = self.postprocessparams{iCls};
+          allScores.scoreNorm = self.windowdata(iCls).scoreNorm;
+          allScoresCell{iCls} = allScores;
+        end
+      end
+      
+      if tfSaveScores
+        try
+          self.SaveScores(allScoresCell,sfn);
+        catch ME
+          if nargout > 0
+            warning('Could not save scores for experiment %s: %s',self.expnames{expi},getReport(ME));
+          else
+            error(getReport(ME));
+          end
+        end
+      end
+      self.AddScores(expi,allScoresCell,true);
+      
+      if self.predictdata{expi}{1}(1).loaded_valid(1) % AL: not sure what intent is here
+        self.LoadScores(expi,sfn);
+      end
+    end
+
     
      % ---------------------------------------------------------------------
     function [prediction,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
