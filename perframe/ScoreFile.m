@@ -117,7 +117,8 @@ classdef ScoreFile
     end
     
     function allScrs = AllScrsInitFromPredData(allScrs,predDataExp,iCls,firstFrms,endFrms)
-      % Sets: .scores, .tStart, .tEnd, .postprocessed, .t0s, .t1s
+      % Sets: .scores, .tStart, .tEnd, .postprocessed, .t0s, .t1s from
+      % predDataExp{iFly}(iCls).cur, .cur_pp
       % NOT SET: .postprocessparams, .scoreNorm 
       
       nfly = numel(predDataExp);
@@ -132,10 +133,15 @@ classdef ScoreFile
         
         tStart = firstFrms(fly);
         tEnd = endFrms(fly);
-        allScrs.scores{fly}(tStart:tEnd) = pd.cur;
+        scores = nan(1,tEnd);
+        pp = nan(1,tEnd);
+        scores(tStart:tEnd) = pd.cur;
+        pp(tStart:tEnd) = pd.cur_pp;
+        
+        allScrs.scores{fly} = scores;
         allScrs.tStart(fly) = tStart;
         allScrs.tEnd(fly) = tEnd;
-        allScrs.postprocessed{fly}(tStart:tEnd) = pd.cur_pp;
+        allScrs.postprocessed{fly} = pp;
         [i0s,i1s] = get_interval_ends(allScrs.postprocessed{fly}>0);
         allScrs.t0s{fly} = i0s;
         allScrs.t1s{fly} = i1s;
