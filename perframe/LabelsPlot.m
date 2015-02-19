@@ -1,8 +1,11 @@
 classdef LabelsPlot 
+  % timeline images/plots for UI
   
   methods (Static)
     
     function labels_plot = labelsPlot(t0,t1,nTL,nBeh,beh2TL,TL2beh,nflies)
+      % labels_plot constructor
+      
       n = t1-t0+1;      
 
       labels_plot = struct();      
@@ -15,14 +18,7 @@ classdef LabelsPlot
       labels_plot.TL2beh = TL2beh;
 
       labels_plot.im = zeros(nTL,n,3);
-      tfMultiCls = nTL>1;
-      if tfMultiCls
-        % Just show raw scores, plot gets busy
-        labels_plot.predicted_im = zeros(nTL,n,3);
-      else
-        % Classic tripartite timeline; 6 rows by design
-        labels_plot.predicted_im = zeros(6,n,3);
-      end
+      labels_plot.predicted_im = []; % image for predicted timeline
       labels_plot.suggest_xs = nan;
       labels_plot.error_xs = nan;
       labels_plot.suggest_gt = nan;
@@ -130,12 +126,12 @@ classdef LabelsPlot
       % - Bottom: configureable
       %
       % scores: 1 x n double 
-      % pred: 1 x n. 1==beh, 2==no-beh
+      % pred: 1 x n. 1==beh, 2==no-beh (also allowed, 0 or 1.5. See JLabelData.GetPredictedIdx)
       % confThresh: 1x2 array for beh/noBeh resp
       % bottomType: char enum
       % bottomDist: n-long vector, only used if bottomType=='Distance'
       % scores_bottom: 1 x n double
-      % pred_bottom: 1 x n. 1==beh, 2==no-beh
+      % pred_bottom: 1 x n. 1==beh, 2==no-beh (not used if bottomType=='Distance')
       % labelcolors: nbeh x 3 (nbeh==2)
       % scorecolors: 63x3x3
       
@@ -143,11 +139,13 @@ classdef LabelsPlot
       
       assert(isequal(size(scores),size(pred),size(scores_bottom),size(pred_bottom)));
       assert(numel(confThresh)==2);
-      assert(size(labels_plot.predicted_im,1)==6);
+      %assert(size(labels_plot.predicted_im,1)==6);
       
+      labels_plot.predicted_im = zeros(6,labels_plot.n,3);
+
       idxBottomScores = ~isnan(scores_bottom);
-      bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
-      
+      bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;      
+
       im = labels_plot.predicted_im;
       im(:) = 0;
       for iBeh = 1:2
@@ -186,7 +184,9 @@ classdef LabelsPlot
       %MERGESTUPDATED
       
       nTL = labels_plot.nTL;
-      assert(isequal(size(labels_plot.predicted_im),[nTL labels_plot.n 3]));
+      
+      labels_plot.predicted_im = zeros(nTL,labels_plot.n,3);
+      %assert(isequal(size(labels_plot.predicted_im),[nTL labels_plot.n 3]));
       assert(isequal(size(predTF),[nTL labels_plot.n]));
       
       im = labels_plot.predicted_im;

@@ -11,10 +11,22 @@ classdef JLabelGUIData < handle
   properties (Constant)
     LABELSTATE = struct(... % see label_state
       'UnknownAll',-100,...
-      'NoneAll',100); 
+      'NoneAll',100);
+    
+    COLOR_BEH_DEFAULT = [0.7 0 0];
+    COLOR_NOBEH_DEFAULT = [0 0 0.7];
+
+    % JLabel handles stored in this obj for convenience
+    JLABEL_GUIDATA_HANDLES = { ...
+      'axes_timeline_auto';
+      'menu_view_manual_labels';
+      'menu_view_automatic_labels';
+      'timeline_label_manual';
+      'timeline_label_automatic';
+    };
   end
 
-  properties (Access=public)    
+  properties (Access=public)
     status_bar_text_when_clear = '';
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
@@ -35,6 +47,8 @@ classdef JLabelGUIData < handle
     edit_framenumbers = [];
     pushbutton_playstops = [];
     axes_timelines = [];
+    auto_timeline_ylabels = []; % text/controls to left of automatic timeline
+    
     labels_timelines = [];
     axes_timeline_props = [];
     axes_timeline_labels = [];
@@ -66,16 +80,18 @@ classdef JLabelGUIData < handle
     traj_npost = 25;
 
     bottomAutomatic = 'None';
-
-%     needsave = false;  % true iff there are unsaved changes
     
-    data = [];  % the JLabelData object (a ref to it, actually)
+    % JLabel figure handle
+    hJLabel;
+    
+    % JLabelData handle
+    data = [];
+    
+    % Subset of JLabel handles, ie subset of guidata(hJLabel)
+    gdata = struct(); 
 
     nflies_label = 1;
-    % classifier = [];  % Does not seem to be used
 
-    % expi = 0;
-    % flies = [];
     ts = 0;
     
     % label_state
@@ -84,10 +100,9 @@ classdef JLabelGUIData < handle
     % - If negative, unknown-labeling of <behavior idx>=|label_state| is in progress
     % - If equal to LABELSTATE.UnknownAll, unknown-labeling of all behaviors is in progress
     % - If equal to LABELSTATE.NoneAll, none-labeling of all behaviors is in progress
-    label_state = 0;     
+    label_state = 0;
     
     label_imp = [];
-    % nflies_curr = 0;
     
     oldexpdir='';  % Used by JLabel's File > Edit files...
 
@@ -100,7 +115,12 @@ classdef JLabelGUIData < handle
     % flies_extra_marker = {'o'};
     % flies_extra_linestyle = {'-'};
 
-    scorecolor = []; % 63x3x3
+    % nclassifiers-by-1 cell array. Each element sc = scorecolor{iCls} is
+    % 63x3x3.
+    % sc(:,:,1) are regular colors. 
+    % sc(:,:,2) and sc(:,:,3) are shifted forwards/backwards resp.
+    % AL 20150218 appears only values in sc(:,:,1) are used.
+    scorecolor = []; 
     
     correctcolor = [0,.7,0];
     incorrectcolor = [.7,.7,0];
@@ -156,22 +176,30 @@ classdef JLabelGUIData < handle
 
     bookmark_windows = [];
     
-    plot_labels_manual = true;
-    plot_labels_automatic = false;
 
     doFastUpdates = true;
 
     axes_preview_curr = 1;
-    hslider_listeners = [];
-    hflies = [];
-    hflies_extra = [];
-    hfly_markers = [];
+    hslider_listeners = [];    
+    
     htrx = [];
     fly_colors = [];
-    hlabel_curr = [];
     himage_previews = [];
-    hlabels = [];
-    hpredicted = [];
+    
+    %% Trx Position/Overlay 
+    plot_labels_manual = true;
+    plot_labels_automatic = false;
+
+    hflies = [];       % nfly-by-numAxes handle array. The triangle marking each fly.
+    hflies_extra = [];
+    hfly_markers = []; % nfly-by-numAxes handle array. The dot/star at the center of each fly.
+    
+    hlabel_curr = [];  % 1-by-numAxes handle. The line showing labeling-in-progress.
+    hlabels = [];      % 1-by-nbehavior handle array. The lines (trx-overlay) showing labels for each behavior.
+    hpredicted = [];   % 1-by-nbehavior handle array. The lines (trx-overlay) showing predictions for each behavior.
+    
+    %%
+    
     hlabelstarts = [];
     hzoom = [];
     hpan = [];
@@ -232,7 +260,22 @@ classdef JLabelGUIData < handle
       % if we wanted to...)   
   end
   
+  properties (SetAccess=private)
+    % scalar logical. If true, UI focuses on a single classifier. This is
+    % the default for single-classifier projects, but toggleable for
+    % multi-classifier projects.
+    behaviorFocusOn = false;
+    
+    % scalar integer. If behaviorFocusOn==true, behaviorFocusIdx is the
+    % classifier index currently in focus.
+    behaviorFocusIdx;
+    
+    % 1x2 row vec, behavior/label indices corresponding to behaviorFocusIdx.
+    behaviorFocusLbls;
+  end
+    
   methods (Access=public)
+    
     function obj = JLabelGUIData(jld)
       % Constructor
       obj.data=jld;  % store a reference to the "model"
@@ -247,9 +290,8 @@ classdef JLabelGUIData < handle
         end
       end
     end
-
-    
-    % ---------------------------------------------------------------------    
+   
+    % ---------------------------------------------------------------------
     function UpdateGraphicsHandleArrays(self, figure_JLabel)
       % Update the arrays of grandles within ourself to match the widgets
       % in the JLabel figure.
@@ -267,7 +309,19 @@ classdef JLabelGUIData < handle
       self.axes_timelines = findobj(figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
       % self.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
       % Regex messes the order which makes it difficult to remove the last data axes.
-      handles=guidata(figure_JLabel);
+      handles = guidata(figure_JLabel);
+      
+      self.hJLabel = figure_JLabel;
+      
+      flds2Rm = setdiff(fieldnames(handles),self.JLABEL_GUIDATA_HANDLES);
+      self.gdata = rmfield(handles,flds2Rm);      
+      
+      self.auto_timeline_ylabels = [...
+        handles.automaticTimelinePredictionLabel; ...
+        handles.automaticTimelineScoresLabel; ...
+        handles.automaticTimelineBottomRowPopup; ...
+        handles.text_scores];
+        
       self.labels_timelines(1,1) = handles.timeline_label_prop1;
       self.labels_timelines(2,1) = handles.timeline_label_automatic;
       self.labels_timelines(3,1) = handles.timeline_label_manual;
@@ -275,7 +329,7 @@ classdef JLabelGUIData < handle
       self.axes_timeline_props = findobj(figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
       self.axes_timeline_labels = setdiff(self.axes_timelines,self.axes_timeline_props);
 
-      if numel(self.labels_timelines) ~= numel(self.labels_timelines),
+      if numel(self.labels_timelines) ~= numel(self.labels_timelines), % AL ????
         error('Number of timeline axes does not match number of timeline labels');
       end
       % sort by y-position
@@ -394,7 +448,7 @@ classdef JLabelGUIData < handle
       self.guipos.preview_play_bottom_border = play_pos(2);
       self.guipos.preview_edit_left_border = edit_pos(1) - play_pos(1) - play_pos(3);
       self.guipos.preview_edit_bottom_border = edit_pos(2);
-    end  % method    
+    end  % method
     
     % ---------------------------------------------------------------------
     function initializeAfterBasicParamsSet(self)
@@ -405,26 +459,15 @@ classdef JLabelGUIData < handle
       % if training
       self.GUIAdvancedMode = self.data.gtMode;
 
-      % learned classifier
-      % self.classifier = [];
-
-      % currently shown experiment
-      % self.expi = 0;
-      % currently labeled flies
-      % self.flies = 1:self.nflies_label;
-      % currently shown frame
       self.ts = 0;
 
       % current behavior labeling state: nothing down
       self.label_state = 0;
       self.label_imp = [];
 
-      % number of flies for the current movie
-      % self.nflies_curr = 0;
-
       % ALTODO call to this method seems unnecessary, just init directly off
       % self.data
-      basicParamsStruct=self.data.getBasicParamsStruct();
+      basicParamsStruct = self.data.getBasicParamsStruct();
       % label colors
       if isfield(basicParamsStruct,'behaviors') && ...
          isfield(basicParamsStruct.behaviors,'labelcolors'),
@@ -440,7 +483,6 @@ classdef JLabelGUIData < handle
         % saved to the JAB file. Consider cleaning up this duplicated
         % param.
         self.data.labelcolors = self.labelcolors;
-
       
 %         else
 %           uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
@@ -477,18 +519,27 @@ classdef JLabelGUIData < handle
                          'Error parsing config unknown colors'));
         end
       end
-           
-      for channel = 1:3
-        midValue = self.labelunknowncolor(channel);
-        startValue = self.labelcolors(2,channel);
-        endValue = self.labelcolors(1,channel);
-        self.scorecolor(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
-        self.scorecolor(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
+      
+      % scorecolor init
+      scorecolor = cell(self.data.nclassifiers,1);
+      for iCls = 1:self.data.nclassifiers
+        iLbls = self.data.iCls2iLbl{iCls};
+        sc = nan(63,3,3);
+        for channel = 1:3
+          startValue = self.labelcolors(iLbls(2),channel);
+          endValue = self.labelcolors(iLbls(1),channel);
+          midValue = self.labelunknowncolor(channel);
+          
+          sc(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
+          sc(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
+        end
+        for ndx = 1:63
+          sc(ndx,:,2) = ShiftColor.shiftColorFwd(sc(ndx,:,1));
+          sc(ndx,:,3) = ShiftColor.shiftColorBkwd(sc(ndx,:,1));  
+        end
+        scorecolor{iCls} = sc;
       end
-      for ndx = 1:63
-        self.scorecolor(ndx,:,2) = ShiftColor.shiftColorFwd(self.scorecolor(ndx,:,1));
-        self.scorecolor(ndx,:,3) = ShiftColor.shiftColorBkwd(self.scorecolor(ndx,:,1));  
-      end
+      self.scorecolor = scorecolor;
 
       self.correctcolor = [0,.7,0];
       self.incorrectcolor = [.7,.7,0];
@@ -500,9 +551,6 @@ classdef JLabelGUIData < handle
       % color for showing which labels are being plotted
       self.emphasiscolor = [.7,.7,0];
       self.unemphasiscolor = [1,1,1];
-
-      % create buttons for each label, as needed
-      %handles = UpdateLabelButtons(handles);
 
       % timeline properties
       self.timeline_prop_remove_string = '<html><body><i>Remove</i></body></html>';
@@ -521,37 +569,22 @@ classdef JLabelGUIData < handle
         self.timeline_data_ylims = nan(2,numel(self.data.allperframefns));
       end
 
-%       % Setup the popup menu for bottom row of the automatic timeline.
-%       bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
-%       set(handles.automaticTimelineBottomRowPopup,'Value', ...
-%         find(strcmp(bottomRowTypes,self.bottomAutomatic)));
-%       set(handles.automaticTimelinePredictionLabel,'FontSize',10);
-%       set(handles.automaticTimelineScoresLabel,'FontSize',10);
-%       set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
-
       % maximum distance squared in fraction of axis to change frames when
       % clicking on preview window
       self.max_click_dist_preview = .005^2;
 
       % zoom state
-      %self.preview_zoom_mode = 'follow_fly';
       self.zoom_fly_radius = nan(1,2);
-      %set(self.menu_view_keep_target_in_view,'Checked','off');
-      %set(self.menu_view_center_on_target,'Checked','off');
-      %set(self.menu_view_static_view,'Checked','off');
-      %set(handles.menu_view_keep_target_in_view,'Checked','on');
-
+  
       % last clicked object
       self.selection_t0 = nan;
       self.selection_t1 = nan;
       self.selected_ts = nan(1,2);
       self.buttondown_t0 = nan;
       self.buttondown_axes = nan;
-      %set([handles.pushbutton_playselection,handles.pushbutton_clearselection],'Enable','off');
 
       % not selecting
       self.selecting = false;
-      %set(handles.togglebutton_select,'Value',0);
 
       % initialize nextjump obj;
       self.NJObj = NextJump();
@@ -560,9 +593,6 @@ classdef JLabelGUIData < handle
       if isfield(self.rc,'navPreferences')  && ~isempty(self.rc.navPreferences)
         self.NJObj.SetState(self.rc.navPreferences);
       end
-
-      % initialize labels for navigation
-      %SetJumpGoMenuLabels(handles)
 
       % label shortcuts
       if numel(self.label_shortcuts) ~= 2*self.data.nbehaviors + 1,
@@ -580,7 +610,13 @@ classdef JLabelGUIData < handle
       self.bookmark_windows = [];
 
       self.doFastUpdates = true;
-    end  % method
+      
+      if self.data.isMultiClassifier
+        self.unsetClassifierFocus;
+      else
+        self.setClassifierFocus(1);
+      end
+    end
     
     function debugDumpLabelButtonState(obj)
       % debug routine
@@ -629,6 +665,140 @@ classdef JLabelGUIData < handle
 %     togglebutton_unknowns = []; 
 %     
       
+    end
+    
+  end  
+  
+  %%
+  
+  methods 
+    
+    function setClassifierFocus(self,iCls)
+      self.behaviorFocusOn = true;
+      self.behaviorFocusIdx = iCls;
+      iLbls = self.data.iCls2iLbl{iCls};
+      self.behaviorFocusLbls = iLbls;
+      
+      set(self.gdata.axes_timeline_auto,'ylim',[0.5 6.5]);
+      set(self.auto_timeline_ylabels,'Visible','on');
+      
+      self.updatePlotLabels();
+    end
+    
+    function unsetClassifierFocus(self)
+      self.behaviorFocusOn = false;
+      self.behaviorFocusIdx = 0;
+      self.behaviorFocusLbls = [nan nan];
+      
+      nCls = self.data.nclassifiers;
+      set(self.gdata.axes_timeline_auto,'ylim',[0.5 nCls+0.5]);
+      set(self.auto_timeline_ylabels,'Visible','off');
+      
+      self.updatePlotLabels();
+    end
+    
+    function updateAutoTimelineYLabelObjects(self)
+      if self.behaviorFocusOn
+        set(self.auto_timeline_ylabels,'Visible','on');
+      else
+        set(self.auto_timeline_ylabels,'Visible','off');
+      end
+    end
+    
+    function setPlotLabelsManual(self)
+      self.plot_labels_manual = true;
+      self.plot_labels_automatic = false;
+      self.updatePlotLabelsControls();
+      self.updatePlotLabels();      
+    end
+    
+    function setPlotLabelsAutomatic(self)
+      self.plot_labels_manual = false;
+      self.plot_labels_automatic = true;
+      self.updatePlotLabelsControls();
+      self.updatePlotLabels();
+    end
+    
+    function updatePlotLabelsControls(self)
+      % Update uicontrols
+      
+      if self.plot_labels_manual
+        set(self.gdata.menu_view_manual_labels,'Checked','on');
+        set(self.gdata.timeline_label_manual, ...
+          'Value',1,...
+          'ForegroundColor',self.emphasiscolor, ...
+          'FontWeight','bold');
+      else
+        set(self.gdata.menu_view_manual_labels,'Checked','off');
+        set(self.gdata.timeline_label_manual, ...
+          'Value',0,...
+          'ForegroundColor',self.unemphasiscolor, ...
+          'FontWeight','normal');
+      end
+      if self.plot_labels_automatic
+        set(self.gdata.menu_view_automatic_labels,'Checked','on');
+        set(self.gdata.timeline_label_automatic, ...
+          'Value',1,...
+          'ForegroundColor',self.emphasiscolor, ...
+          'FontWeight','bold');
+      else
+        set(self.gdata.menu_view_automatic_labels,'Checked','off');
+        set(self.gdata.timeline_label_automatic, ...
+          'Value',0,...
+          'ForegroundColor',self.unemphasiscolor, ...
+          'FontWeight','normal');
+      end
+    end
+    
+    function updatePlotLabels(self)
+      % Update plot lines/overlays
+      
+      % AL: legacy early return
+      if ~self.data.getSomeExperimentIsCurrent()
+        return;
+      end
+      
+      if self.behaviorFocusOn
+        iClsFoc = self.behaviorFocusIdx;
+        iLbls = self.data.iCls2iLbl{iClsFoc};
+        tfBehVis = false(1,self.data.nbehaviors);
+        tfBehVis(iLbls) = true;
+      else
+        tfBehVis = true(1,self.data.nbehaviors);
+      end
+      
+      if self.plot_labels_manual
+        set(self.hlabels(tfBehVis),'Visible','on');
+        set(self.hlabels(~tfBehVis),'Visible','off');
+        set(self.hpredicted,'Visible','off');
+      end
+      if self.plot_labels_automatic
+        set(self.hlabels,'Visible','off');
+        set(self.hpredicted(tfBehVis),'Visible','on');
+        set(self.hpredicted(~tfBehVis),'Visible','off');
+      end
+      
+      % AL 20150219: seems like might be unnecessary, since all we have
+      % done here is update Visibility of existing handles
+      self.jlabelCall('UpdatePlots', ...
+            'refreshim',false, ...
+            'refreshflies',true, ...
+            'refreshtrx',false, ...
+            'refreshlabels',true,...
+            'refresh_timeline_manual',false,...
+            'refresh_timeline_auto',false,...
+            'refresh_timeline_suggest',false,...
+            'refresh_timeline_error',false,...
+            'refresh_timeline_xlim',false,...
+            'refresh_timeline_hcurr',false,...
+            'refresh_timeline_props',false,...
+            'refresh_timeline_selection',false,...
+            'refresh_curr_prop',false);
+    end
+    
+    function jlabelCall(self,fcn,varargin)
+      handles = guidata(self.hJLabel);
+      JLabel(fcn,handles,varargin{:});      
     end
     
   end
