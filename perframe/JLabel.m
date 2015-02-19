@@ -264,6 +264,13 @@ set(handles.automaticTimelinePredictionLabel,'FontSize',10);
 set(handles.automaticTimelineScoresLabel,'FontSize',10);
 set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 
+if handles.data.isMultiClassifier
+  tmp = [{'<all classifiers>'};handles.data.classifiernames(:)];
+  set(handles.classifierFocusPopup,'String',tmp);
+  set(handles.classifierFocusPopup,'Value',1);
+  handles.guidata.unsetClassifierFocus();
+end
+
 % set([handles.pushbutton_playselection, ...
 %      handles.pushbutton_clearselection],'Enable','off');  
 
@@ -596,8 +603,6 @@ handles.guidata.htimeline_suggestions = ...
        'Linewidth',5);
 
 % gt suggestions
-% handles.guidata.htimeline_gt_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
-%   'color',handles.guidata.suggestcolor,'HitTest','off','Linewidth',5);
 handles.guidata.htimeline_gt_suggestions = ...
   line('parent',handles.axes_timeline_manual, ...
        'xdata',nan, ...
@@ -606,21 +611,6 @@ handles.guidata.htimeline_gt_suggestions = ...
        'color',handles.guidata.suggestcolor, ...
        'HitTest','off', ...
        'Linewidth',5);
-
-%handles.guidata.menu_view_zoom_options = setdiff(findall(handles.menu_view_zoom,'Type','uimenu'),...
-%  handles.menu_view_zoom);
-
-% suggest timeline
-% handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
-% set(handles.himage_timeline_suggest,'HitTest','off');
-% hold(handles.axes_timeline_suggest,'on');
-% handles.htimeline_suggest_starts = plot(handles.axes_timeline_suggest,nan,nan,'w-','HitTest','off');
-
-% error timeline
-% handles.himage_timeline_error = image(zeros([1,1,3]),'Parent',handles.axes_timeline_error);
-% set(handles.himage_timeline_error,'HitTest','off');
-% hold(handles.axes_timeline_error,'on');
-% handles.htimeline_error_starts = plot(handles.axes_timeline_error,nan,nan,'w-','HitTest','off');
 
 for i = 1:numel(handles.guidata.axes_timeline_props),
   setAxesZoomMotion(handles.guidata.hzoom,handles.guidata.axes_timeline_props(i),'vertical');
@@ -663,19 +653,10 @@ for i = 1:numel(handles.guidata.axes_timelines),
 end
 
 for i = 2:numel(handles.guidata.axes_timelines),
-%  if handles.guidata.axes_timelines(i) ~= handles.axes_timeline_error,
-%  if handles.guidata.axes_timelines(i) ~= handles.axes_timeline_auto,
-    set(handles.guidata.axes_timelines(i),'XTickLabel',{});
-%  end
+  set(handles.guidata.axes_timelines(i),'XTickLabel',{});
 end
 
 set(handles.axes_timeline_manual,'ylim',[0.5 handles.data.ntimelines+0.5]);
-tfMultiCls = handles.data.nclassifiers>1;
-if tfMultiCls
-  set(handles.axes_timeline_auto,'ylim',[0.5 handles.data.ntimelines+0.5]);
-else
-  set(handles.axes_timeline_auto,'ylim',[0.5 6.5]);
-end
 linkaxes(handles.guidata.axes_timelines,'x');
 
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
@@ -696,16 +677,6 @@ set(handles.guidata.hfly_markers,'EraseMode','none');
 RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
-
-%for i = 1:numel(handles.guidata.axes_timelines),
-%  setAxesZoomMotion(handles.guidata.hzoom,handles.guidata.axes_timelines(i),'horizontal');
-%end
-
-% timeline callbacks
-% fcn = @(hObject,eventdata) JLabel('axes_timeline_ButtonDownFcn',hObject,eventdata,guidata(hObject));
-% for i = 1:numel(handles.guidata.axes_timelines),
-%   set(handles.guidata.axes_timelines(i),'ButtonDownFcn',fcn);
-% end
 
 return
 
@@ -826,20 +797,14 @@ end
   'refresh_curr_prop',true,...
   'refresh_GT_suggestion',true);
 
-% make sure data for this experiment is loaded
-% if handles.data.expi ~= handles.data.expi,
-%   SetStatus('Preloading data for experiment %s, flies %s',handles.data.expnames{handles.data.expi},mat2str(handles.data.flies));
-%   handles.data.PreLoad(handles.data.expi,handles.data.flies);
-% end
-
+if handles.guidata.behaviorFocusOn
+  iClsFoc = handles.guidata.behaviorFocusIdx;
+  iLblsFoc = handles.data.iCls2iLbl{iClsFoc};
+end
+    
 % update timelines
 if refresh_timeline_manual,
   set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
-  %tmp = find(handles.guidata.labels_plot.isstart);
-  %nstarts = numel(tmp);
-  %tmpx = reshape(cat(1,repmat(tmp,[2,1]),nan(1,nstarts)),[3*nstarts,1]);
-  %tmpy = reshape(repmat([.5;1.5;nan],[1,nstarts]),[3*nstarts,1]);
-  %set(handles.htimeline_manual_starts,'XData',tmpx,'YData',tmpy);  
   if handles.guidata.label_state ~= 0,
     ts = sort([handles.label_t0,handles.guidata.ts(1)]);
     ts(1) = max(ts(1),handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2);
@@ -852,41 +817,36 @@ end
 if refresh_timeline_auto,
   set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
   [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
-  predidx1 = pred.predictedidx(1);
-  % ALTODO only showing score for first beh
-  if t0 <= handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0     
-    cur_scores = handles.data.NormalizeScores(pred.scoresidx(:,1));
-    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
-  else
-    set(handles.text_scores,'String','');
-  end
-    
+  if handles.guidata.behaviorFocusOn
+    predidx1 = pred.predictedidx(iClsFoc,1);
+    if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
+      cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
+      set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
+    else
+      set(handles.text_scores,'String','');
+    end
+  end    
 end
 if refresh_timeline_suggest && ~handles.data.IsGTMode(),
   set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
-  %set(handles.himage_timeline_suggest,'CData',handles.guidata.labels_plot.suggested_im);
 end
 if refresh_timeline_error,
   set(handles.guidata.htimeline_errors,'XData',handles.guidata.labels_plot.error_xs,...
   'YData',zeros(size(handles.guidata.labels_plot.error_xs))+1.5);
-  %set(handles.himage_timeline_error,'CData',handles.guidata.labels_plot.error_im);
 end
 if refresh_GT_suggestion && ~isempty(fieldnames(handles.guidata.labels_plot)),
   set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
 end
 
-
 if refresh_timeline_xlim,
   xlim = [handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2,...
     handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2];
   for i = 1:numel(handles.guidata.axes_timelines),
     set(handles.guidata.axes_timelines(i),'XLim',xlim);
-    %zoom(handles.guidata.axes_timelines(i),'reset');
   end
 end
-
 
 if refresh_timeline_hcurr,
   set(handles.guidata.hcurr_timelines,'XData',handles.guidata.ts([1,1]));
@@ -902,14 +862,12 @@ if refresh_timeline_props,
     [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,v);
     set(handles.guidata.htimeline_data(propi),'XData',T0:T1,...
       'YData',perframedata);
-    %if isnan(handles.guidata.timeline_data_ylims(1,v)),
-      ylim = [min(perframedata),max(perframedata)];
-      if ylim(2) <= ylim(1),
-        ylim(2) = ylim(1)+1;
-      end
-      set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
-      zoom(handles.guidata.axes_timeline_props(propi),'reset');
-    %end
+    ylim = [min(perframedata),max(perframedata)];
+    if ylim(2) <= ylim(1),
+      ylim(2) = ylim(1)+1;
+    end
+    set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
+    zoom(handles.guidata.axes_timeline_props(propi),'reset');
     if ~isnan(handles.guidata.timeline_data_ylims(1,v)),
       ylim = handles.guidata.timeline_data_ylims(:,v);
       set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
@@ -919,10 +877,8 @@ if refresh_timeline_props,
   end
 end
 
-for i = axes2,
-  
-  if refreshim,
-    
+for i = axes2,  
+  if refreshim,    
     if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && handles.guidata.thisMoviePresent ,
       j = find((Mframenum.Data==handles.guidata.ts(i)) & ...
                (~isnan(Mlastused.Data)) & ...
@@ -1071,20 +1027,7 @@ for i = axes2,
   end
   
   % update current position
-  if refreshflies,
-    if handles.guidata.ts(i) < handles.data.t0_curr || handles.guidata.ts(i) > handles.data.t1_curr,
-      labelidx = [];
-    elseif handles.guidata.label_state ~= 0,
-      labelidx = handles.guidata.label_state;
-    elseif handles.guidata.plot_labels_manual,
-      labelidxStruct = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
-      labelidx = labelidxStruct.vals;
-      labelidx = labelidx(1); % show first behavior/timeline
-    elseif handles.guidata.plot_labels_automatic,
-       prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
-       labelidx = prediction.predictedidx;
-       labelidx = labelidx(1);
-    end
+  if refreshflies,    
     inbounds = handles.data.firstframes_per_exp{handles.data.expi} <= handles.guidata.ts(i) & ...
       handles.data.endframes_per_exp{handles.data.expi} >= handles.guidata.ts(i);
     
@@ -1120,11 +1063,43 @@ for i = axes2,
       set(handles.guidata.hfly_markers(~isinvisible,i),'Visible','on');
     end
     
-    allflypredictions = handles.data.GetPredictionsAllFlies(...
-      handles.data.expi,handles.guidata.ts(i),find(inbounds));
+    iFlyInbounds = find(inbounds);
+    if handles.guidata.behaviorFocusOn
+      allflypredictions = handles.data.GetPredictionsAllFlies(...
+        handles.data.expi,handles.guidata.ts(i),iFlyInbounds,iClsFoc);
+      assert(numel(iFlyInbounds)==numel(allflypredictions));
+    end
+    
+    % Summary of Fly Element Coloring spec (hflies, hflies_extra, hfly_markers)
+    % 
+    % Relevant conditions:
+    % - showPredictionsAllFlies 
+    % - behaviorFocusOn (always true for single classifier, toggle-able for
+    % multiclassifier)
+    % - current target vs nontarget flies
+    % - labeling-in-progress 
+    % 
+    % For nontarget flies, coloring is shown only if
+    % showPredictionsAllFlies==true and behaviorFocusOn. The coloring is
+    % based on current predictions for the behavior-in-focus.
+    %
+    % For coloring of the current target, labeling-in-progress is always
+    % colored, regardless of behaviorFocusOn. If no labeling is in 
+    % progress, then colors are based on labels/predictions for manual/auto 
+    % selection, and these are only shown with behaviorFocusOn==true.
+    
+    % Summary of Trx Overlay Coloring spec (hlabels, hpredicted, hlabel_curr)
+    % 
+    % Relevant conditions:
+    % - labeling-in-progress 
+    % 
+    % This is done only on the target fly(s). Current labeling is shown in
+    % hlabel_curr. Labels/Predictions for all classifiers are shown in
+    % hlabels/hpredicted.
     
     count = 0;
-    for fly = find(inbounds),
+    assert(isrow(iFlyInbounds));
+    for fly = iFlyInbounds
       count = count+1;
       t = handles.guidata.ts(i);
       pos = handles.data.GetTrxPos1(handles.data.expi,fly,t);
@@ -1132,17 +1107,22 @@ for i = axes2,
       UpdateTargetPosition(handles.data.targettype,handles.guidata.hflies(j,i),...
         handles.guidata.hflies_extra(j,:,i),pos);
       
-      if handles.guidata.showPredictionsAllFlies
-        if allflypredictions(count) ==0
+      % Fly Element Coloring, nontarget %
+      if handles.guidata.showPredictionsAllFlies && handles.guidata.behaviorFocusOn
+        allflypred = allflypredictions(count); % 0/1/2
+        if allflypred==0
           curcolor = handles.guidata.labelunknowncolor;
         else
-          curcolor = handles.guidata.labelcolors(allflypredictions(count),:);
+          iLblTmp = iLblsFoc(allflypred);
+          curcolor = handles.guidata.labelcolors(iLblTmp,:);
         end
-        set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
-          'Color',curcolor);
-        if ~isempty(handles.guidata.hflies_extra)
-          set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
-        end
+      else
+        curcolor = [0 0 0];
+      end
+      set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
+        'Color',curcolor);
+      if ~isempty(handles.guidata.hflies_extra)
+        set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
       end
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
@@ -1152,19 +1132,6 @@ for i = axes2,
       else
         set(handles.guidata.hfly_markers(j,i),'Visible','off');
       end
-%       updatefly(handles.guidata.hflies(fly,i),...
-%         handles.data.GetTrxX1(handles.data.expi,fly,t),...
-%         handles.data.GetTrxY1(handles.data.expi,fly,t),...
-%         handles.data.GetTrxTheta1(handles.data.expi,fly,t),...
-%         handles.data.GetTrxA1(handles.data.expi,fly,t),...
-%         handles.data.GetTrxB1(handles.data.expi,fly,t));
-%       j = handles.guidata.ts(i) + handles.data.trx(fly).off;
-%       updatefly(handles.guidata.hflies(fly,i),handles.data.trx(fly).x(j),...
-%         handles.data.trx(fly).y(j),...
-%         handles.data.trx(fly).theta(j),...
-%         handles.data.trx(fly).a(j),...
-%         handles.data.trx(fly).b(j));
-      %updatefly(handles.guidata.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.data.flies),
         set(handles.guidata.hfly_markers(j,i),'Visible','on');
         set(handles.guidata.hflies(j,i),'LineWidth',3);
@@ -1172,18 +1139,52 @@ for i = axes2,
         set(handles.guidata.hflies(j,i),'LineWidth',1);
       end
       
-      if ismember(fly,handles.data.flies) && ~handles.guidata.showPredictionsAllFlies,
-        if labelidx <= 0,
+      % Fly Element Coloring, target %
+      if ismember(fly,handles.data.flies) && ~handles.guidata.showPredictionsAllFlies
+        
+        % Determine lblIdx. This can be:
+        % - empty, indicating no label/prediction/etc
+        % - a negative value per options for JLabelGUIData.label_state
+        % - zero, indicating no label/prediction
+        % - a positive value in 1:nbehaviors
+        if handles.guidata.ts(i) < handles.data.t0_curr || handles.guidata.ts(i) > handles.data.t1_curr,
+          lblIdx = [];
+        elseif handles.guidata.label_state~=0,
+          % labeling in progress. Variety of pos/neg values possible for
+          % labelidx.
+          lblIdx = handles.guidata.label_state; 
+        elseif handles.guidata.plot_labels_manual && handles.guidata.behaviorFocusOn
+          labelidxStruct = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
+          lblIdx = labelidxStruct.vals; % should be nclassifier-by-1 vec
+          lblIdx = lblIdx(iClsFoc,1); % value in {0,1,...,nbehaviors}
+        elseif handles.guidata.plot_labels_automatic && handles.guidata.behaviorFocusOn
+          prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
+          lblIdx = prediction.predictedidx;
+          lblIdx = lblIdx(iClsFoc,1); % value in {0,1,1.5,2}
+          if lblIdx==0 || lblIdx==1.5
+            % no prediction
+            lblIdx = [];
+          else
+            % lblIdx is either 1 or 2; translate to indices into 1:nbehaviors
+            lblIdx = iLblsFoc(lblIdx);
+          end
+        else
+          lblIdx = [];
+        end
+                
+        if isempty(lblIdx) || lblIdx<=0 
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
           set(handles.guidata.hflies_extra(j,:,i),'Color',handles.guidata.labelunknowncolor,...
             'MarkerFaceColor',handles.guidata.labelunknowncolor);
-        else
-          if labelidx==JLabelGUIData.LABELSTATE.NoneAll
+        else % positive lblIdx
+          if lblIdx==JLabelGUIData.LABELSTATE.NoneAll
             lblcolor = handles.guidata.labelnoneallcolor;
           else
-            lblcolor = handles.guidata.labelcolors(labelidx,:);
+            lblcolor = handles.guidata.labelcolors(lblIdx,:);
           end
           set(handles.guidata.hflies(j,i),'Color',lblcolor,'MarkerFaceColor',lblcolor);
+          % AL: not sure why we are not setting hfly_markers here and maybe
+          % hflies_extra as well
         end
       end
     end
@@ -1207,23 +1208,15 @@ for i = axes2,
       ts = max(t0,tmp-nprev):min(t1,tmp+npost);
       set(handles.guidata.htrx(j,i),'XData',handles.data.GetTrxValues('X1',handles.data.expi,fly,ts),...
         'YData',handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts));
-      %j0 = max(1,tmp-nprev);
-      %j1 = min(handles.data.trx(fly).nframes,tmp+npost);
-      %set(handles.guidata.htrx(j,i),'XData',handles.data.trx(fly).x(j0:j1),...
-      %  'YData',handles.data.trx(fly).y(j0:j1));
-      %trx = handles.data.GetTrx(handles.data.expi,fly,handles.guidata.ts(i)-nprev:handles.guidata.ts(i)+npost);
-      %set(handles.guidata.htrx(j,i),'XData',trx.x,'YData',trx.y);
     end
-  end  
+  end
   
-  % update labels plotted
+  % Trx Overlay Coloring %
   if refreshlabels,
     for k = 1:numel(handles.data.flies),
       fly = handles.data.flies(k);
       T0 = handles.data.firstframes_per_exp{handles.data.expi}(fly);
       T1 = handles.data.endframes_per_exp{handles.data.expi}(fly);
-%       T0 = handles.data.GetTrxFirstFrame(handles.data.expi,fly);
-%       T1 = handles.data.GetTrxEndFrame(handles.data.expi,fly);
       t0 = min(T1,max(T0,handles.guidata.ts(i)-nprev));
       t1 = min(T1,max(T0,handles.guidata.ts(i)+npost));
       for j = 1:handles.data.nbehaviors,
@@ -1234,20 +1227,18 @@ for i = axes2,
         ypred = handles.guidata.labels_plot.predy(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
         set(handles.guidata.hpredicted(j),'XData',xpred(:),'YData',ypred(:));
       end
-      if handles.guidata.label_state ~= 0,
+      if handles.guidata.label_state~=0,
         ts = sort([handles.label_t0,handles.guidata.ts(1)]);
         t0 = max(t0,ts(1));
         t1 = min(t1,ts(2)+1);
         xdata = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(1),t0:t1);
         ydata = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(1),t0:t1);
         set(handles.guidata.hlabel_curr(1),'XData',xdata,'YData',ydata);
-        if handles.guidata.label_state == JLabelGUIData.LABELSTATE.UnknownAll,
+        if handles.guidata.label_state < 0 % unknown; includes JLabelGUIData.LABELSTATE.UnknownAll
           set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelunknowncolor);
         elseif handles.guidata.label_state == JLabelGUIData.LABELSTATE.NoneAll
           set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelnoneallcolor);
-        elseif handles.guidata.label_state<0,
-          % ALTODO behavior-specific unknown
-        else          
+        else
           set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelcolors(handles.guidata.label_state,:));
         end
       else
@@ -1828,74 +1819,75 @@ gdata = handles.guidata;
 if jldata.nexps==0
   return
 end
-labelidx = jldata.GetLabelIdx(jldata.expi,jldata.flies);
 
-gdata.labels_plot = LabelsPlot.labelsPlotInitIm(...
-  gdata.labels_plot,labelidx,gdata.labelcolors);
+labelidx = jldata.GetLabelIdx(jldata.expi,jldata.flies);
+gdata.labels_plot = LabelsPlot.labelsPlotInitIm(gdata.labels_plot,...
+  labelidx,gdata.labelcolors);
 
 %%% Predicted timeline %%%
-if jldata.isST
-  [~,predST] = jldata.GetLoadedScores(jldata.expi,jldata.flies);
-  %scores_bottom = jldata.NormalizeScores(scores_bottom);  
-  gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiCls(...
-    gdata.labels_plot,predST==1,gdata.labelcolors);
-else
+if gdata.behaviorFocusOn
+  iClsFoc = gdata.behaviorFocusIdx;
+  
   prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
-  predictedidx = prediction.predictedidx;
-  scores = jldata.NormalizeScores(prediction.scoresidx);
+  scrsFoc = prediction.scoresidx(iClsFoc,:);
+  scrsFoc = jldata.NormalizeScores(scrsFoc,iClsFoc);
+  predFoc = prediction.predictedidx(iClsFoc,:);
 
   % Scores for the bottom row.
+  % AL: Init/Set of prediction_bottom, scores_bottom, bottomDist is really
+  % clunky here
   bottomDist = [];
+  prediction_bottom = [];
   switch gdata.bottomAutomatic
     case 'Validated'
-      scores_bottom = jldata.GetValidatedScores(jldata.expi,jldata.flies);
-      scores_bottom = jldata.NormalizeScores(scores_bottom);
+      scores_bottom = jldata.GetValidatedScores(jldata.expi,jldata.flies,[],[],iClsFoc);
+      scores_bottom = jldata.NormalizeScores(scores_bottom,iClsFoc);
     case 'Imported'
-      [scores_bottom,prediction_bottom] = jldata.GetLoadedScores(jldata.expi,jldata.flies);
-      scores_bottom = jldata.NormalizeScores(scores_bottom);
+      [scores_bottom,prediction_bottom] = jldata.GetLoadedScores(jldata.expi,jldata.flies,[],[],iClsFoc);
+      scores_bottom = jldata.NormalizeScores(scores_bottom,iClsFoc);
     case 'Old'
-      scores_bottom = jldata.GetOldScores(jldata.expi,jldata.flies);
-      scores_bottom = jldata.NormalizeScores(scores_bottom);
+      scores_bottom = jldata.GetOldScores(jldata.expi,jldata.flies,iClsFoc);
+      scores_bottom = jldata.NormalizeScores(scores_bottom,iClsFoc);
     case 'Postprocessed'
-      [scores_bottom,prediction_bottom] = jldata.GetPostprocessedScores(jldata.expi,jldata.flies);
-      scores_bottom = jldata.NormalizeScores(scores_bottom);
+      [scores_bottom,prediction_bottom] = jldata.GetPostprocessedScores(jldata.expi,jldata.flies,[],[],iClsFoc);
+      scores_bottom = jldata.NormalizeScores(scores_bottom,iClsFoc);
     case 'None'
-      scores_bottom = zeros(size(scores));
+      scores_bottom = zeros(size(scrsFoc));
     case 'Distance'
-      bottomDist = jldata.GetDistance(jldata.expi,jldata.flies);
-      scores_bottom = zeros(size(scores));
+      bottomDist = jldata.GetDistance(jldata.expi,jldata.flies); % asserts for multiclassifier
+      scores_bottom = zeros(size(scrsFoc));
     otherwise
       warndlg('Undefined scores type to display for the bottom part of the automatic');
   end
 
-  if ~(any(strcmp(gdata.bottomAutomatic,{'Postprocessed','Distance','Imported'})))
+  if ~any(strcmp(gdata.bottomAutomatic,{'Postprocessed','Distance','Imported'}))
     prediction_bottom = zeros(size(scores_bottom));
     prediction_bottom(scores_bottom>0) = 1;
     prediction_bottom(scores_bottom<0) = 2;
   end
 
-  if jldata.nclassifiers>1
-    gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiCls(...
-      gdata.labels_plot,predictedidx==1,gdata.labelcolors);
-  else
-    confThresh = arrayfun(@(i)jldata.GetConfidenceThreshold(i),1:2);  
-    gdata.labels_plot = LabelsPlot.labelsPlotSetPredIm(...
-      gdata.labels_plot,scores,predictedidx,confThresh,...
-      gdata.bottomAutomatic,bottomDist,scores_bottom,prediction_bottom,...
-      gdata.labelcolors,gdata.scorecolor);
-  end
+  iLblFoc = jldata.iCls2iLbl{iClsFoc};
+  confThresh = jldata.GetConfidenceThreshold(iLblFoc);
+  gdata.labels_plot = LabelsPlot.labelsPlotSetPredIm(...
+    gdata.labels_plot,scrsFoc,predFoc,confThresh,...
+    gdata.bottomAutomatic,bottomDist,scores_bottom,prediction_bottom,...
+    gdata.labelcolors(iLblFoc,:),...
+    gdata.scorecolor{iClsFoc});
 
   %%% Error, suggestions etc %%%
   if jldata.nclassifiers==1
-    [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predictedidx ~= 0 & ...
-      labelidx.vals ~= predictedidx);
+    % jldata.GetGTSuggestionIdx asserted for single classifiers only
+    % Could provide errors but not suggestions I suppose
+    
+    [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predFoc ~= 0 & ...
+      labelidx.vals ~= predFoc);
     error_t0s = error_t0s + jldata.t0_curr - 1.5;
     error_t1s = error_t1s + jldata.t0_curr - 1.5;
     gdata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
     set(gdata.htimeline_errors,'XData',gdata.labels_plot.error_xs,...
       'YData',zeros(size(gdata.labels_plot.error_xs))+1.5);
 
-    [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
+    [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predFoc ~= 0);
     suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
     suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
     gdata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
@@ -1911,31 +1903,11 @@ else
         'YData',zeros(size(gdata.labels_plot.suggest_gt))+1.5);
     end
   end
-  %{
-  %handles.guidata.labels_plot.suggested_im(:) = 0;
-  %for behaviori = 1:handles.data.nbehaviors
-  %  idx = handles.data.suggestedidx == behaviori;
-  %  for channel = 1:3,
-  %    handles.guidata.labels_plot.suggested_im(1,idx,channel) = handles.guidata.labelcolors(behaviori,channel);
-  %  end
-  %end
-  %handles.guidata.labels_plot.error_im(:) = 0;
-  %idx = handles.data.erroridx == 1;
-  %for channel = 1:3,
-  %  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.correctcolor(channel);
-  %end
-  %idx = handles.data.erroridx == 2;
-  %for channel = 1:3,
-  %  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.incorrectcolor(channel);
-  %end
-  %}
-
-  % handles.guidata.labels_plot.isstart = ...
-  % cat(2,labelidx.vals(1)~=0,...
-  % labelidx.vals(2:end)~=0 & ...
-  % labelidx.vals(1:end-1)~=labelidx.vals(2:end));
-end
-
+else
+  prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
+  gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiCls(...
+    gdata.labels_plot,prediction.predictedidx==1,gdata.labelcolors);
+end  
 
 % -------------------------------------------------------------------------
 function handles = SetCurrentFrame(handles,i,t,hObject,doforce,doupdateplot)
@@ -2466,6 +2438,7 @@ inGroundTruthingMode=thereIsAnOpenFile && ...
                      data.gtMode;
 %inNormalMode=~inGroundTruthingMode;
 classifierExists = ~isempty(data) && data.classifierIsPresent();
+isMultiClassifier = data.nclassifiers>1;
 % atLeastOneNormalLabelExists= ...
 %   ~isempty(data) && ...
 %   data.getAtLeastOneNormalLabelExists();
@@ -2601,9 +2574,9 @@ set(handles.menu_classifier_post_processing, ...
 set(handles.menu_classifier_compareFrames, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode&&~data.isST));  
 set(handles.menu_classifier_ethogram, ...
-    'Enable',onIff(classifierExists&&~inGroundTruthingMode&&data.isST)); 
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode)); 
 set(handles.menu_classifier_labelgram, ...
-    'Enable',onIff(classifierExists&&~inGroundTruthingMode&&data.isST)); 
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode)); 
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
@@ -2654,6 +2627,8 @@ set(handles.pushbutton_train, ...
 % The Predict button is enabled iff a classifier exists.
 set(handles.pushbutton_predict, ...
     'enable',onIff(classifierExists&&someExperimentIsCurrent));
+
+set(handles.classifierFocusPopup,'Visible',onIff(isMultiClassifier));
 
 if savewindowdata,
   set(handles.menu_file_savewindowdata,'checked','on');
@@ -3347,6 +3322,8 @@ return
 function handles = SetLabelsPlot(handles,t0,t1,behavioris)
 % ALTODO See SetLabelPlot, dup?
 
+% AL20150218: This call appears to accept array-valued behavioris but the
+% call to handles.data.SetLabel should not accept nonscalar values
 
 if t1 < t0,
   tmp = t1;
@@ -3815,11 +3792,7 @@ if handles.data.isST
   menu_file_save_Callback(hObject,eventdata,handles);
   SetStatus(handles,'Training..');
   handles.data.TrainST();
-  
-  stPredict(handles,false);
-  menu_file_save_Callback(hObject,eventdata,handles);  
-  ClearStatus(handles);
-  UpdateEnablementAndVisibilityOfControls(handles);  
+  ClearStatus(handles);  
 else
   % check that the user has selected features already
   perFrameFeatureSetIsNonEmpty = ...
@@ -3832,33 +3805,32 @@ else
     restorePointer(hObject,oldPointer);
     return;
   end
-  % store the current labels to windowdata_labeled
-  %handles.data.StoreLabelsAndPreLoadWindowData();  
-  %  now do this inside JLabelData.Train()
-  handles.data.Train(handles.guidata.doFastUpdates);
-  handles = SetPredictedPlot(handles);
-  % predict for current window
-  handles = predict(handles);
-  % handles.data.needsave=true;  % done in .Train()
-  UpdateEnablementAndVisibilityOfControls(handles);
-  guidata(hObject,handles);
+  handles.data.Train(handles.guidata.doFastUpdates);  
 end
+
+handles = predict(handles);
+handles = SetPredictedPlot(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
+guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
 function handles = predict(handles)
 
-assert(~handles.data.isST);
+if handles.data.isST
+  % for ST, we currently always predict on the whole movie
+  handles.data.PredictWholeMovieNoSave(handles.data.expi);
+else
+  % predict for the currently shown timeline
+  % TODO: make this work for multiple axes
+  % Note that this is a controller-like "method", b/c it changes the model
+  % and the view.
+  t0 = max(handles.data.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
+  t1 = min(handles.data.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
+  handles.data.Predict(handles.data.expi,handles.data.flies,t0,t1);
+end
 
-% predict for the currently shown timeline
-% TODO: make this work for multiple axes
-% Note that this is a controller-like "method", b/c it changes the model
-% and the view.
-t0 = max(handles.data.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
-t1 = min(handles.data.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
-handles.data.Predict(handles.data.expi,handles.data.flies,t0,t1);
 handles = SetPredictedPlot(handles);
-
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles, ...
@@ -3873,35 +3845,35 @@ UpdatePlots(handles, ...
             'refresh_curr_prop',false);
 return
 
-function stPredict(handles,tfCurrentMovieOnly)
-% calls classifyST and imports scores. Note that classifyST will write
-% scorefiles.
-
-assert(handles.data.isST);
-
-macguffin = handles.data.getMacguffin();
-jabfilename = handles.data.everythingFileNameAbs;
-assert(numel(unique(handles.data.expdirs))==numel(handles.data.expdirs),...
-  'The same experiment has been added twice');
-assert(isequaln({macguffin.classifierStuff.params},handles.data.classifier));
-
-if tfCurrentMovieOnly
-  SetStatus(handles,'Classifying current movie..');
-  edir = handles.data.expdirs{handles.data.expi};
-  ntarget = handles.data.nflies_per_exp(handles.data.expi);
-  classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget,...
-    'jabfilename',jabfilename);
-  menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
-else
-  SetStatus(handles,'Classifying all movies..');
-  for ndx = 1:numel(handles.data.expdirs)
-    edir = handles.data.expdirs{ndx};
-    ntarget = handles.data.nflies_per_exp(ndx);
-    classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget,...
-      'jabfilename',jabfilename);
-  end
-  menu_file_import_scores_all_exp_default_loc_Callback([],[],handles);
-end
+% function stPredict(handles,tfCurrentMovieOnly)
+% % calls classifyST and imports scores. Note that classifyST will write
+% % scorefiles.
+% 
+% assert(handles.data.isST);
+% 
+% macguffin = handles.data.getMacguffin();
+% jabfilename = handles.data.everythingFileNameAbs;
+% assert(numel(unique(handles.data.expdirs))==numel(handles.data.expdirs),...
+%   'The same experiment has been added twice');
+% assert(isequaln({macguffin.classifierStuff.params},handles.data.classifier));
+% 
+% if tfCurrentMovieOnly
+%   SetStatus(handles,'Classifying current movie..');
+%   edir = handles.data.expdirs{handles.data.expi};
+%   ntarget = handles.data.nflies_per_exp(handles.data.expi);
+%   classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget,...
+%     'jabfilename',jabfilename);
+%   menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
+% else
+%   SetStatus(handles,'Classifying all movies..');
+%   for ndx = 1:numel(handles.data.expdirs)
+%     edir = handles.data.expdirs{ndx};
+%     ntarget = handles.data.nflies_per_exp(ndx);
+%     classifyST(edir,macguffin,'verbose',1,'numTargets',ntarget,...
+%       'jabfilename',jabfilename);
+%   end
+%   menu_file_import_scores_all_exp_default_loc_Callback([],[],handles);
+% end
 
 
 % -------------------------------------------------------------------------
@@ -3932,12 +3904,8 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if handles.data.isST
-  stPredict(handles,false);
-else
-  handles = predict(handles);
-  guidata(hObject,handles);
-end
+handles = predict(handles);
+guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
@@ -4776,6 +4744,9 @@ manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
   -manual_radio_pos(4);
 set(handles.timeline_label_manual,'Position',manual_radio_pos);
 
+clsFocusPos = get(handles.classifierFocusPopup,'Position');
+clsFocusPos(2) = timeline_manual_pos(2) + 5*timeline_manual_pos(4)/6 - clsFocusPos(4)/2;
+set(handles.classifierFocusPopup,'Position',clsFocusPos);
 
 % Positions of the automatic timeline's labels
 labelPredictionPos = get(handles.automaticTimelinePredictionLabel,'Position');
@@ -5892,6 +5863,8 @@ return
 % -------------------------------------------------------------------------
 function [t0,t1,labelidx,label] = GetBoutProperties(handles,t,labeltype)
 
+assert(~handles.data.isMultiClassifier,'Unsupported for multiclassifier projects.');
+
 if nargin < 3,
   labeltype = 'manual';
 end
@@ -5929,7 +5902,9 @@ if nargout >= 4,
   if labelidx == 0,
     label = 'Unknown';
   else
-    label = handles.data.labelnames{labelidx};
+    label = handles.data.labelnames{labelidx}; 
+    % AL 20150218: potential very obscure bug, labelidx can take value 1.5 
+    % per JLabelData.GetPredictedIdx API
   end
   if ~strcmpi(labeltype,'manual'),
     label = ['Predicted ',label];
@@ -6286,6 +6261,8 @@ function contextmenu_timeline_automatic_bookmark_selection_Callback(hObject, eve
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+assert(~handles.data.isMultiClassifier,'Unsupported for multiclassifier projects.');
+
 prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
 labelidx = prediction.predictedidx;
 handles.bookmark_info.labelidx = unique(labelidx);
@@ -6370,6 +6347,8 @@ function contextmenu_timeline_automatic_accept_selected_Callback(hObject, eventd
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+assert(~handles.data.isMultiClassifier,'Unsupported for multiclassifier projects.');
+
 t0 = handles.bookmark_info.t0;
 t1 = handles.bookmark_info.t1;
 
@@ -6378,6 +6357,8 @@ t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
 prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,t0,t1);
 predictedidx = prediction.predictedidx;
 handles = SetLabelsPlot(handles,t0,t1,predictedidx); % ALTODO SetLabelPlot?
+% AL 20150218 This call to SetLabelsPlot with array-valued predictedidx
+% seems like will error
 
 UpdatePlots(handles,...
   'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
@@ -6413,108 +6394,19 @@ return
 
 % --------------------------------------------------------------------
 function handles = menu_view_manual_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_manual_labels (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.plot_labels_manual = true;
-handles.guidata.plot_labels_automatic = false;
-% set(handles.panel_timeline_select,'SelectedObject',handles.timeline_label_manual);
-set(handles.timeline_label_manual,'Value',1);
-UpdatePlotLabels(handles);
-guidata(hObject,handles);
-return
-
+handles.guidata.setPlotLabelsManual();
 
 % --------------------------------------------------------------------
 function menu_view_automatic_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_automatic_labels (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.plot_labels_manual = false;
-handles.guidata.plot_labels_automatic = true;
-% set(handles.panel_timeline_select,'SelectedObject',handles.timeline_label_automatic);
-set(handles.timeline_label_automatic,'Value',1);
-UpdatePlotLabels(handles);
-guidata(hObject,handles);
-return
-
-
-% --------------------------------------------------------------------
-function UpdatePlotLabels(handles)
-
-% Always update the menu item checkboxes
-set(handles.menu_view_manual_labels, ...
-    'Checked',onIff(handles.guidata.plot_labels_manual));
-set(handles.menu_view_automatic_labels, ...
-    'Checked',onIff(handles.guidata.plot_labels_automatic));
-
-% If there's no current experiment, we're done  
-someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
-if ~someExperimentIsCurrent,
-  return
-end
-
-if handles.guidata.plot_labels_manual,
-  set(handles.guidata.hlabels,'Visible','on');
-  set(handles.timeline_label_manual, ...
-      'ForegroundColor',handles.guidata.emphasiscolor, ...
-      'FontWeight','bold');
-else
-  set(handles.guidata.hlabels,'Visible','off');
-  set(handles.timeline_label_manual, ...
-      'ForegroundColor',handles.guidata.unemphasiscolor, ...
-      'FontWeight','normal');
-end
-if handles.guidata.plot_labels_automatic,
-  set(handles.guidata.hpredicted,'Visible','on');
-  set(handles.timeline_label_automatic, ...
-      'ForegroundColor',handles.guidata.emphasiscolor, ...
-      'FontWeight','bold');
-else
-  set(handles.guidata.hpredicted,'Visible','off');
-  set(handles.timeline_label_automatic, ...
-      'ForegroundColor',handles.guidata.unemphasiscolor, ...
-      'FontWeight','normal');
-end
-
-UpdatePlots(handles,...
-            'refreshim',false, ...
-            'refreshflies',true, ...
-            'refreshtrx',false, ...
-            'refreshlabels',true,...
-            'refresh_timeline_manual',false,...
-            'refresh_timeline_auto',false,...
-            'refresh_timeline_suggest',false,...
-            'refresh_timeline_error',false,...
-            'refresh_timeline_xlim',false,...
-            'refresh_timeline_hcurr',false,...
-            'refresh_timeline_props',false,...
-            'refresh_timeline_selection',false,...
-            'refresh_curr_prop',false);
-
-return
-
+handles.guidata.setPlotLabelsAutomatic();
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_overlay_Callback(hObject, eventdata, handles)
-% hObject    handle to contextmenu_timeline_automatic_overlay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
-return
-
+menu_view_automatic_labels_Callback([],[],handles);
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_manual_overlay_Callback(hObject, eventdata, handles)
-% hObject    handle to contextmenu_timeline_manual_overlay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
-return
+menu_view_manual_labels_Callback([],[],handles);
 
 
 % --------------------------------------------------------------------
@@ -6651,7 +6543,7 @@ function panel_timeline_select_SelectionChangeFcn(hObject, eventdata, handles)
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
 
-if  strcmp(get(eventdata.NewValue,'tag'),'timeline_label_manual')
+if strcmp(get(eventdata.NewValue,'tag'),'timeline_label_manual')
   menu_view_manual_labels_Callback(hObject, eventdata, handles);
 else
   menu_view_automatic_labels_Callback(hObject, eventdata, handles);
@@ -7571,12 +7463,8 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % hObject    handle to menu_classifier_classifyCurrentMovieSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-try
-  if handles.data.isST
-    stPredict(handles,true);
-  else
-    handles.data.PredictSaveMovie(handles.data.expi);
-  end
+try  
+  handles.data.PredictSaveMovie(handles.data.expi);
 catch excp
   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
 end  % try/catch
@@ -7589,8 +7477,6 @@ function menu_classifier_classifyCurrentMovieSaveNew_Callback(hObject, eventdata
 % hObject    handle to menu_classifier_classifyCurrentMovieSaveNew (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-assert(~handles.data.isST,'ST unsupported.');
 
 [tfsuccess,sfn] = hlpGetScoreFiles(handles.data,handles.data.expi,@uiputfile);
 if ~tfsuccess
@@ -7619,20 +7505,16 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if handles.data.isST
-  stPredict(handles,true);
-else
-  handles.data.PredictWholeMovieNoSave(handles.data.expi);
-  handles = UpdateTimelineImages(handles);
-  guidata(handles.figure_JLabel,handles);
-  UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-    'refreshtrx',true,'refreshlabels',true,...
-    'refresh_timeline_manual',false,...
-    'refresh_timeline_xlim',false,...
-    'refresh_timeline_hcurr',false,...
-    'refresh_timeline_selection',false,...
-    'refresh_curr_prop',false);
-end
+handles.data.PredictWholeMovieNoSave(handles.data.expi);
+handles = UpdateTimelineImages(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 % --------------------------------------------------------------------
@@ -7718,14 +7600,10 @@ function menu_classifier_classifyall_default_Callback(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-try
-  if handles.data.isST
-    stPredict(handles,false);
-  else
-    for ndx = 1:handles.data.nexps,
-      handles.data.PredictSaveMovie(ndx);
-    end
-  end    
+try  
+  for ndx = 1:handles.data.nexps,
+    handles.data.PredictSaveMovie(ndx);
+  end
 catch excp
   uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
 end  % try/catch
@@ -7737,8 +7615,6 @@ function menu_classifier_classifyall_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_classifyall_new (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-assert(~handles.data.isST,'ST unsupported.');
 
 sfn = handles.data.GetFileName('scores');
 newsfn = inputdlg(sfn,'Score filenames',1,sfn,'on');
@@ -7763,12 +7639,8 @@ function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles
 % hObject    handle to menu_classifier_classifyall_nosave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if handles.data.isST
-  stPredict(handles,false);
-else
-  for ndx = 1:handles.data.nexps
-    handles.data.PredictWholeMovieNoSave(ndx);
-  end
+for ndx = 1:handles.data.nexps
+  handles.data.PredictWholeMovieNoSave(ndx);
 end
 return
 
@@ -8147,30 +8019,8 @@ data=handles.data;  % ref
 %data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
-%handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
-%handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 guidata(figureJLabel,handles);  % write the handles back to the figure
-
-% % Load the labels and classifier
-% data.setAllLabels(everythingParams);
-% data.setScoreFeatures(everythingParams.scoreFeatures);
-% data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-% data.setClassifier(everythingParams.classifier);
-
-% Set the functions that end up getting called when we call SetStatus()
-% and ClearStatus()
-% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% % Copy the default path out of the JLabelData.
-% handles.guidata.defaultpath = handles.data.defaultpath;
-
-% % Note that there is currently an open file, and note its name
-% handles.guidata.thereIsAnOpenFile=true;
-% handles.guidata.everythingFileNameAbs=fileNameAbs;
-% handles.guidata.userHasSpecifiedEverythingFileName=true;
-% handles.guidata.needsave=false;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
@@ -8185,14 +8035,13 @@ handles.guidata.oldexpdir='';
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% AL: we just called this above
+handles = UpdateGUIToMatchGroundTruthingMode(handles); 
 
 % Update the GUI match the current "model" state
 UpdateEnablementAndVisibilityOfControls(handles);
 
 % Done, set status message to cleared message, pointer to normal
-%fileNameRel=fileNameRelFromAbs(fileNameAbs);
-%handles.guidata.status_bar_text_when_clear=fileNameRel;
 syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
 
@@ -8371,63 +8220,10 @@ delete(get(handles.axes_timeline_prop1(valid_props),'children'));
 % Close the .jab file in JLabelData
 handles.data.closeJabFile();
 
-% % save things we want to reinstate
-% in_border_y=handles.guidata.in_border_y;
-
-% % delete graphics objects that were created on the fly
-% buttons=handles.guidata.togglebutton_label_behaviors(2:end);
-% delete(buttons(ishandle(buttons)));
-% %panels=handles.guidata.panel_previews;
-% %delete(panels(ishandle(panels)));
-
-% % Release and re-generate handles.guidata, to make sure it's fresh
-% handles.guidata=[];
-% handles.guidata = JLabelGUIData();
-% handles.guidata.UpdateGraphicsHandleArrays(findAncestorFigure(hObject));
-
-% % init stuff
-% handles.output = handles.figure_JLabel;
-% handles.guidata.classifierfilename='';
-% handles.guidata.configfilename='';
-% handles.guidata.defaultpath='';
-% %handles.guidata.hsplash=[];
-% %handles.guidata.hsplashstatus=[];
-% handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
-% handles.guidata.idlestatuscolor = [0,1,0];
-% handles.guidata.busystatuscolor = [1,0,1];
-% handles.guidata.movie_height = 100;
-% handles.guidata.movie_width = 100;
-% handles.guidata.movie_depth = 1;
-% handles.guidata.tempname = tempname();
-% ClearStatus(handles);
-
-% % save the window state
-% guidata(hObject,handles);
-
-% % Update the arrays of graphics handles (grandles) within the figure's guidata
-% handles.guidata.UpdateGraphicsHandleArrays(hObject);
-% 
-% % Get some figure dimensions useful when we need to redo the layout
-% handles.guidata.in_border_y = in_border_y;
-
-% % Create the label buttons
-% handles=guidata(hObject);
-% handles = UpdateLabelButtons(handles);
-% guidata(hObject,handles);
-
-% % Note that there is currently no open file.
-% handles.guidata.thereIsAnOpenFile=false;
-% % these next three aren't strictly necessary
-% handles.guidata.everythingFileNameAbs='';
-% handles.guidata.userHasSpecifiedEverythingFileName=false;
-% handles.guidata.needsave=false;
-
 % Set the GT state back to "none"
-%handles.guidata.GUIGroundTruthingMode=[];
 UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI to match the current "model" state
-%handles=guidata(hObject);
 UpdateEnablementAndVisibilityOfControls(handles);
 
 handles = resetLabelButtons(handles);
@@ -9310,7 +9106,7 @@ end
 % --------------------------------------------------------------------
 function menu_classifier_ethogram_Callback(hObject, eventdata, handles)
 
-assert(handles.data.isST);
+%assert(handles.data.isST);
 
 SetStatus(handles,'Saving..');
 menu_file_save_Callback(hObject,eventdata,handles);
@@ -9339,7 +9135,7 @@ ClearStatus(handles);
 % --------------------------------------------------------------------
 function menu_classifier_labelgram_Callback(hObject, eventdata, handles)
 
-assert(handles.data.isST);
+%assert(handles.data.isST);
 
 SetStatus(handles,'Saving..');
 menu_file_save_Callback(hObject,eventdata,handles);
@@ -9352,3 +9148,28 @@ maxendframe = cellfun(@max,endframesperexp);
 maxendframe = max(maxendframe);
 labels_plot(expdirs,{jabname},maxendframe);
 ClearStatus(handles);
+
+
+function classifierFocusPopup_Callback(hObject, eventdata, handles)
+idx = get(hObject,'Value');
+if idx==1 % <all classifiers>
+  handles.guidata.unsetClassifierFocus();
+else
+  handles.guidata.setClassifierFocus(idx-1);
+end
+UpdateTimelineImages(handles);
+UpdatePlots(handles, ...
+            'refreshim',false, ...
+            'refreshflies',true, ...
+            'refreshtrx',true, ...
+            'refreshlabels',true,...
+            'refresh_timeline_manual',false,...
+            'refresh_timeline_xlim',false,...
+            'refresh_timeline_hcurr',false,...
+            'refresh_timeline_selection',false,...
+            'refresh_curr_prop',false);
+
+function classifierFocusPopup_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

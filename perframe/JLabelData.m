@@ -94,7 +94,7 @@ classdef JLabelData < matlab.mixin.Copyable
     %   t           - startframe:endframe for exp, target. ALTODO: This state is duplicated identically across multiple classifiers
     %   cur
     %   cur_valid
-    %   cur_pp
+    %   cur_pp      - This and other *_pp (postprocessed) fields are logical vectors
     %   old
     %   old_valid
     %   old_pp
@@ -3978,6 +3978,10 @@ classdef JLabelData < matlab.mixin.Copyable
     function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
     % Returns the labelidx for the input experiment and flies read from
     % labels. 
+    %
+    % labelidx only guaranteed to have fields .vals, .imp, .timestamp.
+    % labelidx.vals takes values in {0 (unlabeled),1,2,...,obj.nbehaviors}.
+    % See Labels.labelIdx for more info.
     
       % Access labelidx cache if appropriate
       if ~isempty(obj.expi) && numel(flies)==numel(obj.flies) && obj.IsCurFly(expi,flies)
@@ -3987,7 +3991,7 @@ classdef JLabelData < matlab.mixin.Copyable
           T1 = obj.t1_curr;
         else
           idx = T0+obj.labelidx_off:T1+obj.labelidx_off;
-          labelidx = struct();
+          labelidx = struct(); % cropped labelIdx, doesn't have all the usual labelidx fields
           labelidx.vals = obj.labelidx.vals(:,idx);
           labelidx.imp = obj.labelidx.imp(:,idx);
           labelidx.timestamp = obj.labelidx.timestamp(:,idx);
@@ -4147,14 +4151,14 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function SetLabel(obj,expi,flies,ts,behaviori,important)
     % SetLabel(obj,expi,flies,ts,behaviori)
-      % Set label for experiment expi, flies, and frames ts. If
+    % Set label for experiment expi, flies, and frames ts. If
     % expi, flies match current expi, flies, then we only set labelidx.
-      % Otherwise, we set labels.
+    % Otherwise, we set labels.
       
-      % behaviori, same as JLabel/SetLabelPlot:
-      % - If greater than 0, behavior index to label. Valid vals: [1..numbehaviors]
-      % - If == 0, clear labels for all timelines/behaviors.
-      % - If < 0, timeline index to clear. Valid vals: [1..numtimelines]
+    % behaviori, same as JLabel/SetLabelPlot:
+    % - If greater than 0, behavior index to label. Valid vals: [1..numbehaviors]
+    % - If == 0, clear labels for all timelines/behaviors.
+    % - If < 0, timeline index to clear. Valid vals: [1..numtimelines]
       
       if behaviori<=0 % clear labels
         assert(important==0);        
@@ -5206,27 +5210,24 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-    function predictions = GetPredictionsAllFlies(obj,expi,curt,fliesinrange)
+    function predictions = GetPredictionsAllFlies(obj,expi,curt,fliesinrange,iCls)
       % curt: scalar, time desired
+      % fliesinrange: vector of flies of interest
+      %
+      % predictions: row vector, same size as fliesinrange. 1/2/0 for
+      % beh/no-beh/no-prediction, resp.
       
       %MERGESTUPDATED
-      
-      % ALTODO: currently always returning prediction for first
-      % behavior/classifier
-      iCls = 1;
-      
-      predictions = zeros(1,numel(fliesinrange));
+            
+      predictions = zeros(size(fliesinrange));
       
       count = 1;
       for curfly = fliesinrange(:)'
-        idxcurr = obj.predictdata{expi}{curfly}(iCls).cur_valid & ...
-                  obj.predictdata{expi}{curfly}(iCls).t==curt;
-        if ~any(idxcurr)
-          % ALTODO: this branch causes predictions vector to not
-          % correspond element-per-element to fliesinrange
-          continue; 
+        pd = obj.predictdata{expi}{curfly}(iCls);
+        idxcurr = pd.cur_valid & pd.t==curt;
+        if any(idxcurr)
+          predictions(count) = 2 - pd.cur_pp(idxcurr);
         end
-        predictions(count) = 2-obj.predictdata{expi}{curfly}(iCls).cur_pp(idxcurr);
         count = count+1;
       end
     end
@@ -5234,7 +5235,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function SetConfidenceThreshold(obj,thresholds,ndx)
-      assert(obj.nclassifiers==1);
+      assert(obj.nclassifiers==1,'Unsupported for multi-classifier projects.');
       assert(isscalar(ndx) && any(ndx==[1 2]));
       obj.confThresholds(1,ndx) = thresholds;
     end
@@ -5242,10 +5243,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function t = GetConfidenceThreshold(obj,ndx)
-      % thresholds = GetConfidenceThreshold(obj,ndx)
-      % ndx: indices into handles.data.labelnames      
-      
-      t = obj.confThresholds(ndx); 
+      % ndx: indices into obj.labelnames      
+      t = obj.confThresholds(ndx); % single index into 2D array 
     end
     
     
@@ -6146,8 +6145,10 @@ classdef JLabelData < matlab.mixin.Copyable
       
       %MERGESTUPDATED
       
-      if nargin<4
+      if nargin<4 || isempty(T0)
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      end
+      if nargin<5 || isempty(T1)
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
       if nargin<6
@@ -6173,8 +6174,10 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1,clsIdx)
       %MERGESTUPDATED
-      if nargin<4
+      if nargin<4 || isempty(T0)
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      end
+      if nargin<5 || isempty(T1)
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
       if nargin<6
@@ -6189,8 +6192,10 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1,clsIdx)
       %MERGESTUPDATED
-      if nargin<4
+      if nargin<4 || isempty(T0)
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      end
+      if nargin<5 || isempty(T1)
         T1 = min(obj.GetTrxEndFrame(expi,flies));
       end
       if nargin<6
@@ -6629,8 +6634,9 @@ classdef JLabelData < matlab.mixin.Copyable
       % clsIdx: array of classifier indices. Defaults to 1:obj.nclassifiers.
       %
       % scores: numel(clsIdx)-by-(T1-T0+1) 
-      % predictions: numel(clsIdx)-by-(T1-T0+1). fldPP only needed to 
-      % compute predictions.
+      % predictions: numel(clsIdx)-by-(T1-T0+1). 1/2 for 
+      % behavior/no-behavior, resp. fldPP only needed to compute 
+      % predictions.
       
       if ~exist('clsIdx','var')
         clsIdx = 1:obj.nclassifiers;
