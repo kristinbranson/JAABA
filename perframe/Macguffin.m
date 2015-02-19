@@ -36,7 +36,7 @@ classdef Macguffin < handle
       self.file.perframedir = 'perframe';
       self.file.clipsdir = 'clips';
       %self.windowfeatures = struct;
-      self.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
+      self.behaviors.labelcolors = [JLabelGUIData.COLOR_BEH_DEFAULT JLabelGUIData.COLOR_NOBEH_DEFAULT];
       self.behaviors.unknowncolor = [0,0,0];
       self.trxGraphicParams=trxGraphicParamsFromAnimalType(animalType);
       self.labelGraphicParams.colormap = 'line';

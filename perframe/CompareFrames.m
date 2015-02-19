@@ -447,7 +447,7 @@ for behaviori = 1:handles.data.nbehaviors
     timg(1,idx,channel) = curcolor(channel);
     timg(2,idxPred,channel) = curcolor(channel);
     scoreNdx = ceil(handles.scoresCache(idxPred)*31)+32;
-    timg(3,idxPred,channel) = handles.JLabelH.guidata.scorecolor(scoreNdx,channel,1);
+    timg(3,idxPred,channel) = handles.JLabelH.guidata.scorecolor{1}(scoreNdx,channel,1);
   end
   
   
