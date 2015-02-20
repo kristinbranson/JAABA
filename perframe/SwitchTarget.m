@@ -169,7 +169,7 @@ if ~handles.JLDObj.IsGTMode()
   
   if nCls>1
     for iCls = 1:nCls      
-      fieldList(end+1,:) = { @(gs,cs)cs(iCls).posframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{1})};
+      fieldList(end+1,:) = { @(gs,cs)cs(iCls).posframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{1})}; %#ok<*AGROW>
       fieldList(end+1,:) = { @(gs,cs)cs(iCls).negframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{2})};
     end
   end
@@ -197,14 +197,14 @@ else
   fieldList(end+1,:) = { @(gs,cs)gs.trajLength,'Trajectory| Length'};
   fieldList(end+1,:) = { @(gs,cs)gs.firstframe,'Start frame'};
   fieldList(end+1,:) = { @(gs,cs)gs.sexfrac,'Sex|(% male)'};
-  fieldList(end+1,:) = { @(gs,cs)gs.gt_nbouts,'Ground Truthing|Bouts|labeled'};
-  fieldList(end+1,:) = { @(gs,cs)gs.gt_totalframes,'Ground Truthing|Frames|labeled|total'};
-  fieldList(end+1,:) = { @(gs,cs)gs.gt_posframes,'Ground Truthing|Frames|labeled|pos' };
-  fieldList(end+1,:) = { @(gs,cs)gs.gt_negframes,'Ground Truthing|Frames|labeled|neg' };
   for iCls = 1:nCls
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_posframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{1})};
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_negframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{2})};
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_suggestion_frames,sprintf('Ground Truthing|Frames|Suggested|%s',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_nbouts,sprintf('Ground Truthing|Bouts|labeled|%s',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_totalframes,sprintf('Ground Truthing|Frames|labeled|total|%s',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_posframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{1}) };
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_negframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{2}) };
   end
 end  
 

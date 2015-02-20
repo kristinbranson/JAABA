@@ -6297,7 +6297,7 @@ classdef JLabelData < matlab.mixin.Copyable
         negLblIdx = tmp(2);
 
         tmp = struct();
-        tmp.nBouts = nnz(curbouts==iCls);        
+        tmp.nbouts = nnz(curbouts==iCls);        
         tmp.posframes = nnz(curlabels==posLblIdx);
         tmp.negframes = nnz(curlabels==negLblIdx);
         tmp.totalframes = tmp.posframes + tmp.negframes;        
