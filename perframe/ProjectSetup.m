@@ -440,7 +440,7 @@ handles.basicParamsStruct.behaviors.names = name;
 if numel(name)>1
   % multiple classifiers; set labelcolors
   nlabels = 2*numel(name);
-  clrs = Labels.cropOrAugmentLabelColors(zeros(1,0),nlabels);
+  clrs = Labels.cropOrAugmentLabelColors(zeros(1,0),nlabels,'lines');
   handles.basicParamsStruct.behaviors.labelcolors = clrs;
 end
 handles.basicParamsStruct.file.scorefilename = cellfun(@(x)sprintf('scores_%s.mat',x),name,'uni',0);
@@ -463,7 +463,7 @@ if numel(behaviorsStruct.labelcolors)~=3*numel(behaviorsStruct.names)
     warning('ProjectSetup:behaviorParams',...
       'Specified label colors not consistent with number of behaviors. Updating.');
   end
-  behaviorsStruct.labelcolors = Labels.cropOrAugmentLabelColors(behaviorsStruct.labelcolors,nlabels);
+  behaviorsStruct.labelcolors = Labels.cropOrAugmentLabelColors(behaviorsStruct.labelcolors,nlabels,'lines');
 end
 
 
