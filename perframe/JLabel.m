@@ -5602,7 +5602,7 @@ return
 % -------------------------------------------------------------------------
 function predictTimerCallback(obj,event,hObject,framesPerTick)
   handles = guidata(hObject);
-  if handles.data.IsGTMode(),
+  if handles.data.IsGTMode() || handles.data.isST
     return;
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
