@@ -712,28 +712,19 @@ classdef Labels
       end
     end
     
-%     function beh = labelName2ClassifierName(name)
-%       % eg, return 'Lift' for either 'Lift' or 'No_lift', the point being
-%       % that both labels pertain to the Lift classifier.
-%       
-%       assert(false,'This is not safe, what if name==''None'');
-%       if strncmp(name,'No_',3)
-%         beh = name(4:end);
-%       else
-%         beh = name;
-%       end
-%     end
-%     
     function clr = noneColor(behColor)
       % return standard none color corresponding to behavior color
+      % AL: See ShiftColor.m
       assert(numel(behColor)==3);
       clr = behColor/1.5;
     end
     
-    function labelcolors = cropOrAugmentLabelColors(labelcolors,nlabels)
+    function labelcolors = cropOrAugmentLabelColors(labelcolors,nlabels,...
+        noBehColorStyle)
       % labelcolors (input): given labelcolors, may be too small or large
       % for nlabels
       % nlabels: number of labels (including no-behavior labels)
+      % noBehColorStyle: either 'lines' or 'darkened'. 
       %
       % labelcolors(output): cropped or augmented to have nlabels*3
       % elements. Colors are assumed to correspond to
@@ -757,22 +748,30 @@ classdef Labels
         % augment existing colors
         if nlabels==2
           % Single-classifier
-          DEFAULTCOLORS_CLASSIC = [0.7000 0 0 0 0 0.7000]; % currently also specified in Macguffin
+          DEFAULTCOLORS_CLASSIC = [JLabelGUIData.COLOR_BEH_DEFAULT JLabelGUIData.COLOR_NOBEH_DEFAULT];
           labelcolors(nclrs+1:6) = DEFAULTCOLORS_CLASSIC(nclrs+1:6);
           % Don't worry about possible "color collisions" (same color for
           % beh and None)
         else
-          % Multi-classifier; currently, force certain colors for no-behs
-          nrealbeh = nlabels/2;
-          DEFAULTCOLORS_MULTI = lines(nrealbeh)';
-          DEFAULTCOLORS_MULTI = DEFAULTCOLORS_MULTI(:);
-          labelcolors(nclrs+1:nrealbeh*3) = DEFAULTCOLORS_MULTI(nclrs+1:nrealbeh*3);
-          for i = 1:nrealbeh
-            idxRealBeh = 3*(i-1)+1:3*(i-1)+3;
-            idxNoBeh = idxRealBeh+3*nrealbeh;
-            realClr = labelcolors(idxRealBeh);
-            noneClr = Labels.noneColor(realClr);
-            labelcolors(idxNoBeh) = noneClr;
+          % Multi-classifier
+          switch noBehColorStyle
+            case 'lines'
+              COLORS = lines(nlabels)';
+              COLORS = COLORS(:);
+              labelcolors(nclrs+1:3*nlabels) = COLORS(nclrs+1:3*nlabels);              
+            case 'darkened'
+              % no-beh colors are darkened version of beh colors
+              nrealbeh = nlabels/2;
+              COLORS_BEH = lines(nrealbeh)';
+              COLORS_BEH = COLORS_BEH(:);
+              labelcolors(nclrs+1:nrealbeh*3) = COLORS_BEH(nclrs+1:nrealbeh*3);
+              for i = 1:nrealbeh
+                idxRealBeh = 3*(i-1)+1:3*(i-1)+3;
+                idxNoBeh = idxRealBeh+3*nrealbeh;
+                realClr = labelcolors(idxRealBeh);
+                noneClr = Labels.noneColor(realClr);
+                labelcolors(idxNoBeh) = noneClr;
+              end
           end
         end
       end

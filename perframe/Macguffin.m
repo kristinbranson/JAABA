@@ -361,7 +361,7 @@ classdef Macguffin < handle
       % set combined .behaviors 
       self.behaviors.type = m(1).behaviors.type;
       self.behaviors.names = [allbehnames cellfun(@Labels.noBehaviorName,allbehnames,'uni',0)];
-      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(self.behaviors.names));
+      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(self.behaviors.names),'lines');
       self.behaviors.labelcolors = Labels.addNoBehColors(self.behaviors.labelcolors);
       self.behaviors.labelcolors = reshape(self.behaviors.labelcolors,3,[])';
       self.behaviors.unknowncolor = m(1).behaviors.unknowncolor;
