@@ -74,23 +74,20 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
           'nthreads',struct);
 
 % Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
-figureJLabel=handles.figure_JLabel;
-handles.data=JLabelData('setstatusfn',@(s)SetStatusCallback(s,figureJLabel) , ...
+figureJLabel = handles.figure_JLabel;
+handles.data = JLabelData('setstatusfn',@(s)SetStatusCallback(s,figureJLabel) , ...
                         'clearstatusfn',@()ClearStatusCallback(figureJLabel));
-if ~isempty(defaultPath) ,                      
+if ~isempty(defaultPath),
   handles.data.SetDefaultPath(defaultPath);
 end
 
 % To help with merging with Adam -- Mayank, 6 march 2012 
 set(handles.automaticTimelineBottomRowPopup,'String',...
     {'None','Validated','Old','Imported','Postprocessed','Distance'});
+set(handles.automaticTimelinePopup,'String',...
+    {'Predictions','Scores','Validated','Old','Imported','Postprocessed'});
 
-% Added to JLabel.fig
-%handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
-% 'Label','Find Similar Frames','Callback',...
-%@menu_classifier_compareFrames_Callback);
-
-handles.guidata = JLabelGUIData(handles.data);
+handles.guidata = JLabelGUIData(handles.data,figureJLabel);
 if isfield(nthreads,'framecache_threads'),
   handles.guidata.framecache_threads = nthreads.framecache_threads;
 end
@@ -124,23 +121,10 @@ handles.guidata.tempname = tempname();
 
 % Set the initial clear status message
 syncStatusBarTextWhenClear(handles);
-%handles.guidata.status_bar_text_when_clear='No file open.';
 ClearStatus(handles);
-
-%[handles,success] = JLabelEditFiles('JLabelHandle',handles,...
-%  'JLabelSplashHandle',handles.guidata.hsplash);
 
 % Change a few things so they still work well on Mac
 adjustColorsIfMac(hObject);
-
-% % read configuration
-% handles.guidata.configfilename='params/featureConfig.xml';
-% [handles,success] = LoadConfig(handles);
-% if ~success,
-%   guidata(hObject,handles);
-%   delete(hObject);
-%   return;
-% end
 
 % Hide the splash window
 set(handles.guidata.hsplash,'visible','off');
@@ -245,9 +229,6 @@ varargout{1} = hObject;
 %--------------------------------------------------------------------------
 function handles = InitializeStateAfterBasicParamsSet(handles)
 
-% % Tell JLabelGUIData to init itself
-% handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel,groundTruthingMode);
-
 % create buttons for each label, as needed
 handles = UpdateLabelButtons(handles);
 
@@ -259,10 +240,11 @@ end
 % Setup the popup menu for bottom row of the automatic timeline.
 bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
 set(handles.automaticTimelineBottomRowPopup,'Value', ...
-                  find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
+  find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
 set(handles.automaticTimelinePredictionLabel,'FontSize',10);
 set(handles.automaticTimelineScoresLabel,'FontSize',10);
 set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
+set(handles.automaticTimelinePopup,'Value',1);
 
 if handles.data.isMultiClassifier
   tmp = [{'<all classifiers>'};handles.data.classifiernames(:)];
@@ -271,15 +253,9 @@ if handles.data.isMultiClassifier
   handles.guidata.unsetClassifierFocus();
 end
 
-% set([handles.pushbutton_playselection, ...
-%      handles.pushbutton_clearselection],'Enable','off');  
-
-%set(handles.togglebutton_select,'Value',0); 
-
 SetJumpGoMenuLabels(handles)
 
 handles.doplottracks = true;
-%set(handles.menu_view_plot_tracks,'Checked','on');  %via update
 
 buttonNames = {'pushbutton_train','pushbutton_predict',...
                'togglebutton_select','pushbutton_clearselection',...
@@ -288,8 +264,6 @@ buttonNames = {'pushbutton_train','pushbutton_predict',...
 for buttonNum = 1:numel(buttonNames)
   adjustButtonColorsIfMac(handles.(buttonNames{buttonNum}));
 end
-
-%set(handles.similarFramesButton,'Enable','off');  % via update
 
 updateCheckMarksInMenus(handles);
 
@@ -1810,6 +1784,8 @@ return
 
 % -------------------------------------------------------------------------
 function handles = UpdateTimelineImages(handles)
+% AL: no need to return handles, it is unchanged
+% AL: might as well move this into JLGD
 
 %MERGESTUPDATED
 
@@ -1904,10 +1880,37 @@ if gdata.behaviorFocusOn
     end
   end
 else
-  prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
-  gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiCls(...
-    gdata.labels_plot,prediction.predictedidx==1,gdata.labelcolors);
-end  
+  type = JLabelGUIData.getPopupSelection(gdata.gdata.automaticTimelinePopup);
+  switch type
+    case 'Predictions'
+      prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
+      scores = prediction.predictedidx==1; % binary vec
+    case 'Scores'
+      prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
+      scores = prediction.scoresidx;
+    case 'Validated'
+      scores = jldata.GetValidatedScores(jldata.expi,jldata.flies);
+    case 'Imported'
+      scores = jldata.GetLoadedScores(jldata.expi,jldata.flies);
+    case 'Old'
+      scores = jldata.GetOldScores(jldata.expi,jldata.flies);
+    case 'Postprocessed'
+      scores = jldata.GetPostprocessedScores(jldata.expi,jldata.flies);
+    otherwise
+      warndlg('JLabel:unknownScoreType','Undefined scores type.');
+  end
+  
+  switch type
+    case 'Predictions'
+      gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiClsBinary(...
+        gdata.labels_plot,scores,gdata.labelcolors);
+    case {'Scores' 'Validated' 'Imported' 'Old' 'Postprocessed'}
+      scores = jldata.NormalizeScores(scores);
+      gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiClsAnalog(...
+        gdata.labels_plot,scores,gdata.scorecolor);
+  end
+  
+end
 
 % -------------------------------------------------------------------------
 function handles = SetCurrentFrame(handles,i,t,hObject,doforce,doupdateplot)
@@ -2404,8 +2407,8 @@ end
 
 % Since we made and deleted buttons, need to make sure the arrays of
 % buttons are up-to-date
-% AL20141208: might be unnecessary, we are setting handles.guidata stuff
-% here
+% AL20141208, AL20150220: Good chance this call is unnecessary, or at least
+% overkill.
 handles.guidata.UpdateGraphicsHandleArrays(handles.figure_JLabel);
 
 return
@@ -4750,8 +4753,10 @@ set(handles.classifierFocusPopup,'Position',clsFocusPos);
 
 % Positions of the automatic timeline's labels
 labelPredictionPos = get(handles.automaticTimelinePredictionLabel,'Position');
-labelScoresPos =     get(handles.automaticTimelineScoresLabel,'Position');
-popupBottomPos =     get(handles.automaticTimelineBottomRowPopup,'Position');
+labelScoresPos = get(handles.automaticTimelineScoresLabel,'Position');
+popupBottomPos = get(handles.automaticTimelineBottomRowPopup,'Position');
+autoPopupPos = get(handles.automaticTimelinePopup,'Position');
+
 popupBottomPos(2) = timeline_auto_pos(2) + ...
   timeline_auto_pos(4)/6 - popupBottomPos(4)/2;
 set(handles.automaticTimelineBottomRowPopup,'Position',popupBottomPos);
@@ -4761,6 +4766,9 @@ set(handles.automaticTimelineScoresLabel,'Position',labelScoresPos);
 labelPredictionPos(2) = timeline_auto_pos(2) + ...
   5*timeline_auto_pos(4)/6 - labelPredictionPos(4)/2;
 set(handles.automaticTimelinePredictionLabel,'Position',labelPredictionPos);
+autoPopupPos(2) = timeline_auto_pos(2) + 5*timeline_auto_pos(4)/6 - ...
+  autoPopupPos(4)/2;
+set(handles.automaticTimelinePopup,'Position',autoPopupPos);
 
 % Scores text position
 scores_pos = get(handles.text_scores,'Position');
@@ -6576,13 +6584,11 @@ end
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
-find(strcmp(contents,handles.guidata.bottomAutomatic)));
+  find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
 handles = SetPredictedPlot(handles);
 handles = predict(handles);
 guidata(hObject,handles);
-
-
 
 cnames = {sprintf('%s|Predicted',handles.data.labelnames{1}),...
           'Not|Predicted',...
@@ -6694,10 +6700,10 @@ handles.data.LoadScoresDefault(handles.data.expi);
 hlpImport(handles);
 
 function hlpImport(handles)
-contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Imported';
-set(handles.automaticTimelineBottomRowPopup,'Value',...
-  find(strcmp(contents,handles.guidata.bottomAutomatic)));
+val = 'Imported';
+handles.guidata.bottomAutomatic = val;
+JLabelGUIData.setPopupSelection(handles.automaticTimelineBottomRowPopup,val);
+JLabelGUIData.setPopupSelection(handles.automaticTimelinePopup,val);  
 
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
@@ -6939,7 +6945,6 @@ function automaticTimelineBottomRowPopup_Callback(hObject, eventdata, handles)
 
 contents = cellstr(get(hObject,'String'));
 handles.guidata.bottomAutomatic = contents{get(hObject,'Value')};
-%set(handles.automaticTimelineBottomRowPopup,'BackgroundColor',[50 50 50]/256);
 handles = UpdateTimelineImages(handles);
 guidata(hObject,handles);
 UpdatePlots(handles, ...
@@ -6973,12 +6978,10 @@ function handles = UpdateGUIToMatchGroundTruthingMode(handles)
 % Updates the graphics objects as needed to match the current labeling mode 
 % (normal or ground-truthing)
 
-% get the mode
-%if isempty(handles.data) ,
-if ~handles.data.thereIsAnOpenFile ,
-  mode=[];
+if ~handles.data.thereIsAnOpenFile,
+  mode = [];
 else
-  mode=handles.data.gtMode;
+  mode = handles.data.gtMode;
 end
 
 % Make all the mode checkmarks self-consistent
@@ -7020,22 +7023,19 @@ set(groundTruthOnlyGrobjects,'Visible',visibilityOfGroundTruthOnlyGrobjects);
 
 % Updating handle visibility based purely on labelingOnlyGrobjects will not 
 % be correct for subset of handles that interact with behaviorFocus
-handles.guidata.updateAutoTimelineYLabelObjects();
+handles.guidata.updateAutoTimelineControls();
 
 % For axes, set the mode of their children accordingly
-for h=labelingOnlyGrobjects
+for h = labelingOnlyGrobjects
   if strcmpi(get(h,'type'),'axes')
     set(get(h,'children'),'visible',visibilityOfLabelingOnlyGrobjects)
   end
 end
-for h=groundTruthOnlyGrobjects
+for h = groundTruthOnlyGrobjects
   if strcmpi(get(h,'type'),'axes')
     set(get(h,'children'),'visible',visibilityOfGroundTruthOnlyGrobjects)
   end
 end
-
-% Don't think we need to do this here
-%handles = UpdateGUIAdvancedMode(handles);
 
 return
 
@@ -9174,6 +9174,22 @@ UpdatePlots(handles, ...
             'refresh_curr_prop',false);
 
 function classifierFocusPopup_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function automaticTimelinePopup_Callback(hObject, eventdata, handles)
+UpdateTimelineImages(handles);
+UpdatePlots(handles, ...
+            'refreshim',false,'refreshflies',true,...
+            'refreshtrx',true,'refreshlabels',true,...
+            'refresh_timeline_manual',false,...
+            'refresh_timeline_xlim',false,...
+            'refresh_timeline_hcurr',false,...
+            'refresh_timeline_selection',false,...
+            'refresh_curr_prop',false);
+          
+function automaticTimelinePopup_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

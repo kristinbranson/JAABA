@@ -6416,7 +6416,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % function.  --ALT, Apr 19, 2013   
       %
       % Effect: scores normalized. Each row scores(i,:) normalized by
-      % obj.windowdata(clsIdx(i)).scoreNorm.
+      % obj.windowdata(clsIdx(i)).scoreNorm. After normalization, scores
+      % will be in range [-1,1].
       %
       % Side effect: obj.windowdata(:).scoreNorm initialized if necessary,
       % using obj.windowdata(:).X and current classifiers

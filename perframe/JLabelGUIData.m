@@ -23,6 +23,7 @@ classdef JLabelGUIData < handle
       'menu_view_automatic_labels';
       'timeline_label_manual';
       'timeline_label_automatic';
+      'automaticTimelinePopup';
     };
   end
 
@@ -46,14 +47,6 @@ classdef JLabelGUIData < handle
     slider_previews = [];
     edit_framenumbers = [];
     pushbutton_playstops = [];
-    axes_timelines = [];
-    auto_timeline_ylabels = []; % text/controls to left of automatic timeline
-    
-    labels_timelines = [];
-    axes_timeline_props = [];
-    axes_timeline_labels = [];
-    text_timeline_props = [];
-    text_timelines = [];
     
     hsplash = [];
     hsplashstatus = [];
@@ -78,8 +71,6 @@ classdef JLabelGUIData < handle
     computation_threads = 1;
     traj_nprev = 25;
     traj_npost = 25;
-
-    bottomAutomatic = 'None';
     
     % JLabel figure handle
     hJLabel;
@@ -186,6 +177,24 @@ classdef JLabelGUIData < handle
     fly_colors = [];
     himage_previews = [];
     
+    %% Timelines
+    
+    % mirrors automatictimelineBottomRowPopup
+    bottomAutomatic = 'None';
+    
+    axes_timelines = [];
+    
+    % handle vector. auto timeline controls visible when behaviorFocus is on
+    auto_timeline_controls_behaviorFocusOn = [];
+    % handle vector. auto timeline controls visible when behaviorFocus is off
+    auto_timeline_controls_behaviorFocusOff = [];
+    
+    labels_timelines = [];
+    axes_timeline_props = [];
+    axes_timeline_labels = [];
+    text_timeline_props = [];
+    text_timelines = [];    
+
     %% Trx Position/Overlay 
     plot_labels_manual = true;
     plot_labels_automatic = false;
@@ -276,9 +285,18 @@ classdef JLabelGUIData < handle
     
   methods (Access=public)
     
-    function obj = JLabelGUIData(jld)
+    function obj = JLabelGUIData(jld,jlabel)
       % Constructor
-      obj.data=jld;  % store a reference to the "model"
+      % jld: JLabelData object
+      % jlabel: JLabel figure handle
+      
+      obj.data = jld;  % store a reference to the "model"
+      
+      obj.hJLabel = jlabel;
+      handles = guidata(jlabel);
+      flds2Rm = setdiff(fieldnames(handles),obj.JLABEL_GUIDATA_HANDLES);
+      obj.gdata = rmfield(handles,flds2Rm);
+      
       if verLessThan('matlab','8.3.0.532'),
         obj.computation_threads = max(1,matlabpool('size'));        
       else
@@ -310,17 +328,14 @@ classdef JLabelGUIData < handle
       % self.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
       % Regex messes the order which makes it difficult to remove the last data axes.
       handles = guidata(figure_JLabel);
-      
-      self.hJLabel = figure_JLabel;
-      
-      flds2Rm = setdiff(fieldnames(handles),self.JLABEL_GUIDATA_HANDLES);
-      self.gdata = rmfield(handles,flds2Rm);      
-      
-      self.auto_timeline_ylabels = [...
+            
+      self.auto_timeline_controls_behaviorFocusOn = [...
         handles.automaticTimelinePredictionLabel; ...
         handles.automaticTimelineScoresLabel; ...
         handles.automaticTimelineBottomRowPopup; ...
-        handles.text_scores];
+        handles.text_scores];      
+      self.auto_timeline_controls_behaviorFocusOff = [...
+        handles.automaticTimelinePopup];
         
       self.labels_timelines(1,1) = handles.timeline_label_prop1;
       self.labels_timelines(2,1) = handles.timeline_label_automatic;
@@ -680,8 +695,7 @@ classdef JLabelGUIData < handle
       self.behaviorFocusLbls = iLbls;
       
       set(self.gdata.axes_timeline_auto,'ylim',[0.5 6.5]);
-      set(self.auto_timeline_ylabels,'Visible','on');
-      
+      self.updateAutoTimelineControls();
       self.updatePlotLabels();
     end
     
@@ -692,16 +706,17 @@ classdef JLabelGUIData < handle
       
       nCls = self.data.nclassifiers;
       set(self.gdata.axes_timeline_auto,'ylim',[0.5 nCls+0.5]);
-      set(self.auto_timeline_ylabels,'Visible','off');
-      
+      self.updateAutoTimelineControls();
       self.updatePlotLabels();
     end
     
-    function updateAutoTimelineYLabelObjects(self)
+    function updateAutoTimelineControls(self)
       if self.behaviorFocusOn
-        set(self.auto_timeline_ylabels,'Visible','on');
+        set(self.auto_timeline_controls_behaviorFocusOn,'Visible','on');
+        set(self.auto_timeline_controls_behaviorFocusOff,'Visible','off');
       else
-        set(self.auto_timeline_ylabels,'Visible','off');
+        set(self.auto_timeline_controls_behaviorFocusOn,'Visible','off');
+        set(self.auto_timeline_controls_behaviorFocusOff,'Visible','on');
       end
     end
     
@@ -709,7 +724,7 @@ classdef JLabelGUIData < handle
       self.plot_labels_manual = true;
       self.plot_labels_automatic = false;
       self.updatePlotLabelsControls();
-      self.updatePlotLabels();      
+      self.updatePlotLabels();
     end
     
     function setPlotLabelsAutomatic(self)
@@ -796,9 +811,32 @@ classdef JLabelGUIData < handle
             'refresh_curr_prop',false);
     end
     
+  end
+  
+  %% MISC
+  
+  methods
+    
     function jlabelCall(self,fcn,varargin)
       handles = guidata(self.hJLabel);
       JLabel(fcn,handles,varargin{:});      
+    end
+    
+  end
+  
+  methods (Static)
+    
+    function sel = getPopupSelection(hPUM)
+      str = get(hPUM,'String');
+      idx = get(hPUM,'Value');
+      sel = str{idx};
+    end
+    
+    function setPopupSelection(hPUM,strval)
+      strs = get(hPUM,'String');
+      tf = strcmp(strval,strs);
+      assert(nnz(tf)==1,'String ''%s'' not valid menu selection.');
+      set(hPUM,'Value',find(tf));
     end
     
   end
