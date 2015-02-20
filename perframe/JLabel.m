@@ -7018,6 +7018,10 @@ end
 set(labelingOnlyGrobjects,'Visible',visibilityOfLabelingOnlyGrobjects);
 set(groundTruthOnlyGrobjects,'Visible',visibilityOfGroundTruthOnlyGrobjects);
 
+% Updating handle visibility based purely on labelingOnlyGrobjects will not 
+% be correct for subset of handles that interact with behaviorFocus
+handles.guidata.updateAutoTimelineYLabelObjects();
+
 % For axes, set the mode of their children accordingly
 for h=labelingOnlyGrobjects
   if strcmpi(get(h,'type'),'axes')
