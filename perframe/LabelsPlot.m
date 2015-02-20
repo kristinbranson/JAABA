@@ -115,6 +115,8 @@ classdef LabelsPlot
       end
       
       labels_plot.im = permute(im,[2 3 1]);
+
+      % JLabel/SetLabelPlot does direct access to labels_plot.im
     end
       
     function labels_plot = labelsPlotSetPredIm(labels_plot,...
@@ -151,7 +153,7 @@ classdef LabelsPlot
       for iBeh = 1:2
         idxScores = pred==iBeh;
         idxPredict = idxScores & abs(scores)>confThresh(iBeh);
-        scoreNdx = ceil(scores(idxScores)*31)+32;
+        scoreNdx = ceil(scores(idxScores)*31)+32; % scoreNdx in [1,63]
         for channel = 1:3
           im(1,idxPredict,channel) = labelcolors(iBeh,channel);
           im(2,idxPredict,channel) = labelcolors(iBeh,channel);
@@ -172,7 +174,30 @@ classdef LabelsPlot
       labels_plot.predicted_im = im;      
     end
     
-    function labels_plot = labelsPlotSetPredImMultiCls(labels_plot,predTF,labelcolors)
+    function labels_plot = labelsPlotSetPredImMultiClsAnalog(labels_plot,scores,scorecolors)
+      % scores: 1 x n double
+      % scorecolors: cell vector with nclassifiers elements. Each element 
+      %   scorecolors{iCls} is 63x3x3
+      
+      nTL = labels_plot.nTL;
+      assert(isequal(size(scores),[nTL labels_plot.n]));
+      assert(numel(scorecolors)==nTL);
+
+      labels_plot.predicted_im = zeros(nTL,labels_plot.n,3);
+      im = labels_plot.predicted_im;
+      im(:) = 0;
+      for iTL = 1:nTL
+        scoreNdx = ceil(scores(iTL,:)*31)+32; % scoreNdx in [1,63]
+        scoreclr = scorecolors{iTL};
+        for channel = 1:3
+          im(iTL,:,channel) = scoreclr(scoreNdx,channel,1);
+        end
+      end
+      
+      labels_plot.predicted_im = im;
+    end
+
+    function labels_plot = labelsPlotSetPredImMultiClsBinary(labels_plot,predTF,labelcolors)
       % Set labels_plot.predicted_im, multiclass version
       % At the moment, we just show the predicted (binary) bouts, as the 
       % regular tripartite timeline is likely too cluttered for multiple
@@ -205,7 +230,6 @@ classdef LabelsPlot
       labels_plot.predicted_im = im;
     end
     
-    % JLabel/SetLabelPlot does direct access    
-  end  
+  end
   
 end
