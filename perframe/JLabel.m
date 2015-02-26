@@ -1884,7 +1884,12 @@ else
   switch type
     case 'Predictions'
       prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
-      scores = prediction.predictedidx==1; % binary vec
+      predIdx = prediction.predictedidx;
+      scores = jldata.NormalizeScores(prediction.scoresidx);
+      confThresh = jldata.confThresholds;
+      
+      gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiClsBinary(...
+        gdata.labels_plot,predIdx,scores,confThresh,gdata.labelcolors);
     case 'Scores'
       prediction = jldata.GetPredictedIdx(jldata.expi,jldata.flies);
       scores = prediction.scoresidx;
@@ -1901,9 +1906,6 @@ else
   end
   
   switch type
-    case 'Predictions'
-      gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiClsBinary(...
-        gdata.labels_plot,scores,gdata.labelcolors);
     case {'Scores' 'Validated' 'Imported' 'Old' 'Postprocessed'}
       scores = jldata.NormalizeScores(scores);
       gdata.labels_plot = LabelsPlot.labelsPlotSetPredImMultiClsAnalog(...
