@@ -127,7 +127,7 @@ classdef LabelsPlot
       % - Middle: raw scores
       % - Bottom: configureable
       %
-      % scores: 1 x n double 
+      % scores: 1 x n double, normalized scores
       % pred: 1 x n. 1==beh, 2==no-beh (also allowed, 0 or 1.5. See JLabelData.GetPredictedIdx)
       % confThresh: 1x2 array for beh/noBeh resp
       % bottomType: char enum
@@ -175,7 +175,7 @@ classdef LabelsPlot
     end
     
     function labels_plot = labelsPlotSetPredImMultiClsAnalog(labels_plot,scores,scorecolors)
-      % scores: 1 x n double
+      % scores: 1 x n double, normalized scores
       % scorecolors: cell vector with nclassifiers elements. Each element 
       %   scorecolors{iCls} is 63x3x3
       
@@ -197,33 +197,45 @@ classdef LabelsPlot
       labels_plot.predicted_im = im;
     end
 
-    function labels_plot = labelsPlotSetPredImMultiClsBinary(labels_plot,predTF,labelcolors)
+    function labels_plot = labelsPlotSetPredImMultiClsBinary(labels_plot,...
+        predIdx,scores,confThreshs,labelcolors)
       % Set labels_plot.predicted_im, multiclass version
       % At the moment, we just show the predicted (binary) bouts, as the 
       % regular tripartite timeline is likely too cluttered for multiple
       % classifiers.
       %
-      % predTF: ntimelines x n logical array, true means behavior is predicted.
+      % predIdx: ntimelines x nSamp array, values in {0,1,2,1.5}, see JLabelData.GetPredictedIdx
+      % scores: ntimelines x nSamp
+      % confThreshs: ntimelines x 2. confThreshs(i,:) is [lo hi] thresholds
+      %   for ith classifier/timeline 
       % labelcolors: nbehaviors x 3 color array
       
       %MERGESTUPDATED
       
       nTL = labels_plot.nTL;
+      nSamp = labels_plot.n;
+      assert(isequal([nTL nSamp],size(predIdx),size(scores)));
+      assert(isequal(size(confThreshs),[nTL 2]));
+      assert(isequal(size(labelcolors),[labels_plot.nbeh 3]));
       
-      labels_plot.predicted_im = zeros(nTL,labels_plot.n,3);
+      labels_plot.predicted_im = zeros(nTL,nSamp,3);
       %assert(isequal(size(labels_plot.predicted_im),[nTL labels_plot.n 3]));
-      assert(isequal(size(predTF),[nTL labels_plot.n]));
       
       im = labels_plot.predicted_im;
       im(:) = 0;
       for iTL = 1:nTL
-        tf = predTF(iTL,:);
-        % rows of labelcolors are indexed by behaviors, not timelines,
-        % but currently the first nTL behaviors correspond to the
-        % timelines.
-        curColor = labelcolors(iTL,:);
-        for channel = 1:3,
-          im(iTL,tf,channel) = curColor(channel);
+        iLbls = labels_plot.TL2beh{iTL};
+        for i12 = [1 2]
+          iBeh = iLbls(i12);
+          ct = confThreshs(iBeh);
+          assert(ct==confThreshs(iTL,i12));
+          
+          tfPred = predIdx(iTL,:)==i12 & abs(scores(iTL,:))>ct;
+          
+          curColor = labelcolors(iBeh,:);
+          for channel = 1:3,
+            im(iTL,tfPred,channel) = curColor(channel);
+          end
         end
       end
       
