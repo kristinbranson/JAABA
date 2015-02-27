@@ -5210,6 +5210,31 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
+    function predictedidx = PredictedIdxExpandValues(obj,predictedidx)
+      % Helper function for GetPredictedIdx.
+      % The prediction.predictedidx returned by GetPredictedIdx takes
+      % values in the set {0,1,1.5,2}. This function changes
+      % representations so that the iTL'th row if predictedidx takes the
+      % values:
+      % * 0 for no-prediction or undecided (old value=1.5)
+      % * obj.iCls2iLbls{1} for behavior-predicted
+      % * obj.iCls2iLbls{2} for nobehavior-predicted.
+      
+      nTL = obj.ntimelines;
+      iCls2iLbls = obj.iCls2iLbl;
+      assert(isequal(nTL,size(predictedidx,1),numel(iCls2iLbls)));
+      for iTL = 1:nTL
+        p = predictedidx(iTL,:);
+        predictedidx(iTL,:) = 0;
+        iLbls = iCls2iLbls{iTL};
+        for i12 = [1 2]
+          tf = p==i12;
+          predictedidx(iTL,tf) = iLbls(i12);
+        end
+      end      
+    end
+    
+    
     function predictions = GetPredictionsAllFlies(obj,expi,curt,fliesinrange,iCls)
       % curt: scalar, time desired
       % fliesinrange: vector of flies of interest
