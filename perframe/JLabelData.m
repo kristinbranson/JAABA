@@ -197,10 +197,6 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % names of behaviors, corresponding to labelidx
     labelnames        
-        
-    % number of behaviors, including 'none' or <no-behaviors>.
-    % AL: Better name is nlabels
-    nbehaviors
   end  
   
   properties
@@ -466,6 +462,8 @@ classdef JLabelData < matlab.mixin.Copyable
     nexps
     nTargetsInCurrentExp
     ismovie    % true iff the movie file name is nonempty.  If movie file name is empty, it means we don't try to open movies.
+    nbehaviors % TO BE DEPRECATED in favor of nlabelnames.
+    nlabelnames % number of labels, including 'none' or <no-behaviors>; equivalently, numel(obj.labelnames)
     nclassifiers
     isMultiClassifier
     classifiernames % 1-by-nclassifiers cellstr
@@ -480,6 +478,14 @@ classdef JLabelData < matlab.mixin.Copyable
     
     function v = get.nclassifiers(self)
       v = self.ntimelines;
+    end
+    
+    function v = get.nbehaviors(self)
+      v = numel(self.labelnames);
+    end
+    
+    function v = get.nlabelnames(self)
+      v = numel(self.labelnames);
     end
     
     function v = get.isMultiClassifier(self)
@@ -4005,7 +4011,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       labelsShort = obj.GetLabels(expi,flies);
-      assert(obj.nbehaviors==numel(obj.labelnames));
+      %assert(obj.nbehaviors==numel(obj.labelnames));
       labelidx = Labels.labelIdx(obj.labelnames,T0,T1);
       labelidx = Labels.labelIdxInit(labelidx,labelsShort);
     end
@@ -7229,8 +7235,8 @@ classdef JLabelData < matlab.mixin.Copyable
         % read in behavior names
         if isfield(everythingParams.behaviors,'names'),
           obj.labelnames = everythingParams.behaviors.names;
-          assert(iscell(obj.labelnames));        
-          obj.nbehaviors = numel(obj.labelnames);
+          assert(iscell(obj.labelnames));
+          %obj.nbehaviors = numel(obj.labelnames);
         else
           obj.labelnames = {'Behavior','None'};
         end
@@ -9781,7 +9787,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.erroridx = [];
       self.suggestedidx = [];
       self.labelnames = {};
-      self.nbehaviors = 0;
+      %self.nbehaviors = 0;
       self.ntimelines = 0;
       self.labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
       self.perframe_params = {};
