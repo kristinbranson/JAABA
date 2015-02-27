@@ -4,7 +4,7 @@ classdef NextJump < handle
     curType = 'Bouts in current scores';
     allTypes = {'Bouts in current scores',...
       'Bouts in imported scores',...
-      'Bouts in postprocessed imported scores',...
+      'Bouts in postprocessed scores',...
       'Errors in current scores',...
       'Errors in validated scores',...
       'Errors in imported scores',...      
@@ -14,7 +14,7 @@ classdef NextJump < handle
       'Thresholds on perframe values',...
       'Ground Truth Suggestions',...
       'Jump To Similar Frames'};
-    seek_behaviors_go = [];
+    seek_behaviors_go = []; % vector of label/behavior indices currently included in seek list
     perframefns = {};
     perframeSelFeatures = [];
     perframeSelThresholds = [];
@@ -22,13 +22,16 @@ classdef NextJump < handle
     hthresh = 0;
     lthresh = 0;
     compareFramesHandle = [];
+    
+    % AL 20150226: Seems like NextJump can hold the JLabelData it is
+    % associated with
   end
   
-  methods (Access = public, Static = true)
+  methods (Access=public, Static=true)
     
   end % End Static methods
   
-  methods (Access= public)
+  methods (Access=public)
     
     function state = GetState(obj)
       state.curType = obj.curType;
@@ -59,13 +62,12 @@ classdef NextJump < handle
       end
     end
     
-    
     function SetPerframefns(obj,perframefns)
       obj.perframefns = perframefns;
     end
     
     function perframefns = GetPerframefns(obj)
-       perframefns = obj.perframefns;
+      perframefns = obj.perframefns;
     end
     
     function str = GetCurrentType(obj)
@@ -99,6 +101,14 @@ classdef NextJump < handle
     function SetHighThresh(obj,hthresh)
       obj.hthresh = hthresh;
     end
+    
+    function SetCompareFramesHandle(obj,handles)
+      obj.compareFramesHandle = handles;
+    end
+    
+    function ResetCompareFramesHandle(obj)
+      obj.compareFramesHandle = [];
+    end    
     
     function [t,flies,expi] = JumpToStart(obj,data,expi,flies,ts,t0,t1)
       
@@ -165,163 +175,129 @@ classdef NextJump < handle
       end
     end
     
+    function [iLblsSeek,iClsSeek] = seekIndices(obj,data)
+      iLblsSeek = obj.seek_behaviors_go;
+      iClsSeek = data.iLbl2iCls(iLblsSeek);
+      iClsSeek = unique(iClsSeek);
+    end
+    
+  end
+  
+  methods
+      
     function t = Automatic_bout_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
-      
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
-      prediction = data.GetPredictedIdx(expi,flies,t0,t1);
-      predictedidx = prediction.predictedidx;
-      
+      prediction = data.GetPredictedIdx(expi,flies,t0,t1); 
       scores = data.NormalizeScores(prediction.scoresidx);
-      lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
+      predictedidx = prediction.predictedidx;
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
+      
+      lowconfidx = NextJump.hlpLowConfidence(data,scores,predictedidx);
+      assert(isequal(size(predictedidx),size(lowconfidx)));
+      predictedidx(lowconfidx) = 0;
 
-      j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = NextJump.hlpFirstStartNewBout(predictedidx,2,iLblsSeek,iClsSeek);
       if isempty(j), return; end
-      
-      toUse = predictedidx(j:end);
-      toUse(lowconfidx(j:end)) = 0;
-      k = find(ismember(toUse,obj.seek_behaviors_go),1);
-      if isempty(k), return; end
-      
-      t = ts + j - 1 + k - 1;
+
+      t = ts + j - 1;
     end
     
     function t = Automatic_bout_end(obj,data,expi,flies,ts,t0,t1)
-
       t = [];
-      if t0 >= ts, return; end
-
+      if t0 >= ts, return; end      
       t1 = min(max(ts,t0),t1);
+      
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
-      predictedidx = prediction.predictedidx;
-      
       scores = data.NormalizeScores(prediction.scoresidx);
-      lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
+      predictedidx = prediction.predictedidx;
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
       
-      j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
-      if isempty(j), return; end
+      nSamp = size(predictedidx,2);
+      if nSamp==1, return; end
       
-      toUse = predictedidx(1:j);
-      toUse(lowconfidx(1:j)) = 0;
-      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
-      if isempty(k), return; end
+      lowconfidx = obj.hlpLowConfidence(data,scores,predictedidx);
+      assert(isequal(size(predictedidx),size(lowconfidx)));
+      predictedidx(lowconfidx) = 0;
       
-      t = t0 + k - 1;
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = NextJump.hlpLastEndNewBout(predictedidx,nSamp-1,iLblsSeek,iClsSeek);
+      if isempty(j), return; end      
+
+      t = t0 + j - 1;
     end
 
     function t = AutomaticLoaded_bout_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
       [~,predictedidx] = data.GetLoadedScores(expi,flies,t0,t1);
-%       predictedidx = double(scores~=0);
-%       predictedidx(scores>0) = 1;
-%       predictedidx(scores<0) = 2;
-% 
-%       lowconfidx = false(size(scores));
-%       for behaviori = 1:data.nbehaviors
-%         idxScores = (predictedidx == behaviori) & ...
-%           (abs(scores)<data.GetConfidenceThreshold(behaviori));
-%         lowconfidx(idxScores) = true;
-%       end
-% 
-%       j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
-      j = find( (predictedidx ~= predictedidx(1)) ,1);
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
+
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpFirstStartNewBout(predictedidx,2,iLblsSeek,iClsSeek);
       if isempty(j), return; end
-      
-      toUse = predictedidx(j:end);
-%       toUse(lowconfidx(j:end)) = 0;
-      k = find(ismember(toUse,obj.seek_behaviors_go),1);
-      if isempty(k), return; end
-      
-      t = ts + j - 1 + k - 1;
+
+      t = ts + j - 1;
     end
     
     function t = AutomaticLoaded_bout_end(obj,data,expi,flies,ts,t0,t1)
-
       t = [];
       if t0 >= ts, return; end
 
       t1 = min(max(ts,t0),t1);
+
       [~,predictedidx] = data.GetLoadedScores(expi,flies,t0,t1);
-%       predictedidx = double(scores~=0);
-%       predictedidx(scores>0) = 1;
-%       predictedidx(scores<0) = 2;
-% 
-%       lowconfidx = false(size(scores));
-%       for behaviori = 1:data.nbehaviors
-%         idxScores = (predictedidx == behaviori) & ...
-%           (abs(scores)<data.GetConfidenceThreshold(behaviori));
-%         lowconfidx(idxScores) = true;
-%       end
-%       
-%       j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
-      j = find( (predictedidx ~= predictedidx(end)) ,1,'last');
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
+      nSamp = size(predictedidx,2);
+      if nSamp==1, return; end
+
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpLastEndNewBout(predictedidx,nSamp-1,iLblsSeek,iClsSeek);
       if isempty(j), return; end
-      
-      toUse = predictedidx(1:j);
-%       toUse(lowconfidx(1:j)) = 0;
-      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
-      if isempty(k), return; end
-      
-      t = t0 + k - 1;
+
+      t = t0 + j - 1;
     end
 
     function t = Postprocessed_bout_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
       [~,predictedidx] = data.GetPostprocessedScores(expi,flies,t0,t1);
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
 
-      j = find( (predictedidx ~= predictedidx(1)),1);
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpFirstStartNewBout(predictedidx,2,iLblsSeek,iClsSeek);
       if isempty(j), return; end
       
-      toUse = predictedidx(j:end);
-      k = find(ismember(toUse,obj.seek_behaviors_go),1);
-      if isempty(k), return; end
-      
-      t = ts + j - 1 + k - 1;
+      t = ts + j - 1;
     end
     
     function t = Postprocessed_bout_end(obj,data,expi,flies,ts,t0,t1)
-
       t = [];
       if t0 >= ts, return; end
 
       t1 = min(max(ts,t0),t1);
       [~,predictedidx] = data.GetPostprocessedScores(expi,flies,t0,t1);
-
-      j = find( (predictedidx ~= predictedidx(end)) ,1,'last');
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
+      nSamp = size(predictedidx,2);
+      if nSamp==1, return; end
+      
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpLastEndNewBout(predictedidx,nSamp-1,iLblsSeek,iClsSeek);
       if isempty(j), return; end
-      
-      toUse = predictedidx(1:j);
-      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
-      if isempty(k), return; end
-      
-      t = t0 + k - 1;
+ 
+      t = t0 + j - 1;
     end
     
     function t = Postprocessed_change_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       
       if ts >= t1, return; end
@@ -331,155 +307,111 @@ classdef NextJump < handle
       lscores = data.GetLoadedScores(expi,flies,t0,t1);
       predictedidx  = sign(pscores)~=sign(lscores);
 
-      j = find(predictedidx ==0,1);
-      if isempty(j), return; end
-      k = find(predictedidx(j:end)==1,1);
-      if isempty(k), return; end
+      [~,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpFirstStartNewBout(predictedidx,2,1,iClsSeek);
+      if isempty(j), return; end      
       
-      t = ts + j - 1 + k -1 ;
+      t = ts + j - 1;
     end
     
     function t = Postprocessed_change_end(obj,data,expi,flies,ts,t0,t1)
-
       t = [];
       if t0 >= ts, return; end
-
       t1 = min(max(ts,t0),t1);
+      
       pscores = data.GetPostprocessedScores(expi,flies,t0,t1);
       lscores = data.GetLoadedScores(expi,flies,t0,t1);
       predictedidx  = sign(pscores)~=sign(lscores);
-
-      j = find( (predictedidx == 0) ,1,'last');
-      if isempty(j), return; end
+      nSamp = size(predictedidx,2);
+      if nSamp==1, return; end
       
-      k = find( (predictedidx(1:j) == 1) ,1,'last');
-      if isempty(k), return; end
- 
-      t = t0 + k - 1;
+      [~,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpLastEndNewBout(predictedidx,nSamp-1,1,iClsSeek);
+      if isempty(j), return; end   
+
+      t = t0 + j - 1;
     end
     
     function t = AutomaticValidated_error_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
-      
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       scores = data.GetValidatedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
-      
-      erroridx = labelidx.vals ~=predictedidx;
-      erroridx(~labelidx.imp) = 0;
-      
-      j = find(erroridx ~= erroridx(1),1);
+      [~,j] = obj.hlpFirstStartErrBout(labelidx.vals,scores,data,labelidx.imp,false);
       if isempty(j), return; end
       
-      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
-      if isempty(k),return;end
-      
-      t = ts + j - 1 + k - 1;
+      t = ts + j - 1;
     end
     
     function t = AutomaticValidated_error_end(obj,data,expi,flies,ts,t0,t1)
-
       t = [];
       if t0 >= ts, return; end
-
       t1 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       scores = data.GetValidatedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
-      erroridx = labelidx.vals ~=predictedidx;
-      erroridx(~labelidx.imp) = 0;
-      j = find(erroridx~= erroridx(end),1,'last');
-      if isempty(j), return; end
-      
-      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
-      if isempty(k), return; end
-      t = t0 + k - 1;
+      [~,j] = obj.hlpLastEndErrBout(labelidx.vals,scores,data,labelidx.imp,false);
+      if isempty(j), return; end   
+ 
+      t = t0 + j - 1;
     end
     
     function t = Loaded_error_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
-      
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       scores = data.GetLoadedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
-      
-      erroridx = labelidx.vals ~=predictedidx;
-      
-      j = find(erroridx ~= erroridx(1),1);
+      [~,j] = obj.hlpFirstStartErrBout(labelidx.vals,scores,data,labelidx.imp,false);
       if isempty(j), return; end
       
-      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
-      if isempty(k),return;end
-      
-      t = ts + j - 1 + k - 1;
+      t = ts + j - 1;
     end
     
     function t = Loaded_error_end(obj,data,expi,flies,ts,t0,t1)
-
       t = [];
       if t0 >= ts, return; end
-
       t1 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       scores = data.GetLoadedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
-      erroridx = labelidx.vals ~=predictedidx;
-      j = find(erroridx~= erroridx(end),1,'last');
+      [~,j] = obj.hlpLastEndErrBout(labelidx.vals,scores,data,labelidx.imp,false);
       if isempty(j), return; end
-      
-      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
-      if isempty(k), return; end
-      t = t0 + k - 1;
+
+      t = t0 + j - 1;
     end
-
-
+        
     function t = Manual_bout_start(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
-      j = find(labelidx.vals ~= labelidx.vals(1),1);
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpFirstStartNewBout(labelidx.vals,2,iLblsSeek,iClsSeek);
       if isempty(j), return; end
       
-      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go),1);
-      if isempty(k),return;end
-      
-      t = ts + j - 1 + k - 1;
+      t = ts + j - 1;
     end
     
     function t = Manual_bout_end(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
-      j = find(labelidx.vals ~= labelidx.vals(end),1,'last');
+      nSamp = size(labelidx.vals,2);
+      if nSamp==1, return; end
+
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [~,j] = obj.hlpLastEndNewBout(labelidx.vals,nSamp-1,iLblsSeek,iClsSeek);
       if isempty(j), return; end
-      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go),1,'last');
-      if isempty(k), return; end
-      t = t0 + k - 1;
-    end
+
+      t = t0 + j - 1;
+    end    
     
     function t = Error_bout_start(obj,data,expi,flies,ts,t0,t1)
       t = [];
@@ -489,33 +421,24 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = (labelidx.vals ~=predictedidx) & labelidx.vals;
-      
-      j = find(erroridx ~= erroridx(1),1);
+      [~,j] = obj.hlpFirstStartErrBout(labelidx.vals,predictedidx,data,labelidx.vals,true);
       if isempty(j), return; end
-      
-      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
-      if isempty(k),return;end
-      
-      t = ts + j - 1 + k - 1;
+                 
+      t = ts + j - 1;
     end
     
     function t = Error_bout_end(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
-      prediction = data.GetPredictedIdx(expi,flies,t0,t1);
+      prediction = data.GetPredictedIdx(expi,flies,t0,t1);      
       predictedidx = prediction.predictedidx;
-      erroridx = (labelidx.vals ~=predictedidx) & labelidx.vals;
-      j = find(erroridx~= erroridx(end),1,'last');
-      if isempty(j), return; end
+      [~,j] = obj.hlpLastEndErrBout(labelidx.vals,predictedidx,data,labelidx.vals,true);
+      if isempty(j), return; end                
       
-      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
-      if isempty(k), return; end
-      t = t0 + k - 1;
+      t = t0 + j - 1;
     end
     
     function t = Lowconf_bout_start(obj,data,expi,flies,ts,t0,t1)
@@ -525,37 +448,35 @@ classdef NextJump < handle
       
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       scores = data.NormalizeScores(prediction.scoresidx);
+      
+      idxScores = scores>obj.lthresh & scores<obj.hthresh; % same thresholds applied to all classifiers
       lowconfidx = false(size(scores));
-      
-      idxScores = scores>obj.lthresh & scores<obj.hthresh;
       lowconfidx(idxScores) = true;
-
-      lowconfCandidates = lowconfidx(2:end)~=lowconfidx(1:end-1) & ...
-                          lowconfidx(2:end)==true;
       
-      j = find(lowconfCandidates,1);
+      [~,iClsSeek] = obj.seekIndices(data);
+      [~,j] = NextJump.hlpFirstStartNewBout(lowconfidx,2,1,iClsSeek);
       if isempty(j), return; end
 
-      t = ts + j;
+      t = ts + j - 1;
     end
     
     function t = Lowconf_bout_end(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
 
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       scores = data.NormalizeScores(prediction.scoresidx);
-      lowconfidx = false(size(scores));
+      nSamp = size(scores,2);
+      if nSamp==1, return; end
+      
       idxScores = scores>obj.lthresh & scores<obj.hthresh;
+      lowconfidx = false(size(scores));
       lowconfidx(idxScores) = true;
       
-      lowconfCandidates = lowconfidx(1:end-1)~=lowconfidx(2:end) & ...
-                          lowconfidx(1:end-1)==true;
+      [~,iClsSeek] = obj.seekIndices(data);
+      [~,j] = NextJump.hlpLastEndNewBout(lowconfidx,nSamp-1,1,iClsSeek);
       
-      
-      j = find(lowconfCandidates,1,'last');
       if isempty(j), return; end
       t = t0 + j - 1;
     end
@@ -568,27 +489,23 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx.vals ~=predictedidx;
-      scores = data.NormalizeScores(prediction.scoresidx);
-      highconfidx = false(size(scores));
-      idxScores = scores<obj.lthresh | scores>obj.hthresh;
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
+      erroridx = labelidx.vals~=predictedidx & labelidx.vals~=0;
       
+      scores = data.NormalizeScores(prediction.scoresidx);
+      idxScores = scores<obj.lthresh | scores>obj.hthresh;
+      highconfidx = false(size(scores));
       highconfidx(idxScores) = true;
       highconfError = highconfidx & erroridx;
-      highconfError(labelidx.vals==0) = 0;
-
-      highconfCandidates = highconfError(2:end)~=highconfError(1:end-1) & ...
-              highconfError(2:end)==true;
       
-      highconfCandidates(labelidx.vals(2:end)==0) = false;
-      j = find(highconfCandidates,1);
+      [~,iClsSeek] = obj.seekIndices(data);
+      [~,j] = NextJump.hlpFirstStartNewBout(highconfError,2,1,iClsSeek);
       if isempty(j), return; end
-
-      t = ts + j;
+      
+      t = ts + j - 1;
     end
     
     function t = HighconfError_bout_end(obj,data,expi,flies,ts,t0,t1)
-      
       t = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
@@ -596,22 +513,20 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx.vals ~=predictedidx;
+      predictedidx = data.PredictedIdxExpandValues(predictedidx);
+      erroridx = labelidx.vals~=predictedidx & labelidx.vals~=0;
+      
       scores = data.NormalizeScores(prediction.scoresidx);
-      highconfidx = false(size(scores));
-      
       idxScores = scores<obj.lthresh | scores>obj.hthresh;
+      highconfidx = false(size(scores));      
       highconfidx(idxScores) = true;
-
       highconfError = highconfidx & erroridx;
-      highconfError(labelidx.vals==0) = 0;
       
-      highconfCandidates = highconfError(1:end-1)~=highconfError(2:end) & ...
-                          highconfError(1:end-1)==true;
-      highconfCandidates(labelidx.vals(1:end-1)==0) = false;
-    
-      j = find(highconfCandidates,1,'last');
+      nSamp = size(scores,2);
+      [~,iClsSeek] = obj.seekIndices(data);
+      [~,j] = NextJump.hlpLastEndNewBout(highconfError,nSamp-1,1,iClsSeek);
       if isempty(j), return; end
+      
       t = t0 + j - 1;
     end
 
@@ -647,8 +562,7 @@ classdef NextJump < handle
       t = ts + j;
     end
     
-    function t = Threshold_bout_end(obj,data,expi,flies,ts,t0,t1)
-      
+    function t = Threshold_bout_end(obj,data,expi,flies,ts,t0,t1)      
       t = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
@@ -674,31 +588,28 @@ classdef NextJump < handle
       end
       
       validCandidates = valid(1:end-1)~=valid(2:end) & ...
-                          valid(1:end-1)==true;
-      
+                          valid(1:end-1)==true;      
       
       j = find(validCandidates,1,'last');
       if isempty(j), return; end
       t = t0 + j - 1;
     end
     
-    function [t,flies1,expi1] = GT_Suggestion_start(obj,data,expi,flies,ts,t0,t1)
+    function [t,flies1,expi1] = GT_Suggestion_start(obj,data,expi,flies,ts,t0,t1) %#ok<INUSL>
       t = []; flies1 = []; expi1 = [];
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
+      assert(data.nclassifiers==1,'Only supported for single-classifier projects.');
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
       
       j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1)+1;
-      if ~isempty(j), 
-        
+      if ~isempty(j),         
         flies1 = flies;
         expi1 = expi;
         t = ts + j -1;
-        return; 
-        
-      else
-        
+        return;        
+      else        
         for curexpi = expi:data.nexps
           if curexpi == expi,
             flyStart = flies+1;
@@ -716,30 +627,25 @@ classdef NextJump < handle
               return;
             end
           end
-        end
-        
-      end
-      
+        end        
+      end      
     end
     
-    function [t,flies1,expi1] = GT_Suggestion_end(obj,data,expi,flies,ts,t0,t1)
-      
+    function [t,flies1,expi1] = GT_Suggestion_end(obj,data,expi,flies,ts,t0,t1) %#ok<INUSL>
       t = [];flies1 = []; expi1 = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
 
+      assert(data.nclassifiers==1,'Only supported for single-classifier projects.');
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
       j = find(suggestidx(2:end-1) & ~suggestidx(1:end-2),1,'last')+1;
 
-      if ~isempty(j),
-        
+      if ~isempty(j),        
         flies1 = flies;
         expi1 = expi;
         t = t0 + j -1;
-        return;
-        
-      else
-        
+        return;        
+      else        
         for curexpi = expi:-1:1
           if curexpi == expi,
             flyend = flies-1;
@@ -757,50 +663,170 @@ classdef NextJump < handle
               return;
             end
           end
-        end
-        
+        end        
       end
-
-      
-      
-      
       if isempty(j), return; end
       
       t = t0 + j - 1;
     end
     
-    function t = SimilarFramesNext(obj,data,expi,flies,ts,t0,t1)
+    function t = SimilarFramesNext(obj,data,~,~,~,~,~)
       t  = [];
       if isempty(obj.compareFramesHandle) || ~ishandle(obj.compareFramesHandle),
         return;
       end
+      
+      assert(data.nclassifiers==1,'Only supported for single-classifier projects.');
       
       eventdata.Key = 'uparrow';
       CompareFrames('figure1_WindowKeyPressFcn',obj.compareFramesHandle,...
-        eventdata,guidata(obj.compareFramesHandle));
-      
+        eventdata,guidata(obj.compareFramesHandle));      
     end
     
-    function t = SimilarFramesPrevious(obj,data,expi,flies,ts,t0,t1)
+    function t = SimilarFramesPrevious(obj,data,~,~,~,~,~)
       t  = [];
       if isempty(obj.compareFramesHandle) || ~ishandle(obj.compareFramesHandle),
         return;
       end
+      
+      assert(data.nclassifiers==1,'Only supported for single-classifier projects.');
     
       eventdata.Key = 'downarrow';
       CompareFrames('figure1_WindowKeyPressFcn',obj.compareFramesHandle,...
         eventdata,guidata(obj.compareFramesHandle));
+    end
+        
+    function [i,j] = hlpFirstStartErrBout(obj,labelidxvals,scores,data,errmask,tfPred12NotScores)
+      nSamp = size(scores,2);
+      if nSamp==1
+        i = [];
+        j = [];
+        return; 
+      end
+
+      if tfPred12NotScores
+        pred12 = scores;
+      else
+        pred12 = double(scores~=0);
+        pred12(scores>0) = 1;
+        pred12(scores<0) = 2;
+      end        
+      predictedidx = data.PredictedIdxExpandValues(pred12);
       
+      erroridx = labelidxvals~=predictedidx & errmask;
+      predictedidx(~erroridx) = 0; % now: predictedIndices-where-there-are-errs
       
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [i,j] = obj.hlpFirstStartNewBout(predictedidx,2,iLblsSeek,iClsSeek);
     end
     
-    function SetCompareFramesHandle(obj,handles)
-      obj.compareFramesHandle = handles;
+    function [i,j] = hlpLastEndErrBout(obj,labelidxvals,scores,data,errmask,tfPred12NotScores)
+      nSamp = size(scores,2);
+      if nSamp==1
+        i = [];
+        j = [];
+        return;
+      end
+      
+      if tfPred12NotScores
+        pred12 = scores;
+      else
+        pred12 = double(scores~=0);
+        pred12(scores>0) = 1;
+        pred12(scores<0) = 2;
+      end
+      predictedidx = data.PredictedIdxExpandValues(pred12);
+      
+      erroridx = labelidxvals~=predictedidx & errmask;
+      predictedidx(~erroridx) = 0;
+      
+      [iLblsSeek,iClsSeek] = obj.seekIndices(data);
+      [i,j] = obj.hlpLastEndNewBout(predictedidx,nSamp-1,iLblsSeek,iClsSeek);
     end
     
-    function ResetCompareFramesHandle(obj)
-      obj.compareFramesHandle = [];
+  end
+  
+  methods (Static)
+    
+    function lowconfidx = hlpLowConfidence(data,scores,predIdxExpanded)
+      % predIdxExpanded: has values in {0,1,... nLbl}
+
+      lowconfidx = false(size(scores));
+      nTL = data.ntimelines;
+      assert(isequal(nTL,size(scores,1),size(predIdxExpanded,1)));
+      for iTL = 1:nTL
+        iLbls = data.iCls2iLbl{iTL};
+        confThreshs = data.GetConfidenceThreshold(iLbls);
+        for i12 = [1 2]
+          idxScores = predIdxExpanded(iTL,:)==iLbls(i12) & ...
+            abs(scores(iTL,:))<confThreshs(i12);
+          lowconfidx(iTL,idxScores) = true;
+        end
+      end
+    end
+
+    function [i,j] = hlpFirstStartNewBout(m,j0,macc,irows)
+      % m: abstract label array, integer values.
+      % j0: column at which to start (inclusive) search
+      % macc: accepted values for m
+      % irows: row indices of m to consider
+      %
+      % This searches m from left-to-right to find the left-most entry
+      % (i,j) which satisfies:
+      % * i is in irows
+      % * m(i,j) is in macc
+      % * m(i,j) differs from m(i,j-1)
+      %
+      % The first entry that is found is returned in [i,j]. If no entry is
+      % found, i and j are returned as [].            
+      
+      [nTL,nSamp] = size(m);
+      % Note: j0>size(m,2) is allowed, and will be handed correctly.      
+      
+      tf = ismember(m,macc);
+      if ~exist('irows','var')
+        irows = 1:nTL;
+      else
+        irows = irows(:)';
+      end
+
+      for j = j0:nSamp
+        for i = irows
+          if tf(i,j) && m(i,j)~=m(i,j-1)
+            return;
+          end
+        end
+      end
+      
+      i = [];
+      j = [];
     end
     
-  end % End methods
+    function [i,j] = hlpLastEndNewBout(m,jN,macc,irows)
+      % See hlpFirstStartNewBout
+      
+      [nTL,nSamp] = size(m);  %#ok<NASGU>
+      % Note: jN<1 is allowed, and will be handed correctly.
+      
+      tf = ismember(m,macc);
+      if ~exist('irows','var')
+        irows = 1:nTL;
+      else
+        irows = irows(:)';
+      end
+      
+      for j = jN:-1:1
+        for i = irows
+          if tf(i,j) && m(i,j)~=m(i,j+1)
+            return;
+          end
+        end
+      end
+      
+      i = [];
+      j = [];
+    end
+        
+  end
+  
 end % End classdef
