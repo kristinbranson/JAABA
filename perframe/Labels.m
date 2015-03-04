@@ -274,6 +274,27 @@ classdef Labels
       end
     end
     
+    function labels = removeClassifier(labels,behname,nobehname)
+      % Remove all bouts for behavior behname and no-behavior nobehname;
+      % remove timelinetimestamps.
+      
+      Labels.verifyLabels(labels);
+      
+      behnobeh = {behname nobehname};
+      for iExp = 1:numel(labels)
+        for iFly = 1:numel(labels(iExp).flies)
+          tfKeep = ~ismember(labels(iExp).names{iFly},behnobeh);
+          
+          labels(iExp).t0s{iFly} = labels(iExp).t0s{iFly}(tfKeep);
+          labels(iExp).t1s{iFly} = labels(iExp).t1s{iFly}(tfKeep);
+          labels(iExp).names{iFly} = labels(iExp).names{iFly}(tfKeep);
+          labels(iExp).timestamp{iFly} = labels(iExp).timestamp{iFly}(tfKeep);
+          labels(iExp).timelinetimestamp{iFly} = rmfield(...
+            labels(iExp).timelinetimestamp{iFly},behname);
+        end
+      end
+    end
+      
     function labels = clearLabels(labels,behname,realbehname)
       % Clears all bouts of behavior <behname> corresponding to
       % realbehavior <realbehname>. 
