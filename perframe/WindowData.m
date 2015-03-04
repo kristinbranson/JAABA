@@ -144,6 +144,23 @@ classdef WindowData
       end
     end
         
+    function wd = windowdataRemapLabelIdxs(wd,oldIdx2NewIdx)
+      % oldIdx2NewIdx: vector of length number-of-old-labels.
+      % oldIdx2NewIdx(i) contains the new label index corresponding to i.
+      
+      LABEL_FIELDS = {'labelidx_cur' 'labelidx_new' 'labelidx_old'};
+      for iCls = 1:numel(wd)
+        w = wd(iCls);
+        for fld = LABEL_FIELDS, fld=fld{1}; %#ok<FXSET>
+          tfnz = w.(fld)~=0;
+          newNZVals = oldIdx2NewIdx(w.(fld)(tfnz));
+          assert(all(newNZVals>0));
+          w.(fld)(tfnz) = newNZVals;
+        end
+        wd(iCls) = w;
+      end
+    end
+      
   end
   
 end
