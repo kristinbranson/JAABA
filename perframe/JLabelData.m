@@ -191,10 +191,6 @@ classdef JLabelData < matlab.mixin.Copyable
     % matching. this has the same representation as labelidx.
     erroridx
     
-    % TODO: remove this
-    % predictedidx for unlabeled data, same representation as labelidx
-    suggestedidx
-    
     % names of behaviors, corresponding to labelidx
     labelnames        
   end  
@@ -725,7 +721,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.scoresidx_old(tfRm,:) = [];
       obj.scoreTS(tfRm,:) = [];
       obj.erroridx(tfRm,:) = [];
-      obj.suggestedidx(tfRm,:) = [];      
       
       % classifier
       obj.classifiertype(tfRm) = [];
@@ -3999,7 +3994,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.scoresidx = [];
       obj.scoresidx_old = [];
       obj.erroridx = [];
-      obj.suggestedidx = [];
     end    
              
   end
@@ -5808,9 +5802,9 @@ classdef JLabelData < matlab.mixin.Copyable
      % ---------------------------------------------------------------------
     function UpdatePredictedIdx(obj)
       % Updates obj.predictedidx, obj.scoresidx, obj.scoreTS, obj.erroridx, 
-      % and obj.suggestedidx to match what's in obj.predictdata, obj.expi,
-      % obj.flies, obj.t0_curr, and obj.t1_curr.  For instance, this might
-      % be used to update those variables after obj.expi changes.
+      % to match what's in obj.predictdata, obj.expi, obj.flies, 
+      % obj.t0_curr, and obj.t1_curr.  For instance, this might be used to 
+      % update those variables after obj.expi changes.
       
       %MERGESTREVIEWED
       
@@ -5851,8 +5845,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function UpdateErrorIdx(obj)
-      % Updates the obj.erroridx and obj.suggestedidx to match
-      % obj.predictedidx and obj.labelidx.
+      % Updates the obj.erroridx to match obj.predictedidx and obj.labelidx.
 
       %MERGESTREVIEWED
 
@@ -5864,14 +5857,10 @@ classdef JLabelData < matlab.mixin.Copyable
       nTL = obj.labelidx.nTL;
       
       obj.erroridx = zeros(nTL,n);
-      obj.suggestedidx = zeros(nTL,n);
       
       assert(isequal(size(obj.predictedidx),size(obj.labelidx.vals)));
       idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals ~= 0;
-      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx.vals(idxcurr))+1;
-      
-      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals == 0;
-      obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
+      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx.vals(idxcurr))+1;      
     end
 
   end
@@ -9834,7 +9823,6 @@ classdef JLabelData < matlab.mixin.Copyable
       self.scoresidx_old = [];
       self.scoreTS = [];  
       self.erroridx = [];
-      self.suggestedidx = [];
       self.labelnames = {};
       %self.nbehaviors = 0;
       self.ntimelines = 0;
@@ -9945,7 +9933,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.scoresidx = [];
       obj.scoresidx_old = [];
       obj.erroridx = [];
-      obj.suggestedidx = [];
     end
     
   end
