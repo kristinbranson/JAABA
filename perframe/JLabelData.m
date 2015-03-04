@@ -181,16 +181,11 @@ classdef JLabelData < matlab.mixin.Copyable
     % there is no prediction (as when a classifier has not yet been trained, 
     % or has been cleared).  These variables are essentially a cache of the
     % data in self.predictdata.
-    predictedidx
+    predictedidx % Takes values in {0,1,1.5,2}; see GetPredictedIdx
     scoresidx  % Is this really an index?  Isn't it just the score itself?
     scoresidx_old
     scoreTS  % timestamp for the above. ALTODO: does not appear to be used for anything
-    
-    % whether the predicted label matches the true label. 0 stands for
-    % either not predicted or not labeled, 1 for matching, 2 for not
-    % matching. this has the same representation as labelidx.
-    erroridx
-    
+        
     % names of behaviors, corresponding to labelidx
     labelnames        
   end  
@@ -449,7 +444,6 @@ classdef JLabelData < matlab.mixin.Copyable
     usePastOnly % whether to only use past information when predicting the current frame
     
     deterministic = false; % scalar logical or double, for testing purposes. If nonzero, may be used as RNG seed
-    
   end
 
  
@@ -466,6 +460,15 @@ classdef JLabelData < matlab.mixin.Copyable
     classifiernames % 1-by-nclassifiers cellstr
     nobehaviornames % 1-by-nclassifiers cellstr  
     iCls2LblNames % nclassifiers-by-1 cell array, each el is 1-by-2 cellstr
+    
+    % AL20150304: Currently has no clients; NextJump computes a similar qty
+    % on its own
+    %
+    % whether the predicted label matches the true label. 0 stands for
+    % either not predicted or not labeled, 1 for matching, 2 for not
+    % matching. (This is the same representation as labelidx for
+    % single classifiers.)
+    erroridx
   end
 
   
@@ -527,6 +530,30 @@ classdef JLabelData < matlab.mixin.Copyable
       ismovie = ~isempty(self.moviefilename);
       % ismovie=~isempty(self.moviefilename) && self.openmovie;
     end
+      
+    function v = get.erroridx(obj)
+      % Calculates erroridx based on obj.predictedidx and obj.labelidx.
+      
+      %MERGESTREVIEWED
+
+      if obj.expi == 0
+        % legacy codepath
+        v = [];
+        return;
+      end
+      
+      n = obj.t1_curr - obj.t0_curr + 1;
+      nTL = obj.labelidx.nTL;      
+      
+      predIdx = obj.PredictedIdxExpandValues(obj.predictedidx);
+      lblIdx = obj.labelidx.vals;
+      assert(isequal(size(predIdx),size(lblIdx),[nTL n]));
+      idxcurr = predIdx~=0 & lblIdx~=0;
+      
+      v = zeros(nTL,n);
+      v(idxcurr) = double(predIdx(idxcurr)~=lblIdx(idxcurr))+1;      
+    end
+    
     
   end
  
@@ -689,10 +716,14 @@ classdef JLabelData < matlab.mixin.Copyable
       [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
       obj.labelcolors(iLblsRm,:) = [];      
       
-      % Labels
+      % Labels      
       obj.labels = Labels.removeClassifier(obj.labels,behnobeh{:});
       if numel(obj.labelnames)==2
         obj.labels = Labels.renameBehaviorRaw(obj.labels,oldNoBehavior,newNoBehavior);
+        
+        % ALXXX to be fixed
+        warning('JLabelData:rmClassifier',...
+          'Going from multi-classifier to single-classifier project. Label importance may not be set correctly for GT mode.');
       end
       obj.reinitLabelIdx();
       
@@ -720,7 +751,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.scoresidx(tfRm,:) = [];
       obj.scoresidx_old(tfRm,:) = [];
       obj.scoreTS(tfRm,:) = [];
-      obj.erroridx(tfRm,:) = [];
+      %obj.erroridx(tfRm,:) = [];
       
       % classifier
       obj.classifiertype(tfRm) = [];
@@ -3993,7 +4024,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.predictedidx = [];
       obj.scoresidx = [];
       obj.scoresidx_old = [];
-      obj.erroridx = [];
+      %obj.erroridx = [];
     end    
              
   end
@@ -4264,7 +4295,7 @@ classdef JLabelData < matlab.mixin.Copyable
         labelidx.timestamp(iTL,ts+1-T0) = now;
         obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);
       end
-      obj.UpdateErrorIdx();
+      %obj.UpdateErrorIdx();
       obj.needsave=true;
     end
     
@@ -5801,7 +5832,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
      % ---------------------------------------------------------------------
     function UpdatePredictedIdx(obj)
-      % Updates obj.predictedidx, obj.scoresidx, obj.scoreTS, obj.erroridx, 
+      % Updates obj.predictedidx, obj.scoresidx, obj.scoreTS 
       % to match what's in obj.predictdata, obj.expi, obj.flies, 
       % obj.t0_curr, and obj.t1_curr.  For instance, this might be used to 
       % update those variables after obj.expi changes.
@@ -5839,28 +5870,7 @@ classdef JLabelData < matlab.mixin.Copyable
           % out for now.
         end
       end
-      obj.UpdateErrorIdx();
-    end    
-    
-    
-    % ---------------------------------------------------------------------
-    function UpdateErrorIdx(obj)
-      % Updates the obj.erroridx to match obj.predictedidx and obj.labelidx.
-
-      %MERGESTREVIEWED
-
-      if obj.expi == 0,
-        return;
-      end
-      
-      n = obj.t1_curr - obj.t0_curr + 1;      
-      nTL = obj.labelidx.nTL;
-      
-      obj.erroridx = zeros(nTL,n);
-      
-      assert(isequal(size(obj.predictedidx),size(obj.labelidx.vals)));
-      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals ~= 0;
-      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx.vals(idxcurr))+1;      
+      %obj.UpdateErrorIdx();
     end
 
   end
@@ -9822,7 +9832,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.scoresidx = [];  
       self.scoresidx_old = [];
       self.scoreTS = [];  
-      self.erroridx = [];
+      %self.erroridx = [];
       self.labelnames = {};
       %self.nbehaviors = 0;
       self.ntimelines = 0;
@@ -9932,7 +9942,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.predictedidx = [];
       obj.scoresidx = [];
       obj.scoresidx_old = [];
-      obj.erroridx = [];
+      %obj.erroridx = [];
     end
     
   end
