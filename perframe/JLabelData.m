@@ -169,7 +169,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % labelnames{labelidx{i})
     % See Labels.m
     labelidx
-    labelidx_off
+    labelidx_off % AL20150227: can prob make this Dependent
     
     % first frame that all flies currently selected are tracked
     t0_curr
@@ -207,12 +207,13 @@ classdef JLabelData < matlab.mixin.Copyable
               % [iLblPos iLblNeg] = iCls2iLbl{iCls} where iLblPos, iLblNeg 
               % index .labelnames.
 
-    % statistics of labeled data per experiment
-    % labelstats(expi).nflies_labeled is the total number of flies labeled,
-    % labelstats(expi).nbouts_labeled is the total number of bouts of
-    % behaviors labeled, labelstats(expi).
-    labelstats
-    %gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+% AL20150303: No usages of labelstats right now, but more importantly 
+% seems like this can be lazily computed              
+%     % statistics of labeled data per experiment
+%     % labelstats(expi).nflies_labeled is the total number of flies labeled,
+%     % labelstats(expi).nbouts_labeled is the total number of bouts of
+%     % behaviors labeled, labelstats(expi).
+%     labelstats
     
     % computing per-frame properties
     perframe_params
@@ -657,6 +658,93 @@ classdef JLabelData < matlab.mixin.Copyable
         isvarname(behaviorName); 
       % AL: second condition because labels.timelinetimestamp, see Labels.m
     end
+    
+    
+    function addClassifier(obj,behaviorName)
+      
+    end
+    
+    
+    function rmClassifier(obj,classifierName)
+      tfRm = strcmp(classifierName,obj.classifiernames);
+      assert(nnz(tfRm)<2,'Duplicate existing classifiernames.');
+      if nnz(tfRm)==0
+        error('JLabelData:rmClassifier','No classifier with name matching ''%s''.',...
+          classifierName);
+      end
+      
+      assert(obj.nclassifiers>1,'Cannot remove only classifier.');
+
+      % Get some state before we start modifying props
+      origLabelNames = obj.labelnames;
+      behnobeh = obj.iCls2LblNames{tfRm};
+      iLblsRm = obj.iCls2iLbl{tfRm};
+      obj.StoreLabelsForCurrentAnimal(); % store label info for current fly/expi from .labelIdx -> .labels
+      
+      obj.scorefilename(tfRm) = [];
+      obj.labelnames(iLblsRm) = [];
+      % mapping from old label idxs -> new label idxs
+      [~,oldLblIdx2NewLblIdx] = ismember(origLabelNames,obj.labelnames);
+      if numel(obj.labelnames)==2
+        oldNoBehavior = obj.labelnames{2};
+        newNoBehavior = 'None';
+        obj.labelnames{2} = newNoBehavior;
+      end
+      [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
+      obj.labelcolors(iLblsRm,:) = [];      
+      
+      % Labels
+      obj.labels = Labels.removeClassifier(obj.labels,behnobeh{:});
+      if numel(obj.labelnames)==2
+        obj.labels = Labels.renameBehaviorRaw(obj.labels,oldNoBehavior,newNoBehavior);
+      end
+      obj.reinitLabelIdx();
+      
+      % data/features 
+      obj.windowdata(tfRm,:) = [];
+      obj.windowdata = WindowData.windowdataRemapLabelIdxs(obj.windowdata,...
+        oldLblIdx2NewLblIdx);
+      obj.windowfeaturesparams(tfRm) = [];
+      obj.windowfeaturescellparams(tfRm) = [];
+      obj.curperframefns(tfRm) = [];
+      obj.savewindowdata(tfRm) = [];
+      obj.loadwindowdata(tfRm) = [];
+      
+      % predictions
+      nExp = numel(obj.predictdata);
+      for iExp = 1:nExp
+        nFly = numel(obj.predictdata{iExp});
+        for iFly = 1:nFly
+          obj.predictdata{iExp}{iFly}(tfRm) = [];
+        end
+      end
+      obj.predictblocks(tfRm) = [];
+      obj.fastPredict(tfRm) = [];
+      obj.predictedidx(tfRm,:) = [];
+      obj.scoresidx(tfRm,:) = [];
+      obj.scoresidx_old(tfRm,:) = [];
+      obj.scoreTS(tfRm,:) = [];
+      obj.erroridx(tfRm,:) = [];
+      obj.suggestedidx(tfRm,:) = [];      
+      
+      % classifier
+      obj.classifiertype(tfRm) = [];
+      obj.classifier(tfRm) = [];
+      obj.classifier_old(tfRm) = [];
+      obj.classifierTS(tfRm) = [];
+      obj.trainstats(tfRm) = [];
+      obj.classifier_params(tfRm) = [];
+      obj.postprocessparams(tfRm) = [];
+      obj.confThresholds(tfRm,:) = [];
+      
+      obj.needsave = true;
+    end
+    
+    
+    function reorderClassifiers(obj,behaviorNames)
+      
+    end
+    
      
   end
   
@@ -1253,17 +1341,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % Initialize the labels for the current labeling mode
       iExp = obj.nexps;
       obj.labels(iExp) = Labels.labels(1);
-%       obj.labels(iExp).t0s = {};
-%       obj.labels(iExp).t1s = {};
-%       obj.labels(iExp).names = {};
-%       obj.labels(iExp).flies = [];
-%       obj.labels(iExp).off = [];
-%       obj.labels(iExp).timestamp = {};
-%       obj.labels(iExp).timelinetimestamp = {};
-%       obj.labels(iExp).imp_t0s = {};
-%       obj.labels(iExp).imp_t1s = {};
-      obj.labelstats(iExp).nflies_labeled = 0;
-      obj.labelstats(iExp).nbouts_labeled = 0;
+%       obj.labelstats(iExp).nflies_labeled = 0;
+%       obj.labelstats(iExp).nbouts_labeled = 0;
       
       % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
       if numel(obj.predictdata)<obj.nexps
@@ -1424,19 +1503,13 @@ classdef JLabelData < matlab.mixin.Copyable
       
       assert(nnz(newExpNumbers>0)==numel(obj.expdirs));
       
-      % if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
-      %if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
       if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
       if ~(numel(obj.sex_per_exp)<expi); obj.sex_per_exp(expi) = []; end
       if ~(numel(obj.frac_sex_per_exp)<expi); obj.frac_sex_per_exp(expi) = []; end
       if ~(numel(obj.firstframes_per_exp)<expi); obj.firstframes_per_exp(expi) = []; end
       if ~(numel(obj.endframes_per_exp)<expi); obj.endframes_per_exp(expi) = []; end
       if ~(numel(obj.labels)<expi); obj.labels(expi) = []; end
-      if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
-      %if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
-      %if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
-      %obj.nexps = obj.nexps - numel(expi);
-      % TODO: exp2labeloff
+%       if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
 
       % Clean window data
       for iCls = 1:numel(obj.windowdata)
@@ -4117,12 +4190,17 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function labels_curr = GetLabels(obj,expi,flies)
+    function labels_curr = GetLabels(obj,expi,flies,tfSkipUpdateFromCache)
       % Returns the labels for the given experiment index, fly(s) index.
       % This takes into account the current GT mode (normal/GT), and
       % returns the appropriate labels.
       %
+      % tfSkipUpdateFromCache: optional scalar logical, defaults to false.
+      % If true, do not update labels from .labelIdx for current target 
+      % (when relevant).
+      %
       % labels_curr: a 'labelsShort', see Labels.m
+      
 
       % MERGESTUPDATED
       
@@ -4135,14 +4213,17 @@ classdef JLabelData < matlab.mixin.Copyable
         % AL: questionable legacy codepath
         return;
       end
-      
       if nargin < 3 || isempty(flies)
         flies = obj.flies;
       end
+      if nargin < 4
+        tfSkipUpdateFromCache = false;
+      else
+        assert(islogical(tfSkipUpdateFromCache) && isscalar(tfSkipUpdateFromCache));
+      end
 
       % cache these labels if current experiment and flies selected
-      if expi == obj.expi && all(flies == obj.flies)
-        %obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
+      if expi==obj.expi && all(flies==obj.flies) && ~tfSkipUpdateFromCache
         obj.StoreLabelsForCurrentAnimal();
       end
       
@@ -4316,13 +4397,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %         return;
 %       end
 %       
-% %       if obj.IsGTMode()
-% %         labelsToUse = 'gt_labels';
-% %         labelstatsToUse = 'gt_labelstats';
-% %       else
-% %         labelsToUse = 'labels';
-% %         labelstatsToUse = 'labelstats';
-% %       end
 %       
 %       %timestamp = now;
 %       
@@ -4453,8 +4527,8 @@ classdef JLabelData < matlab.mixin.Copyable
       self.labels(expi).names = labels.names;
       self.labels(expi).flies = labels.flies;
       self.labels(expi).off = labels.off;
-      self.labelstats(expi).nflies_labeled = size(labels.flies,1);
-      self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
+%       self.labelstats(expi).nflies_labeled = size(labels.flies,1);
+%       self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
       Nfly = numel(labels.flies);
       if iscell(labels.timestamp)
         self.labels(expi).timestamp = labels.timestamp;
@@ -4576,14 +4650,6 @@ classdef JLabelData < matlab.mixin.Copyable
         % Multiclassifier importance for GT
       end
       maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
-%       % Store labels according to the mode
-%       if obj.IsGTMode(),
-%         labelsToUse = 'gt_labels';
-%         labelstatsToUse = 'gt_labelstats';
-%       else
-%         labelsToUse = 'labels';
-%         labelstatsToUse = 'labelstats';
-%       end
       
       if isempty(obj.labels(expi).flies),
         ism = false;
@@ -4615,9 +4681,9 @@ classdef JLabelData < matlab.mixin.Copyable
           max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
       end          
 
-      %ALTODO: isn't obj.labels(expi).flies always unique?
-      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
+%       %AL: isn't obj.labels(expi).flies always unique?
+%       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
+%       obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s); % AL: seems wrong, doesn't account for other flies
     end
 
     
@@ -4663,6 +4729,22 @@ classdef JLabelData < matlab.mixin.Copyable
       end      
     end
 
+    
+    function reinitLabelIdx(obj)
+      % reinitialize obj.labelIdx from obj.labels for the current fly/exp.
+      % obj.labels must be up-to-date.
+      
+      expi = obj.expi;
+      flies = obj.flies;
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      
+      labelsShort = obj.GetLabels(expi,flies,true);
+      lblIdx = Labels.labelIdx(obj.labelnames,T0,T1);
+      obj.labelidx = Labels.labelIdxInit(lblIdx,labelsShort);
+    end
+    
+    
     
 %     % ---------------------------------------------------------------------
 %     function bouts = GetLabeledBouts_KB(obj)
@@ -5293,27 +5375,6 @@ classdef JLabelData < matlab.mixin.Copyable
       % Create the cell array for this exeriment
       nTargets = obj.nflies_per_exp(expi);
       obj.predictdata{expi} = cell(1,nTargets);
-      
-      % Don't need to pre-allocate the fields in a structure array.
-      % I benchmarked it to be sure ---It's slightly faster without this
-      % code.  --ALT, Apr 17 2013
-%       % For each target, put a scalar struct in that cell array element,
-%       % with the proper fields, but empty values
-%       for iTarget = 1:nTargets
-%         obj.predictdata{expi}{iTarget} = ...
-%           struct('t',[],...
-%                  'cur',[], ...
-%                  'cur_valid', logical([]), ...
-%                  'cur_pp',[], ...
-%                  'old',[], ...
-%                  'old_valid',logical([]), ...
-%                  'old_pp',[],...
-%                  'loaded',[], ...
-%                  'loaded_valid',logical([]), ...
-%                  'loaded_pp',[],...
-%                  'timestamp',[]);
-%       end
-
       nTL = obj.ntimelines;
             
       % For each target, and each field in the scalar struct, set it to a
@@ -5327,17 +5388,17 @@ classdef JLabelData < matlab.mixin.Copyable
         falseArray = false(1,nframes);
         
         for i = 1:nTL
-          obj.predictdata{expi}{iTarget}(i).t = (firstframe:endframe);
-          obj.predictdata{expi}{iTarget}(i).cur = nanArray;
-          obj.predictdata{expi}{iTarget}(i).cur_pp = nanArray;
-          obj.predictdata{expi}{iTarget}(i).cur_valid = falseArray;
-          obj.predictdata{expi}{iTarget}(i).old = nanArray;
-          obj.predictdata{expi}{iTarget}(i).old_pp = nanArray;
-          obj.predictdata{expi}{iTarget}(i).old_valid = falseArray;
-          obj.predictdata{expi}{iTarget}(i).loaded = nanArray;
-          obj.predictdata{expi}{iTarget}(i).loaded_pp = nanArray;
-          obj.predictdata{expi}{iTarget}(i).loaded_valid = falseArray;
-          obj.predictdata{expi}{iTarget}(i).timestamp = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).t = (firstframe:endframe);
+          obj.predictdata{expi}{iTarget}(1,i).cur = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).cur_pp = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).cur_valid = falseArray;
+          obj.predictdata{expi}{iTarget}(1,i).old = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).old_pp = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).old_valid = falseArray;
+          obj.predictdata{expi}{iTarget}(1,i).loaded = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).loaded_pp = nanArray;
+          obj.predictdata{expi}{iTarget}(1,i).loaded_valid = falseArray;
+          obj.predictdata{expi}{iTarget}(1,i).timestamp = nanArray;
         end
       end
     end
@@ -7334,17 +7395,6 @@ classdef JLabelData < matlab.mixin.Copyable
     function clearClassifierProper(self)
       % Reset the classifier to a blank slate
       
-%       % Get the current classifier
-%       classifierStuff=self.getClassifierStuff();
-% 
-%       % Set the core classifier fields to default
-%       classifierStuff.params=struct([]);
-%       classifierStuff.timeStamp=[];
-%       classifierStuff.scoreNorm=[];
-% 
-%       % Set the classifier in the JLabelData object
-%       self.setClassifierStuff(classifierStuff);
-      %self.ClearWindowData();
       self.classifier = struct('dim',{}, ...
                              'error',{}, ...
                              'dir',{}, ....
@@ -7360,7 +7410,6 @@ classdef JLabelData < matlab.mixin.Copyable
       self.invalidatePredictions();
       self.UpdatePredictedIdx(); % update cached predictions for current target
       self.needsave = true;
-      %self.PreLoadPeriLabelWindowData();  % do we need to do this?
     end
     
     
@@ -9789,7 +9838,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.labelnames = {};
       %self.nbehaviors = 0;
       self.ntimelines = 0;
-      self.labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+%       self.labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
       self.perframe_params = {};
       self.landmark_params = struct;  % scalar struct with no fields
       self.classifiertype = 'boosting';
