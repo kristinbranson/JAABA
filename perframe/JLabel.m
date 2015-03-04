@@ -3886,8 +3886,6 @@ function handles = UpdateErrors(handles)
 
 % update prediction for currently shown timeline
 % TODO: make this work for multiple axes
-%handles.data.UpdateErrorIdx();  % we now do this wehn we set the
-% labels in JLabelData
 handles = UpdateTimelineImages(handles);
 UpdatePlots(handles, ...
             'refreshim',false, ...
