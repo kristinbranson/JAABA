@@ -6908,46 +6908,32 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function openJabFileNoExps(self, ...
         fileNameAbs, ...
-        groundTruthingMode)
+        groundTruthingMode)            
       
-      % originalExpDirNames and substituteExpDirNames are optional.
-      % If given, they should be cell arrays of the same length, each
-      % element a string giving an absolute path to an experiment
-      % directory.  Each element of originalExpDirNames should be an
-      % experiment directory in the .jab file, and the corresponding
-      % element of substitureExpDirNames gives an experiment dir name to be
-      % used in place of the original one.  This is to enable the user to
-      % manually locate exp dir names that are missing.  Whether these
-      % experiment dir names are treated as normal exp dir names of
-      % ground-truthing exp dir names depends on groundTruthingMode.
-      
-      
-      % Set the ground-truthing mode
-      self.gtMode=groundTruthingMode;
+      self.gtMode = groundTruthingMode;
       
       %
       % Open the file
       %
       
-      % get just the relative file name
-      fileDirPathAbs=fileparts(fileNameAbs);
-      %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
-      %fileNameRel=[baseName ext];
-      
       % load the file
-      macguffin=loadAnonymous(fileNameAbs);
+      macguffin = loadAnonymous(fileNameAbs);
       % if we get here, file was read successfully
+      if isstruct(macguffin)
+        macguffin = Macguffin(macguffin);
+      end
       macguffin.modernize(true);
       
       % Set the JLD to match the Macguffin
       self.setMacguffin(macguffin,false);
       
       % Store file-related stuff
-      self.thereIsAnOpenFile=true;
-      self.everythingFileNameAbs=fileNameAbs;
-      self.userHasSpecifiedEverythingFileName=true;
-      self.needsave=false;
-      self.defaultpath=fileDirPathAbs;
+      self.thereIsAnOpenFile = true;
+      self.everythingFileNameAbs = fileNameAbs;
+      self.userHasSpecifiedEverythingFileName = true;
+      self.needsave = false;
+      fileDirPathAbs = fileparts(fileNameAbs);
+      self.defaultpath = fileDirPathAbs;
       
       % initialize the status table describing what required files exist
       [success,msg] = self.UpdateStatusTable();
