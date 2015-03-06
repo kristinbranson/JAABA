@@ -4058,7 +4058,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function timestamp = GetLabelTimestamps(obj,expis,flies,ts)      
+    function timestamp = GetLabelTimestamps(obj,expis,flies,ts)
       timestamp = nan(size(ts));      
       for expi = 1:obj.nexps,
         expidx = expis == expi;
@@ -4151,6 +4151,26 @@ classdef JLabelData < matlab.mixin.Copyable
         if ~isempty(obj.labels(expnum).t0s{fly})
           has = true;
         end
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function tf = classifierHasLabels(obj,iClsVec)
+      % iClsVec: vector of classifier indices
+      % tf: logical vec, same size as iCls. tf(i) is true if there are any
+      % labels (beh or no-beh) for obj.classifiernames{i}, across all exps.
+
+      obj.StoreLabelsForCurrentAnimal();
+      labels = obj.labels;
+      iCls2LblNames = obj.iCls2LblNames;
+      
+      tf = false(size(iClsVec));
+      for i = 1:numel(iClsVec)
+        iCls = iClsVec(i);
+        lbls = iCls2LblNames{iCls};
+        tfTmp = Labels.labelsSeen(labels,lbls);
+        tf(i) = any(tfTmp);
       end
     end
     
@@ -4802,7 +4822,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------
-    function Train(obj,doFastUpdates,timerange)
+    function Train(obj)
     % Train(obj)
     % Updates the classifier to reflect the current labels. This involves
     % first loading/precomputing the training features. Then, the clasifier
@@ -4827,18 +4847,6 @@ classdef JLabelData < matlab.mixin.Copyable
         error('JLabelData:unableToLoadPerLabelWindowData',msg);
       end
       
-      if nargin<2
-        % ALTODO: Looks like doFastUpdates input arg can be removed
-        % MAYANK: yes. It wasn't a very helpful option.
-        doFastUpdates = false;
-      end
-      assert(nargin<3,'Unexpected call arguments.');      
-%       if nargin >= 3 && ~isempty(timerange),
-%         label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),...
-%           obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
-%         islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
-%       end
-
       cls2IdxBeh = obj.iCls2iLbl;
       assert(numel(cls2IdxBeh)==obj.nclassifiers);
       assert(iscell(obj.trainstats) && numel(obj.trainstats)==obj.nclassifiers);
@@ -4854,7 +4862,7 @@ classdef JLabelData < matlab.mixin.Copyable
             %stream = RandStream.getGlobalStream;
             %reset(stream);
 
-            if obj.DoFullTraining(doFastUpdates)
+            if true % obj.DoFullTraining
               obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
               % form label vec that has 1 for 'behavior present'
@@ -5464,14 +5472,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
     end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function res = DoFullTraining(obj,doFastUpdates)  %#ok
-      res = true; 
-      return; % Always do complete training.
-    end
-    
+   
     
     % ---------------------------------------------------------------------
     function PredictLoaded(obj)

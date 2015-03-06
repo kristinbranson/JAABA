@@ -273,7 +273,6 @@ return
 % -------------------------------------------------------------------------
 function handles = InitializePlotsAfterBasicParamsSet(handles)
 
-handles.guidata.axes_preview_curr = 1;
 if numel(handles.guidata.axes_previews) > numel(handles.guidata.ts),
   handles.guidata.ts = [handles.guidata.ts,repmat(handles.guidata.ts(end),[1,numel(handles.guidata.axes_previews)-numel(handles.guidata.ts)])];
 end
@@ -336,7 +335,7 @@ for i = 1:numel(handles.guidata.axes_previews),
   % labeled behaviors
   handles.guidata.hlabels = nan(1,handles.data.nbehaviors);
   handles.guidata.hpredicted = nan(1,handles.data.nbehaviors);
-  handles.guidata.hlabelstarts = nan(1,handles.data.nbehaviors);
+  %handles.guidata.hlabelstarts = nan(1,handles.data.nbehaviors);
   for j = 1:handles.data.nbehaviors,
     % handles.guidata.hlabels(j) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
     %   'color',handles.guidata.labelcolors(j,:),'linewidth',5,'HitTest','off');
@@ -362,14 +361,16 @@ for i = 1:numel(handles.guidata.axes_previews),
     % handles.guidata.hlabelstarts(j) = plot(handles.guidata.axes_previews(i),nan,nan,'v',...
     %   'color',handles.guidata.labelcolors(j,:),'markerfacecolor',handles.guidata.labelcolors(j,:),...
     %   'HitTest','off');
-    handles.guidata.hlabelstarts(j) = ...
-      line('parent',handles.guidata.axes_previews(i), ...
-           'xdata',nan, ...
-           'ydata',nan, ...
-           'marker','v',...
-           'color',handles.guidata.labelcolors(j,:), ...
-           'markerfacecolor',handles.guidata.labelcolors(j,:),...
-           'HitTest','off');    
+ 
+    % AL 20150306: appears unused
+%     handles.guidata.hlabelstarts(j) = ...
+%       line('parent',handles.guidata.axes_previews(i), ...
+%            'xdata',nan, ...
+%            'ydata',nan, ...
+%            'marker','v',...
+%            'color',handles.guidata.labelcolors(j,:), ...
+%            'markerfacecolor',handles.guidata.labelcolors(j,:),...
+%            'HitTest','off');    
     set(handles.guidata.axes_previews(i),'Color','k','XColor','w','YColor','w');
   end
   
@@ -1709,9 +1710,6 @@ for flyi = 1:numel(flies)
 end
 handles = UpdateTimelineImages(handles);
 
-% which interval we're currently within
-handles.guidata.current_interval = [];
-
 % update timelines
 set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
 %axis(handles.axes_timeline_manual,[handles.data.t0_curr-.5,handles.data.t1_curr+.5,.5,1.5]);
@@ -2597,8 +2595,7 @@ grobjectsEnabledIffMovie = ...
    handles.pushbutton_clearselection, ...
    handles.pushbutton_playselection, ...
    handles.bagButton, ...
-   handles.similarFramesButton, ...
-   handles.guidata.menu_view_zoom_options(:)'];
+   handles.similarFramesButton];
 grobjectsEnabledIffMovie = ...
   grobjectsEnabledIffMovie(~isnan(grobjectsEnabledIffMovie));
 set(grobjectsEnabledIffMovie,'Enable',onIff(someExperimentIsCurrent));
@@ -3810,7 +3807,7 @@ else
     restorePointer(hObject,oldPointer);
     return;
   end
-  handles.data.Train(handles.guidata.doFastUpdates);  
+  handles.data.Train();
 end
 
 handles = predict(handles);
@@ -6013,31 +6010,6 @@ SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d.
 handles = make_jlabel_results_movie(handles,clip.t0,clip.t1);%,'clipsdir',clipsdir);
 ClearStatus(handles);
 
-%{
-% clip.expi = handles.data.expi;
-% clip.flies = handles.data.flies;
-% clip.preview_zoom_mode = handles.guidata.preview_zoom_mode;
-% axesi = 1;
-% clip.xlim = get(handles.guidata.axes_previews(axesi),'XLim');
-% clip.ylim = get(handles.guidata.axes_previews(axesi),'YLim');
-% clip.zoom_fly_radius = handles.guidata.zoom_fly_radius;
-% for i = 1:numel(handles.data.flies),
-%   fly = handles.data.flies(i);
-%   t0 = min(max(clip.t0,handles.data.t0_curr),handles.data.t1_curr);
-%   t1 = min(max(clip.t1,handles.data.t0_curr),handles.data.t1_curr);
-%   if t0 <= t1,
-%     [xcurr,ycurr,thetacurr,acurr,bcurr] = ...
-%       handles.data.GetTrxPos1(handles.data.expi,fly,t0:t1);
-%   end
-%   clip.trx(i).x = [nan(1,t0-clip.t0),xcurr,nan(1,clip.t1-t1)];
-%   clip.trx(i).y = [nan(1,t0-clip.t0),ycurr,nan(1,clip.t1-t1)];
-%   clip.trx(i).a = [nan(1,t0-clip.t0),acurr,nan(1,clip.t1-t1)];
-%   clip.trx(i).b = [nan(1,t0-clip.t0),bcurr,nan(1,clip.t1-t1)];
-%   clip.trx(i).theta = [nan(1,t0-clip.t0),thetacurr,nan(1,clip.t1-t1)];
-% end
-%  
-% BookmarkedClips(handles.figure_JLabel,handles.data,'clips',clip);
-%}
 return
 
 
@@ -6502,23 +6474,6 @@ function bagButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.data.DoBagging();
 set(handles.similarFramesButton,'Enable','on');
-return
-
-
-% --------------------------------------------------------------------
-function menu_classifier_doFastUpdates_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_doFastUpdates (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-curVal = get(hObject,'Checked');
-if strcmp(curVal,'on')
-  set(hObject,'Checked','off');
-  handles.guidata.doFastUpdates = false;
-else
-  set(hObject,'Checked','on');
-  handles.guidata.doFastUpdates = true;
-end
-guidata(hObject,handles);
 return
 
 
@@ -9193,3 +9148,40 @@ function automaticTimelinePopup_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --------------------------------------------------------------------
+function menu_file_add_new_classifier_Callback(hObject, eventdata, handles)
+
+
+% --------------------------------------------------------------------
+function menu_file_remove_classifier_Callback(hObject, eventdata, handles)
+clsnames = handles.data.classifiernames;
+[iClsRm,ok] = listdlg(...
+  'ListString',clsnames,...
+  'Name','Remove Classifiers',...
+  'PromptString','Select classifiers to remove:',...
+  'ListSize',[300 200]);
+
+if ok
+  if numel(iClsRm)==numel(clsnames)
+    error('JLabel:rmClassifiers','A project must have at least one classifier.');
+  end
+  
+  tfLblsExist = handles.data.classifierHasLabels(iClsRm);
+  if any(tfLblsExist)
+    warnstr = sprintf('There are labels for the following classifiers: %s. All information related to these classifiers will be irrevocably lost!',...
+      civilizedStringFromCellArrayOfStrings(clsnames(iClsRm(tfLblsExist))));
+    btn = questdlg(warnstr,'Delete Classifiers','OK, proceed','Cancel','Cancel');
+    if isempty(btn) || strcmp(btn,'Cancel')
+      return;
+    end
+  end
+  
+  for i = iClsRm(:)'
+    handles.data.rmClassifier(clsnames{i});
+  end
+end
+
+% --------------------------------------------------------------------
+function menu_file_reorder_classifiers_Callback(hObject, eventdata, handles)
