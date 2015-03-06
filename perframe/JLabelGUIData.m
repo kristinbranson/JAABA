@@ -28,9 +28,24 @@ classdef JLabelGUIData < handle
   end
 
   properties (Access=public)
-    status_bar_text_when_clear = '';
-    idlestatuscolor = [0,1,0];
-    busystatuscolor = [1,0,1];
+
+    %%
+    hJLabel; % JLabel figure handle
+    data = []; % JLabelData handle
+    gdata = struct(); % Subset of JLabel handles, ie subset of guidata(hJLabel)
+    
+    hsplash = [];
+    hsplashstatus = [];
+   
+    guipos = struct;    
+                              
+    open_peripherals = [];
+    
+    GUIAdvancedMode = false;  % true iff the GUI is in advanced mode, as
+                              % opposed to basic mode
+
+
+    %% Movie/Preview/Playback
 
     movie_depth = 1;
 %     movie_height = 100;
@@ -42,48 +57,48 @@ classdef JLabelGUIData < handle
     movie_pixelsize = 1;
     movie_filename = [];
 
+    shouldOpenMovieIfPresent = true;  % if false, we don't show the movie, even if it's available
+    thisMoviePresent = false;  % set to true once we know the current movie exists.
+
+    readframe = [];
+    movie_fid = [];
+    movieheaderinfo = struct;
+    nframes = nan;
+    play_FPS = 2;
+    
+    ts = 0;
+    hplaying = nan;
+    edit_framenumbers = [];
+    pushbutton_playstops = [];
+
     panel_previews = [];
     axes_previews = [];
     slider_previews = [];
-    edit_framenumbers = [];
-    pushbutton_playstops = [];
-    
-    hsplash = [];
-    hsplashstatus = [];
-   
-    guipos = struct;
+    himage_previews = [];
+    max_click_dist_preview = .025^2;    
+    preview_zoom_mode = 'follow_fly';
+    zoom_fly_radius = nan(1,2);
 
-    rcfilename = '';
-    rc = struct;
-
-    timeline_nframes = 250;
-    nframes_jump_go = 30;
-
-    label_shortcuts = [];
-
-    outavi_compression = 'None';
-    outavi_fps = 15;
-    outavi_quality = 95;
-    useVideoWriter = false;
-
-    play_FPS = 2;
     framecache_threads = 1;
     computation_threads = 1;
-    traj_nprev = 25;
-    traj_npost = 25;
-    
-    % JLabel figure handle
-    hJLabel;
-    
-    % JLabelData handle
-    data = [];
-    
-    % Subset of JLabel handles, ie subset of guidata(hJLabel)
-    gdata = struct(); 
+    cache_thread = [];
+    cache_size = 200;
+    cache_filename = [];
 
+    hzoom = [];
+    hpan = [];
+    bkgdgrid = zeros(2,0);
+    hrois = [];
+    harena = [];
+
+    %% Labeling/Trx/Overlays
+    label_shortcuts = [];
     nflies_label = 1;
 
-    ts = 0;
+    %in_border_y = [];
+    labelcolors = [];
+    labelunknowncolor = [0,0,0];
+    labelnoneallcolor = [0.5,0.5,0.5];
     
     % label_state
     % - If zero, no labeling is in progress
@@ -94,18 +109,66 @@ classdef JLabelGUIData < handle
     label_state = 0;
     
     label_imp = [];
+
+    labels_plot = struct; % See LabelsPlot
+    % labels_plot_off = nan;
+
+    % togglebutton handles for labeling behaviors
+    togglebutton_label_behaviors = []; 
+    % togglebutton handles for behavior-specific unknowns 
+    togglebutton_unknown_behaviors = [];
+    % convenience property, togglebutton_unknown_behaviors plus "Universal unknown" togglebutton
+    togglebutton_unknowns = [];     
+    togglebutton_label_noneall = [];
     
-    oldexpdir='';  % Used by JLabel's File > Edit files...
+    traj_nprev = 25;
+    traj_npost = 25;
+    htrx = [];
+    fly_colors = [];
+    showPredictionsAllFlies = false;
+    % which flies are being plotted
+    fly2idx = [];
+    idx2fly = [];
 
-    in_border_y = [];
-    labelcolors = [];
-    labelunknowncolor = [0,0,0];
-    labelnoneallcolor = [0.5,0.5,0.5];
-    % nextra_markers = 1;
-    % flies_extra_markersize = 12;
-    % flies_extra_marker = {'o'};
-    % flies_extra_linestyle = {'-'};
+    plot_labels_manual = true;
+    plot_labels_automatic = false;
 
+    hflies = [];       % nfly-by-numAxes handle array. The triangle marking each fly.
+    hflies_extra = [];
+    hfly_markers = []; % nfly-by-numAxes handle array. The dot/star at the center of each fly.    
+    hlabel_curr = [];  % 1-by-numAxes handle. The line showing labeling-in-progress.
+    hlabels = [];      % 1-by-nbehavior handle array. The lines (trx-overlay) showing labels for each behavior.
+    hpredicted = [];   % 1-by-nbehavior handle array. The lines (trx-overlay) showing predictions for each behavior.
+    % hlabelstarts = [];
+    
+    %% Timelines
+   
+    bottomAutomatic = 'None'; % mirrors automatictimelineBottomRowPopup
+    timeline_nframes = 250;
+    
+    axes_timelines = [];    
+    % handle vector. auto timeline controls visible when behaviorFocus is on
+    auto_timeline_controls_behaviorFocusOn = [];
+    % handle vector. auto timeline controls visible when behaviorFocus is off
+    auto_timeline_controls_behaviorFocusOff = [];
+    
+    himage_timeline_manual = [];
+    htimeline_label_curr = [];
+    himage_timeline_auto = [];
+    htimeline_data = [];
+    htimeline_errors = [];
+    htimeline_suggestions = [];
+    htimeline_gt_suggestions = [];
+    hcurr_timelines = [];
+    hselection = [];
+
+    labels_timelines = [];
+    axes_timeline_props = [];
+    axes_timeline_labels = [];
+    text_timeline_props = [];
+    text_timelines = [];    
+    timeline_data_ylims = [];
+    
     % nclassifiers-by-1 cell array. Each element sc = scorecolor{iCls} is
     % 63x3x3.
     % sc(:,:,1) are regular colors. 
@@ -120,145 +183,53 @@ classdef JLabelGUIData < handle
     selection_alpha = .5;
     emphasiscolor = [.7,.7,0];
     unemphasiscolor = [1,1,1];
-
-    % togglebutton handles for labeling behaviors
-    togglebutton_label_behaviors = []; 
-    % togglebutton handles for behavior-specific unknowns 
-    togglebutton_unknown_behaviors = [];
-    % convenience property, togglebutton_unknown_behaviors plus "Universal unknown" togglebutton
-    togglebutton_unknowns = [];     
-    togglebutton_label_noneall = [];
     
-%     GUIGroundTruthingMode = [];  % true iff the GUI is in ground truth mode, as
-%                                  % opposed to labeling mode.  Empty if
-%                                  % no project is currently loaded.
-    GUIAdvancedMode = false;  % true iff the GUI is in advanced mode, as
-                              % opposed to basic mode
-
     timeline_prop_remove_string = '<html><body><i>Remove</i></body></html>';
     timeline_prop_help_string = '<html><body><i>Help</i></body></html>';
     timeline_prop_options = {};
     
-    d = '';
-    perframepropis = 1;
-
-    timeline_data_ylims = [];
-    
-    max_click_dist_preview = .025^2;
-    
-    preview_zoom_mode = 'follow_fly';
-    zoom_fly_radius = nan(1,2);
-    meana = 1;
-    
-    menu_view_zoom_options = [];
-
     selection_t0 = nan;
     selection_t1 = nan;
     selected_ts = nan(1,2);
     buttondown_t0 = nan;
     buttondown_axes = nan;
     selecting = false;
-    
-    NJObj = [];
-    shouldOpenMovieIfPresent=true;  % if false, we don't show the movie, even if it's available
-    thisMoviePresent=false;  % set to true once we know the current movie exists.
-    
-    hplaying = nan;
-
-    bookmark_windows = [];
-    
-
-    doFastUpdates = true;
-
-    axes_preview_curr = 1;
-    hslider_listeners = [];    
-    
-    htrx = [];
-    fly_colors = [];
-    himage_previews = [];
-    
-    %% Timelines
-    
-    % mirrors automatictimelineBottomRowPopup
-    bottomAutomatic = 'None';
-    
-    axes_timelines = [];
-    
-    % handle vector. auto timeline controls visible when behaviorFocus is on
-    auto_timeline_controls_behaviorFocusOn = [];
-    % handle vector. auto timeline controls visible when behaviorFocus is off
-    auto_timeline_controls_behaviorFocusOff = [];
-    
-    labels_timelines = [];
-    axes_timeline_props = [];
-    axes_timeline_labels = [];
-    text_timeline_props = [];
-    text_timelines = [];    
-
-    %% Trx Position/Overlay 
-    plot_labels_manual = true;
-    plot_labels_automatic = false;
-
-    hflies = [];       % nfly-by-numAxes handle array. The triangle marking each fly.
-    hflies_extra = [];
-    hfly_markers = []; % nfly-by-numAxes handle array. The dot/star at the center of each fly.
-    
-    hlabel_curr = [];  % 1-by-numAxes handle. The line showing labeling-in-progress.
-    hlabels = [];      % 1-by-nbehavior handle array. The lines (trx-overlay) showing labels for each behavior.
-    hpredicted = [];   % 1-by-nbehavior handle array. The lines (trx-overlay) showing predictions for each behavior.
-    
-    %%
-    
-    hlabelstarts = [];
-    hzoom = [];
-    hpan = [];
-    himage_timeline_manual = [];
-    htimeline_label_curr = [];
-    himage_timeline_auto = [];
-    htimeline_data = [];
-    htimeline_errors = [];
-    htimeline_suggestions = [];
-    htimeline_gt_suggestions = [];
-    hcurr_timelines = [];
-    hselection = [];
-    bkgdgrid = zeros(2,0);
-    hrois = [];
-    harena = [];
-    
-    callbacks = struct;
-
-    readframe = [];
-    nframes = nan;
-    movie_fid = [];
-    movieheaderinfo = struct;
-    % t0_curr = nan;
-    % t1_curr = nan;
-    labels_plot = struct; % See LabelsPlot
-    % labels_plot_off = nan;
-
-    current_interval = [];
     didclearselection = false;
-    
-    open_peripherals = [];
 
-    cache_thread = [];
-    cache_size = 200;
-    cache_filename = [];
-    % cacheSize = 4000;  % now stored only in JLabelData
-     
-    tempname = [];
+    NJObj = []; % NextJump obj
+    nframes_jump_go = 30;
     
-    % which flies are being plotted
-    fly2idx = [];
-    idx2fly = [];
+    %% Bookmarks/Clips
+    outavi_compression = 'None';
+    outavi_fps = 15;
+    outavi_quality = 95;
+    useVideoWriter = false;
     
-    showPredictionsAllFlies = false;
+    % bookmark_windows = [];
+
+    %% Misc
+    
+    % Status Bar
+    status_bar_text_when_clear = '';
+    idlestatuscolor = [0,1,0];
+    busystatuscolor = [1,0,1];
     
     defaultmoviefilename = 0;
     defaulttrxfilename = 0;
-    
+    rcfilename = '';
+    rc = struct;
+
+    oldexpdir = '';  % Used by JLabel's File > Edit files...
+
+    meana = 1;
+    hslider_listeners = [];
+    d = ''; % AL 20150306: anybody know what this is
+    perframepropis = 1;
+    callbacks = struct;
+    tempname = [];
+      
     GTSuggestions = struct;
-    
+
     maxWindowRadiusCommonCached = [];  
       % need to remember between calls to SelectFeatures, because it needs
       % to override the max_window_radius in the window-feature amount
@@ -621,10 +592,7 @@ classdef JLabelGUIData < handle
       % play/stop
       self.hplaying = nan;
 
-      % bookmarked clips windows
-      self.bookmark_windows = [];
-
-      self.doFastUpdates = true;
+%       self.bookmark_windows = [];
       
       if self.data.isMultiClassifier
         self.unsetClassifierFocus;
@@ -632,6 +600,7 @@ classdef JLabelGUIData < handle
         self.setClassifierFocus(1);
       end
     end
+    
     
     function debugDumpLabelButtonState(obj)
       % debug routine
