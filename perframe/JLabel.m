@@ -6125,7 +6125,7 @@ function contextmenu_timeline_manual_go_next_bout_start_Callback(hObject, eventd
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+menu_go_next_manual_bout_start_Callback(hObject,eventdata,handles);
 return
 
 
@@ -6135,7 +6135,7 @@ function contextmenu_timeline_manual_go_previous_bout_end_Callback(hObject, even
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+menu_go_previous_manual_bout_end_Callback(hObject,eventdata,handles);
 return
 
 
@@ -6314,7 +6314,7 @@ function contextmenu_timeline_manual_timeline_options_Callback(hObject, eventdat
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-menu_view_timeline_options_Callback(hObject, eventdata, handles);
+menu_view_timeline_view_options_Callback(hObject, eventdata, handles);
 return
 
 
@@ -6562,7 +6562,7 @@ function contextmenu_timeline_automatic_timeline_options_Callback(hObject, event
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-menu_view_timeline_options_Callback(hObject, eventdata, handles);
+menu_view_timeline_view_options_Callback(hObject, eventdata, handles);
 return
 
 
@@ -6751,7 +6751,7 @@ function contextmenu_timeline_automatic_overlay_Callback(hObject, eventdata, han
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
+menu_view_automatic_labels_Callback(hObject, eventdata, handles);
 return
 
 
@@ -6761,7 +6761,7 @@ function contextmenu_timeline_manual_overlay_Callback(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
+menu_view_manual_labels_Callback(hObject, eventdata, handles);
 return
 
 
