@@ -30,12 +30,58 @@ classdef LabelsPlot
       labels_plot.predy = nan(2,n,nBeh,nflies);      
     end
     
-    function labels_plot = labelsPlotInitXY(labels_plot,ifly,x,y,...
+    function labels_plot = labelsPlotClearXYLabels(labels_plot,ifly,iBeh,t0,t1)
+      % Clear .x, .y for given flies/behaviors/time interval.
+      % ifly: vector of fly indices. if -1, use 1:.nflies.
+      % iBeh: vector of behavior indices. if -1, use 1:.nbeh.
+      % t0, t1: scalar time indices
+      
+      if isequal(ifly,-1)
+        ifly = 1:labels_plot.nflies;
+      end
+      if isequal(iBeh,-1)
+        iBeh = 1:labels_plot.nbeh;
+      end
+      assert(t0<=t1);
+      idx = (t0:t1)+labels_plot.off;
+      
+      labels_plot.x(:,idx,iBeh,ifly) = nan;
+      labels_plot.y(:,idx,iBeh,ifly) = nan;      
+    end
+    
+    function labels_plot = labelsPlotWriteXYLabelsInterval(labels_plot,iFly,...
+        iBeh,t0,t1,x,y)
+      % Write a track (x,y) to .x, .y over a certain time interval.
+      %
+      % iFly: scalar fly index
+      % iBeh: scalar behavior index
+      % t0, t1: scalar time indices
+      % x: vector of length t1-t0+2. NOTE: this is ONE LONGER than
+      %   numel(t0:t1)
+      % y: vector of length t1-t0+2. ONE LONGER than numel(t0:t1).
+      
+      assert(isscalar(iFly));
+      assert(isscalar(iBeh));
+      assert(t0<=t1);
+      idx = (t0:t1)+labels_plot.off;
+      n = t1-t0+1;
+      assert(numel(x)==n+1);
+      assert(numel(y)==n+1);
+      x = x(:)';
+      y = y(:)';
+      
+      labels_plot.x(:,idx,iBeh,iFly) = [x(1:end-1);x(2:end)];
+      labels_plot.y(:,idx,iBeh,iFly) = [y(1:end-1);y(2:end)];
+    end
+      
+    function labels_plot = labelsPlotWriteXYFull(labels_plot,ifly,x,y,...
         labelidx,predictedidx,scores,confThreshs)
+      % Update labels_plot.x, .y, .predx, .predy from labels/predictions.
+      %
       % ifly: scalar fly index (into eg labels_plot.x(:,:,:,ifly)
       % x, y: vectors, track positions
       % labelidx: .vals field from labelIdx structure. Values are in
-      %   1:labels_plot.nbeh      % 
+      %   1:labels_plot.nbeh
       % predictedidx: optional, can be [] if no prediction. Values are in
       %   {0,1,2,1.5}, see JLabelData.GetPredictedIdx.
       % scores: optional, can be [] if no prediction. See GetPredictedIdx.
@@ -91,11 +137,77 @@ classdef LabelsPlot
       end
     end
       
-    function labels_plot = labelsPlotInitIm(labels_plot,labelidx,labelcolors)
+    % Note: labels_plot.x and .y are directly modified in
+    % JLabel/SetLabelPlot
+    
+%     function labels_plot = labelsPlotWriteIm(labels_plot,t0,t1,labelidx,...
+%         labelcolors,unkcolor)
+%       % Write labels to labels_plot.im in time interval [t0,t1]. Image data
+%       % outside that range is unaffected.
+%       % 
+%       % labelidx: .vals, .imp, should be constrained to time interval [t0 t1]
+%       
+%       assert(t0<=t1);
+%       n = t1-t0+1;
+%       assert(labelidx.nbeh==labels_plot.nbeh);
+%       assert(isequal(size(labelidx.vals),size(labelidx.imp),...
+%         [labels_plot.nTL n]));
+%       assert(isequal(size(labelcolors),[labels_plot.nbeh 3]));
+%       
+%       idx = (t0:t1)+labels_plot.off;
+%       imslice = labels_plot.im(:,idx,:);
+%       for chan = 1:3
+%         imslice(:,:,chan) = unkcolor(chan);
+%       end
+%       
+%       % Permute image matrix to make it easier to assign behavior colors
+%       imslice = permute(imslice,[3 1 2]); % imslice is now 3xnTLxn
+%       
+%       for behaviori = 1:labels_plot.nbeh
+%         tf = (labelidx.vals==behaviori) & labelidx.imp;
+%         curColor = labelcolors(behaviori,:);
+%         for channel = 1:3,
+%           imslice(channel,tf) = curColor(channel);
+%         end
+%         
+%         tf = (labelidx.vals==behaviori) & ~labelidx.imp;
+%         curColor = ShiftColor.decreaseIntensity(labelcolors(behaviori,:));
+%         for channel = 1:3,
+%           imslice(channel,tf) = curColor(channel);
+%         end
+%       end
+%       
+%       labels_plot.im(:,idx,:) = permute(imslice,[2 3 1]);
+% 
+%       % JLabel/SetLabelPlot does direct access to labels_plot.im
+%     end
+    
+    function labels_plot = labelsPlotWriteImInterval(labels_plot,iTL,t0,t1,color)
+      % Write a single color to a time interval
+      % 
+      % iTL: vector of timeline indices. If equal to -1, use 1:nTL.
+      % t0, t1: time indices
+      % color: 3-element RGB color
+      
+      if isequal(iTL,-1)
+        iTL = 1:labels_plot.nTL;
+      end
+      assert(t0<=t1);
+      idx = (t0:t1)+labels_plot.off;
+      for chan = 1:3
+        labels_plot.im(iTL,idx,chan) = color(chan);
+      end      
+    end
+    
+    function labels_plot = labelsPlotWriteIm(labels_plot,labelidx,labelcolors,unkcolor)
+      % Write all labels from labelidx to labels_plot.
+      
       assert(labels_plot.nbeh==labelidx.nbeh);
       assert(isequal(size(labelcolors),[labels_plot.nbeh 3]));
       
-      labels_plot.im(:) = 0;
+      for chan = 1:3
+        labels_plot.im(:,:,chan) = unkcolor(chan);
+      end
       
       % Permute image matrix to make it easier to assign behavior colors
       im = permute(labels_plot.im,[3 1 2]); % im is now 3xnTLxn
