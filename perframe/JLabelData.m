@@ -4096,6 +4096,7 @@ classdef JLabelData < matlab.mixin.Copyable
         else
           idx = T0+obj.labelidx_off:T1+obj.labelidx_off;
           labelidx = struct(); % cropped labelIdx, doesn't have all the usual labelidx fields
+          labelidx.nbeh = obj.nbehaviors;
           labelidx.vals = obj.labelidx.vals(:,idx);
           labelidx.imp = obj.labelidx.imp(:,idx);
           labelidx.timestamp = obj.labelidx.timestamp(:,idx);
@@ -4282,15 +4283,21 @@ classdef JLabelData < matlab.mixin.Copyable
       
     % ---------------------------------------------------------------------
     function SetLabel(obj,expi,flies,ts,behaviori,important)
-    % SetLabel(obj,expi,flies,ts,behaviori)
-    % Set label for experiment expi, flies, and frames ts. If
+    % SetLabel(obj,expi,flies,ts,behaviori,important)
+    % Set behavior label for experiment expi, flies, and frames ts. If
     % expi, flies match current expi, flies, then we only set labelidx.
     % Otherwise, we set labels.
-      
-    % behaviori, same as JLabel/SetLabelPlot:
+    %
+    % expi: scalar
+    % flies: scalar
+    % ts: vector 
+    % behaviori: scalar, same as JLabel/SetLabelPlot:
     % - If greater than 0, behavior index to label. Valid vals: [1..numbehaviors]
     % - If == 0, clear labels for all timelines/behaviors.
     % - If < 0, timeline index to clear. Valid vals: [1..numtimelines]
+    % important: scalar
+    
+      assert(isscalar(behaviori));
       
       if behaviori<=0 % clear labels
         assert(important==0);        
@@ -4304,19 +4311,31 @@ classdef JLabelData < matlab.mixin.Copyable
         iTL = obj.labelidx.idxBeh2idxTL(behaviori);
         lblVal = behaviori;
       end
-      if obj.IsCurFly(expi,flies),
-        obj.labelidx.vals(iTL,ts+obj.labelidx_off) = lblVal;
-        obj.labelidx.imp(iTL,ts+obj.labelidx_off) = important;
-        obj.labelidx.timestamp(iTL,ts+obj.labelidx_off) = now;
-      else
-        [labelidx,T0] = obj.GetLabelIdx(expi,flies); %#ok<*PROP>
-        labelidx.vals(iTL,ts+1-T0) = lblVal;
-        labelidx.imp(iTL,ts+1-T0) = important;
-        labelidx.timestamp(iTL,ts+1-T0) = now;
-        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);
-      end
+     
+      obj.setLabelsRaw(expi,flies,ts,iTL,lblVal,important);      
       %obj.UpdateErrorIdx();
-      obj.needsave=true;
+      obj.needsave = true;
+    end
+    
+    
+    function SetLabelsToMatchPrediction(obj,expi,flies,t0,t1,important)
+      % Set the labels (currently, for all classifiers/timelines) to match
+      % the current predictions.
+      %
+      % important: scalar
+      
+      assert(isscalar(important));
+      
+      [prediction,t0new,t1new] = obj.GetPredictedIdx(expi,flies,t0,t1);
+      if t0new~=t0 || t1new~=t1
+        warningNoTrace('JLabelData:modifiedTime','Using modified time interval.');
+        t0 = t0new;
+        t1 = t1new;
+      end
+      predictedidx = obj.PredictedIdxExpandValues(prediction.predictedidx);
+            
+      obj.setLabelsRaw(expi,flies,t0:t1,1:obj.ntimelines,predictedidx,important);
+      obj.needsave = true;
     end
     
     
@@ -4548,6 +4567,27 @@ classdef JLabelData < matlab.mixin.Copyable
   end
   
   methods % more private
+    
+    
+    function setLabelsRaw(obj,expi,flies,ts,iTL,lblVal,imp)
+      % ts: vector of time indices
+      % iTL: vector of timelines
+      % lblVal: either a scalar, or array of size numel(iTL)-by-numel(ts)
+      % imp: either a scalar, or array of size numel(iTL)-by-numel(ts)
+      
+      if obj.IsCurFly(expi,flies)
+        obj.labelidx.vals(iTL,ts+obj.labelidx_off) = lblVal;
+        obj.labelidx.imp(iTL,ts+obj.labelidx_off) = imp;
+        obj.labelidx.timestamp(iTL,ts+obj.labelidx_off) = now;
+      else
+        [labelidx,T0] = obj.GetLabelIdx(expi,flies); %#ok<*PROP>
+        labelidx.vals(iTL,ts+1-T0) = lblVal;
+        labelidx.imp(iTL,ts+1-T0) = imp;
+        labelidx.timestamp(iTL,ts+1-T0) = now;
+        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);
+      end
+    end
+    
     
     % ---------------------------------------------------------------------
     function setLabelsFromStructForAllExps(self,labelsForAll)
@@ -5335,11 +5375,11 @@ classdef JLabelData < matlab.mixin.Copyable
       % Helper function for GetPredictedIdx.
       % The prediction.predictedidx returned by GetPredictedIdx takes
       % values in the set {0,1,1.5,2}. This function changes
-      % representations so that the iTL'th row if predictedidx takes the
+      % representations so that the iTL'th row of predictedidx takes the
       % values:
       % * 0 for no-prediction or undecided (old value=1.5)
-      % * obj.iCls2iLbls{1} for behavior-predicted
-      % * obj.iCls2iLbls{2} for nobehavior-predicted.
+      % * obj.iCls2iLbls{iTL}(1) for behavior-predicted
+      % * obj.iCls2iLbls{iTL}(2) for nobehavior-predicted.
       
       nTL = obj.ntimelines;
       iCls2iLbls = obj.iCls2iLbl;
