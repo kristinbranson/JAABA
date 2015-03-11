@@ -44,7 +44,6 @@ classdef JLabelGUIData < handle
     GUIAdvancedMode = false;  % true iff the GUI is in advanced mode, as
                               % opposed to basic mode
 
-
     %% Movie/Preview/Playback
 
     movie_depth = 1;
@@ -96,7 +95,7 @@ classdef JLabelGUIData < handle
     nflies_label = 1;
 
     %in_border_y = [];
-    labelcolors = [];
+    labelcolors = []; % numlabels-by-3 RGB array
     labelunknowncolor = [0,0,0];
     labelnoneallcolor = [0.5,0.5,0.5];
     
@@ -657,6 +656,20 @@ classdef JLabelGUIData < handle
   
   methods 
     
+    function classifierRemoved(self,iCls,iLbls)
+      % React to a classifier being removed from the project.
+      %
+      % iCls: scalar classified index that has been removed
+      % iLbls: behavior/label indices corresponding to iCls
+      
+      self.labelcolors(iLbls,:) = [];
+      self.hlabels(iLbls) = [];
+      self.hpredicted(iLbls) = [];
+      self.scorecolor(iCls) = [];
+      self.NJObj.behaviorsRemoved(iLbls);
+      
+    end
+    
     function setClassifierFocus(self,iCls)
       self.behaviorFocusOn = true;
       self.behaviorFocusIdx = iCls;
@@ -736,6 +749,7 @@ classdef JLabelGUIData < handle
     
     function updatePlotLabels(self)
       % Update plot lines/overlays
+      % AL: Rename me, note updateLabels() method below      
       
       % AL: legacy early return
       if ~self.data.getSomeExperimentIsCurrent()
@@ -778,6 +792,31 @@ classdef JLabelGUIData < handle
             'refresh_timeline_props',false,...
             'refresh_timeline_selection',false,...
             'refresh_curr_prop',false);
+    end
+    
+    function updateLabels(self)
+      % Update manual timeline and trx overlay to match labels info in
+      % self.data.
+      
+      jld = self.data;
+      [labelidx,t0,t1] = jld.GetLabelIdx(jld.expi,jld.flies);
+      
+      self.labels_plot = LabelsPlot.labelsPlotWriteIm(self.labels_plot,...
+        labelidx,self.labelcolors,self.labelunknowncolor);
+      
+      % AL 201503: Seems unnecessary
+      self.labels_plot = LabelsPlot.labelsPlotClearXYLabels(self.labels_plot,-1,-1,t0,t1);
+               
+      flies = jld.flies;
+      assert(isscalar(flies));
+      for iFly = 1:numel(flies)
+        fly = flies(iFly);
+        x = jld.GetTrxValues('X1',jld.expi,fly,jld.t0_curr:jld.t1_curr);
+        y = jld.GetTrxValues('Y1',jld.expi,fly,jld.t0_curr:jld.t1_curr);
+        
+        self.labels_plot = LabelsPlot.labelsPlotWriteXYFull(...
+          self.labels_plot,iFly,x,y,labelidx.vals,[],[],[]);
+      end      
     end
     
   end

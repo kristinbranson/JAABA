@@ -181,6 +181,11 @@ classdef NextJump < handle
       iClsSeek = unique(iClsSeek);
     end
     
+    function behaviorsRemoved(obj,iLbls)
+      % iLbls: label/behavior indices for removed behaviors
+      obj.seek_behaviors_go = setdiff(obj.seek_behaviors_go,iLbls);      
+    end
+    
   end
   
   methods

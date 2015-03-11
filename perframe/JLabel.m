@@ -1219,7 +1219,6 @@ for i = axes2,
       else
         set(handles.guidata.hlabel_curr(1),'XData',nan,'YData',nan);
       end
-
     end
   end
   
@@ -1638,10 +1637,6 @@ if ~doforce && ...
   return;
 end
 
-% % frames these flies are both alive
-% handles.guidata.t0_curr = max(data.GetTrxFirstFrame(handles.data.expi,handles.data.flies));
-% handles.data.t1_curr = min(data.GetTrxEndFrame(handles.data.expi,handles.data.flies));
-
 % form of labels for easier plotting:
 % x, y positions of all labels
 handles.guidata.labels_plot = LabelsPlot.labelsPlot(...
@@ -1685,7 +1680,7 @@ for flyi = 1:numel(flies)
   x = data.GetTrxValues('X1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
   y = data.GetTrxValues('Y1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
     
-  handles.guidata.labels_plot = LabelsPlot.labelsPlotInitXY(...
+  handles.guidata.labels_plot = LabelsPlot.labelsPlotWriteXYFull(...
     handles.guidata.labels_plot,flyi,x,y,labelidx.vals,predictedidx,scores,...
     confThreshs);
 %   for behaviori = 1:data.nbehaviors
@@ -1712,9 +1707,9 @@ handles = UpdateTimelineImages(handles);
 
 % update timelines
 set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
-%axis(handles.axes_timeline_manual,[handles.data.t0_curr-.5,handles.data.t1_curr+.5,.5,1.5]);
 set(handles.axes_timeline_manual,'xlim',[handles.data.t0_curr-.5,handles.data.t1_curr+.5]);
 %set(handles.axes_timeline_manual,'ylim',[.5 handles.data.ntimelines+0.5]); % AL is this necessary?
+
 % update zoom
 for h = handles.guidata.axes_timeline_labels,
   zoom(h,'reset');
@@ -1745,13 +1740,6 @@ for i = 1:numel(handles.guidata.axes_previews),
 end
 
 % status bar text
-% [~,expname] = myfileparts(data.expdirs{handles.data.expi});
-% if numel(handles.data.flies) == 1,
-%   handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,data.targettype,handles.data.flies);
-% else
-%   handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,data.targettype),sprintf(' %d',handles.data.flies)];
-%     % I don't understand the line above.  targettype is a string! ---ALT, march 18, 2013
-% end
 syncStatusBarTextWhenClear(handles);
 
 % make sure frame is within bounds
@@ -1795,8 +1783,8 @@ if jldata.nexps==0
 end
 
 labelidx = jldata.GetLabelIdx(jldata.expi,jldata.flies);
-gdata.labels_plot = LabelsPlot.labelsPlotInitIm(gdata.labels_plot,...
-  labelidx,gdata.labelcolors);
+gdata.labels_plot = LabelsPlot.labelsPlotWriteIm(gdata.labels_plot,...
+  labelidx,gdata.labelcolors,gdata.labelunknowncolor);
 
 %%% Predicted timeline %%%
 if gdata.behaviorFocusOn
@@ -2189,6 +2177,7 @@ handles.guidata.togglebutton_label_noneall = [];
 %--------------------------------------------------------------------------
 function handles = UpdateLabelButtons(handles)
 % Create/position label buttons as appropriate for current project.
+% AL 20150306: Return arg may be unnecessary
 
 if ~handles.data.thereIsAnOpenFile,
   nBehaviors=2;  % just for layout purposes
@@ -3204,185 +3193,63 @@ function handles = SetLabelPlot(handles,t0,t1,behaviori,important)
 %
 % Note: this calls handles.data.SetLabel as well as updating handles.guidata.
 
-% if behaviori == 0,
-%   return;
-% end
+assert(isscalar(behaviori));
 
-% if t == handles.lastframe_labeled,
-%   warning('This should never happen');
-%   keyboard;
-% end
-% 
-% if isempty(handles.lastframe_labeled),
-%   t0 = t;
-%   t1 = t;
-%   t2 = min(t+1,handles.data.t1_curr);
-% else
-%   if t < handles.lastframe_labeled,
-%     t0 = t;
-%     t1 = handles.lastframe_labeled-1;
-%     t2 = handles.lastframe_labeled;
-%   elseif t > handles.lastframe_labeled,
-%     t0 = handles.lastframe_labeled+1;
-%     t1 = t;
-%     t2 = min(t+1,handles.data.t1_curr);
-%   end
-% end
-
-% WARNING: this function directly accesses handles.data.labelidx, trx make sure
-% that we've preloaded the right experiment and flies. 
-% REMOVED!
-% if handles.data.expi ~= handles.data.expi || ~all(handles.data.flies == handles.data.flies),
-%   handles.data.Preload(handles.data.expi,handles.data.flies);
-% end
+gdata = handles.guidata;
+jld = handles.data;
 
 if t1 < t0,
   tmp = t1;
   t1 = t0;
   t0 = tmp;
 end
-idx = t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off;
 
 if behaviori<=0
   assert(important==0,'Importance should be zero when clearing labels');
   
   if behaviori==0
-    idxTL = 1:handles.data.labelidx.nTL;
-    idxBeh = 1:handles.data.labelidx.nbeh;
+    idxTL = 1:jld.labelidx.nTL;
+    idxBeh = 1:jld.labelidx.nbeh;
   else
-    iCls2iLbl = handles.data.iCls2iLbl;
+    iCls2iLbl = jld.iCls2iLbl;
     idxTL = -behaviori;
     idxBeh = iCls2iLbl{idxTL};
   end
-  handles.guidata.labels_plot.x(:,idx,idxBeh,:) = nan; % ALTODO Why is this clearing/initting for all flies?
-  handles.guidata.labels_plot.y(:,idx,idxBeh,:) = nan; % ALTODO Why is this clearing/initting for all flies?  
-  for channel = 1:3,
-    handles.guidata.labels_plot.im(idxTL,idx,channel) = handles.guidata.labelunknowncolor(channel);
-  end
-  handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behaviori,important);
+  
+  gdata.labels_plot = LabelsPlot.labelsPlotClearXYLabels(...
+    gdata.labels_plot,-1,idxBeh,t0,t1);
+  
+  gdata.labels_plot = LabelsPlot.labelsPlotWriteImInterval(...
+    gdata.labels_plot,idxTL,t0,t1,gdata.labelunknowncolor);
+  
+  jld.SetLabel(jld.expi,jld.flies,t0:t1,behaviori,important);
 else
-  handles.guidata.labels_plot.x(:,idx,behaviori,:) = nan; % ALTODO Why is this clearing/initting for all flies?
-  handles.guidata.labels_plot.y(:,idx,behaviori,:) = nan; % ALTODO Why is this clearing/initting for all flies?
-  % handles.data.labelidx(t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off) = 0;
+  gdata.labels_plot = LabelsPlot.labelsPlotClearXYLabels(...
+    gdata.labels_plot,-1,behaviori,t0,t1); % Clearing first may not be necessary
   
-  iLbl2iCls = handles.data.iLbl2iCls;
+  iLbl2iCls = jld.iLbl2iCls;
   iTL = iLbl2iCls(behaviori);
-  for channel = 1:3,
-    handles.guidata.labels_plot.im(iTL,idx,channel) = handles.guidata.labelunknowncolor(channel);
-  end
-  handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behaviori,important);
-
-  % handles.data.labelidx(t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off) = behaviori;
-  for channel = 1:3,
-    handles.guidata.labels_plot.im(iTL,idx,channel) = handles.guidata.labelcolors(behaviori,channel);
-  end
-  for l = 1:numel(handles.data.flies),
-    %off = handles.data.trx(handles.data.flies(l)).off;
-    %j0 = t0+off;
-    %j2 = t2+off;
-    k0 = t0+handles.guidata.labels_plot.off;
-    k2 = t1+handles.guidata.labels_plot.off+1;
-    xplot = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),min(t0:t1+1,handles.data.t1_curr));
-    yplot = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),min(t0:t1+1,handles.data.t1_curr));
-    handles.guidata.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)]; % ALTODO Only fly 1
-    handles.guidata.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)]; % ALTODO Only fly 1
-
-%     handles.guidata.labels_plot.x(k0:k2,behaviori,l) = ...
-%       handles.data.trx(handles.data.flies(l)).x(j0:j2);
-%     handles.guidata.labels_plot.y(k0:k2,behaviori,l) = ...
-%       handles.data.trx(handles.data.flies(l)).y(j0:j2);
-  end
-end
-
-% isstart
-% AL: isstart stuff appears to be unused/obsolete
-% if t0 == handles.data.t0_curr,
-%   handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot.off) = behaviori ~= 0;
-% end
-% t00 = max(handles.data.t0_curr+1,t0);
-% off0 = t00+handles.guidata.labels_plot.off;
-% off1 = t1+handles.guidata.labels_plot.off;
-% handles.guidata.labels_plot.isstart(off0:off1) = ...
-%   handles.data.labelidx(off0:off1)~=0 & ...
-%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
-% handles.guidata.labels_plot.isstart(off0:off1) = ...
-%   handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
-
-handles = UpdateErrors(handles);
-
-%handles = SetNeedSave(handles);
-UpdateEnablementAndVisibilityOfControls(handles);
-
-%handles.lastframe_labeled = t;
-
-guidata(handles.figure_JLabel,handles);
-
-return
-
-
-% -------------------------------------------------------------------------
-function handles = SetLabelsPlot(handles,t0,t1,behavioris)
-% ALTODO See SetLabelPlot, dup?
-
-% AL20150218: This call appears to accept array-valued behavioris but the
-% call to handles.data.SetLabel should not accept nonscalar values
-
-if t1 < t0,
-  tmp = t1;
-  t1 = t0;
-  t0 = tmp;
-end
-
-handles.guidata.labels_plot.x(:,t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off,:,:) = nan;
-handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off,:,:) = nan;
-
-for channel = 1:3,
-  handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off,channel) = handles.guidata.labelunknowncolor(channel);
-end
-handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behavioris,0);
-
-for behaviori = 1:handles.data.nbehaviors,
-
-  bidx = find(behaviori == behavioris);
-  if isempty(bidx),
-    continue;
-  end
-  for channel = 1:3,
-    handles.guidata.labels_plot.im(1,t0-1+bidx+handles.guidata.labels_plot.off,channel) = handles.guidata.labelcolors(behaviori,channel);
-  end
-  for l = 1:numel(handles.data.flies),
-    ks = t0-1+handles.guidata.labels_plot.off+bidx;
-    xplot0 = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),t0-1+bidx);
-    xplot1 = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),min(t0+bidx,handles.data.t1_curr));
-    handles.guidata.labels_plot.x(:,ks,behaviori,l) = [xplot0;xplot1];
-    yplot0 = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),t0-1+bidx);
-    yplot1 = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),min(t0+bidx,handles.data.t1_curr));
-    handles.guidata.labels_plot.y(:,ks,behaviori,l) = [yplot0;yplot1];
-  end
+    
+  jld.SetLabel(jld.expi,jld.flies,t0:t1,behaviori,important);
   
+  gdata.labels_plot = LabelsPlot.labelsPlotWriteImInterval(...
+    gdata.labels_plot,iTL,t0,t1,gdata.labelcolors(behaviori,:));  
+
+  nflies = numel(jld.flies);
+  assert(nflies==gdata.labels_plot.nflies);
+  for iFly = 1:nflies
+    xplot = jld.GetTrxValues('X1',jld.expi,jld.flies(iFly),min(t0:t1+1,jld.t1_curr));
+    yplot = jld.GetTrxValues('Y1',jld.expi,jld.flies(iFly),min(t0:t1+1,jld.t1_curr));
+     
+    gdata.labels_plot = LabelsPlot.labelsPlotWriteXYLabelsInterval(...
+      gdata.labels_plot,iFly,behaviori,t0,t1,xplot,yplot);
+  end
 end
 
-% isstart
-% if t0 == handles.data.t0_curr,
-%   handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot.off) = behavioris(1) ~= 0;
-% end
-t00 = max(handles.data.t0_curr+1,t0);
-off0 = t00+handles.guidata.labels_plot.off;
-off1 = t1+handles.guidata.labels_plot.off;
-% handles.guidata.labels_plot.isstart(off0:off1) = ...
-%   handles.data.labelidx(off0:off1)~=0 & ...
-%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
-% handles.guidata.labels_plot.isstart(off0:off1) = ...
-%   handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
-
 handles = UpdateErrors(handles);
-
-%handles = SetNeedSave(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
-
-%handles.lastframe_labeled = t;
-
 guidata(handles.figure_JLabel,handles);
+
 return
 
 
@@ -6329,16 +6196,25 @@ function contextmenu_timeline_automatic_accept_selected_Callback(hObject, eventd
 
 assert(~handles.data.isMultiClassifier,'Unsupported for multiclassifier projects.');
 
+jld = handles.data;
+gdata = handles.guidata;
+
 t0 = handles.bookmark_info.t0;
 t1 = handles.bookmark_info.t1;
+t0 = min(jld.t1_curr,max(jld.t0_curr,t0));
+t1 = min(jld.t1_curr,max(jld.t0_curr,t1));
+if t1 < t0
+  tmp = t1;
+  t1 = t0;
+  t0 = tmp;
+end
+      
+important = 0; % AL20150310: matching legacy behavior
+jld.SetLabelsToMatchPrediction(jld.expi,jld.flies,t0,t1,important);
+gdata.updateLabels();
 
-t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
-t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
-prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,t0,t1);
-predictedidx = prediction.predictedidx;
-handles = SetLabelsPlot(handles,t0,t1,predictedidx); % ALTODO SetLabelPlot?
-% AL 20150218 This call to SetLabelsPlot with array-valued predictedidx
-% seems like will error
+handles = UpdateErrors(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 UpdatePlots(handles,...
   'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
@@ -9172,7 +9048,7 @@ if ok
   if any(tfLblsExist)
     warnstr = sprintf('There are labels for the following classifiers: %s. All information related to these classifiers will be irrevocably lost!',...
       civilizedStringFromCellArrayOfStrings(clsnames(iClsRm(tfLblsExist))));
-    btn = questdlg(warnstr,'Delete Classifiers','OK, proceed','Cancel','Cancel');
+    btn = questdlg(warnstr,'Delete Classifiers','OK, Proceed','Cancel','Cancel');
     if isempty(btn) || strcmp(btn,'Cancel')
       return;
     end
@@ -9181,7 +9057,11 @@ if ok
   for i = iClsRm(:)'
     handles.data.rmClassifier(clsnames{i});
   end
+  
+  handles = resetLabelButtons(handles);
+  UpdateLabelButtons(handles);  
 end
+
 
 % --------------------------------------------------------------------
 function menu_file_reorder_classifiers_Callback(hObject, eventdata, handles)
