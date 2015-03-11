@@ -250,7 +250,6 @@ if handles.data.isMultiClassifier
   tmp = [{'<all classifiers>'};handles.data.classifiernames(:)];
   set(handles.classifierFocusPopup,'String',tmp);
   set(handles.classifierFocusPopup,'Value',1);
-  handles.guidata.unsetClassifierFocus();
 end
 
 SetJumpGoMenuLabels(handles)
@@ -614,9 +613,6 @@ handles.guidata.hselection = nan(size(handles.guidata.axes_timelines));
 for i = 1:numel(handles.guidata.axes_timelines),
   ylim = [.5,1.5];
   ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
-  % handles.guidata.hselection(i) = ...
-  %   plot(handles.guidata.axes_timelines(i),nan(1,5),ydata([1,2,2,1,1]),'--','color',handles.guidata.selection_color,...
-  %   'HitTest','off','Linewidth',3);
   handles.guidata.hselection(i) = ...
     line('parent',handles.guidata.axes_timelines(i), ...
          'xdata',nan(1,5), ...
@@ -631,7 +627,10 @@ for i = 2:numel(handles.guidata.axes_timelines),
   set(handles.guidata.axes_timelines(i),'XTickLabel',{});
 end
 
-set(handles.axes_timeline_manual,'ylim',[0.5 handles.data.ntimelines+0.5]);
+ylo = 0.5;
+yhi = handles.data.ntimelines+0.5;
+set(handles.axes_timeline_manual,'ylim',[ylo yhi]);
+set(handles.guidata.hselection(end),'YData',[ylo yhi yhi ylo ylo]);
 linkaxes(handles.guidata.axes_timelines,'x');
 
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
@@ -7896,6 +7895,7 @@ handles.guidata.setLayout(figureJLabel);
 handles = InitializeStateAfterBasicParamsSet(handles);
 handles = InitializePlotsAfterBasicParamsSet(handles);
 handles = updatePanelPositions(handles);
+handles.guidata.initializeFinal();
 guidata(figureJLabel,handles);
 return
 

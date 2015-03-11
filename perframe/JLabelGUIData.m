@@ -18,6 +18,7 @@ classdef JLabelGUIData < handle
 
     % JLabel handles stored in this obj for convenience
     JLABEL_GUIDATA_HANDLES = { ...
+      'axes_timeline_manual';
       'axes_timeline_auto';
       'menu_view_manual_labels';
       'menu_view_automatic_labels';
@@ -145,7 +146,9 @@ classdef JLabelGUIData < handle
     bottomAutomatic = 'None'; % mirrors automatictimelineBottomRowPopup
     timeline_nframes = 250;
     
-    axes_timelines = [];    
+    axes_timelines = []; % handle vec of timelines, from bottom to top 
+                         % (pff_n, pff_(n-1),..., pff_1, auto timeline,
+                         % manual timeline)
     % handle vector. auto timeline controls visible when behaviorFocus is on
     auto_timeline_controls_behaviorFocusOn = [];
     % handle vector. auto timeline controls visible when behaviorFocus is off
@@ -159,7 +162,7 @@ classdef JLabelGUIData < handle
     htimeline_suggestions = [];
     htimeline_gt_suggestions = [];
     hcurr_timelines = [];
-    hselection = [];
+    hselection = []; % handle array; selection bounding box line handles corresponding to axes_timelines
 
     labels_timelines = [];
     axes_timeline_props = [];
@@ -592,14 +595,19 @@ classdef JLabelGUIData < handle
       self.hplaying = nan;
 
 %       self.bookmark_windows = [];
+    end
+    
+    function initializeFinal(self)
+      % See initializeAfterBasicParamsSet-- for the usual silly reasons a
+      % second init method is needed to fully sync up JLabel and 
+      % JLabelGUIData. Low priority cleanup
       
       if self.data.isMultiClassifier
-        self.unsetClassifierFocus;
+        self.unsetClassifierFocus();
       else
         self.setClassifierFocus(1);
       end
     end
-    
     
     function debugDumpLabelButtonState(obj)
       % debug routine
@@ -676,7 +684,10 @@ classdef JLabelGUIData < handle
       iLbls = self.data.iCls2iLbl{iCls};
       self.behaviorFocusLbls = iLbls;
       
-      set(self.gdata.axes_timeline_auto,'ylim',[0.5 6.5]);
+      ylo = 0.5;
+      yhi = 6.5;
+      set(self.gdata.axes_timeline_auto,'ylim',[ylo yhi]);
+      set(self.hselection(end-1),'YData',[ylo yhi yhi ylo ylo]);
       self.updateAutoTimelineControls();
       self.updatePlotLabels();
     end
@@ -687,7 +698,10 @@ classdef JLabelGUIData < handle
       self.behaviorFocusLbls = [nan nan];
       
       nCls = self.data.nclassifiers;
-      set(self.gdata.axes_timeline_auto,'ylim',[0.5 nCls+0.5]);
+      ylo = 0.5;
+      yhi = nCls+0.5;
+      set(self.gdata.axes_timeline_auto,'ylim',[ylo yhi]);
+      set(self.hselection(end-1),'YData',[ylo yhi yhi ylo ylo]);
       self.updateAutoTimelineControls();
       self.updatePlotLabels();
     end
