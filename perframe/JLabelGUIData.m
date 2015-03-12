@@ -25,6 +25,7 @@ classdef JLabelGUIData < handle
       'timeline_label_manual';
       'timeline_label_automatic';
       'automaticTimelinePopup';
+      'togglebutton_label_unknown';
     };
   end
 
@@ -661,14 +662,25 @@ classdef JLabelGUIData < handle
   end  
   
   %%
+  % AL: At some point, segregate into public vs private API
   
   methods 
     
-    function classifierRemoved(self,iCls,iLbls)
-      % React to a classifier being removed from the project.
+    function classifiersRemoved(self,iCls,iLbls)
+      % React to classifiers being removed from the project. self.data
+      % should already be properly updated.
       %
-      % iCls: scalar classified index that has been removed
-      % iLbls: behavior/label indices corresponding to iCls
+      % iCls: vector, classifier indices that have been removed
+      % iLbls: cell vector. iLbls{i} is a [1 2] row vec for the (original,
+      % prior to removal) behavior/label indices corresponding to iCls(i). 
+      
+      assert(numel(iCls)==numel(iLbls));
+      assert(iscell(iLbls));
+      
+      iLbls = cat(2,iLbls{:});
+      assert(numel(iLbls)==2*numel(iCls));
+      assert(numel(iLbls)==numel(unique(iLbls)),...
+        'Repeated label indices being removed.');
       
       self.labelcolors(iLbls,:) = [];
       self.hlabels(iLbls) = [];
@@ -676,8 +688,40 @@ classdef JLabelGUIData < handle
       self.scorecolor(iCls) = [];
       self.NJObj.behaviorsRemoved(iLbls);
       
+      % Order important here; set classifierFocus in order to update
+      % timeline images properly in labelsPlotINit
+      if self.data.nclassifiers==1
+        self.setClassifierFocus(1);
+      else
+        self.unsetClassifierFocus();
+      end
+      self.labelsPlotInit();      
+      self.updateManualTimelineYLims();
+      
+      self.resetLabelButtons();
+      self.jlabelCall('UpdateLabelButtons');
+      self.jlabelCall('UpdateEnablementAndVisibilityOfControls');
     end
     
+    function resetLabelButtons(self)
+      deleteHandleNotNan(self.togglebutton_label_behaviors(2:end));
+      self.togglebutton_label_behaviors = self.togglebutton_label_behaviors(1);
+      deleteHandleNotNan(self.togglebutton_unknown_behaviors);
+      self.togglebutton_unknown_behaviors = [];
+      self.togglebutton_unknowns = self.gdata.togglebutton_label_unknown;
+      deleteHandleNotNan(self.togglebutton_label_noneall);
+      self.togglebutton_label_noneall = [];
+    end
+   
+    function updateManualTimelineYLims(self)
+      % Ultimately private method
+      
+      ylo = 0.5;
+      yhi = self.data.ntimelines+0.5;
+      set(self.gdata.axes_timeline_manual,'ylim',[ylo yhi]);
+      set(self.hselection(end),'YData',[ylo yhi yhi ylo ylo]);
+    end
+        
     function setClassifierFocus(self,iCls)
       self.behaviorFocusOn = true;
       self.behaviorFocusIdx = iCls;
@@ -833,7 +877,47 @@ classdef JLabelGUIData < handle
       end      
     end
     
+    function labelsPlotInit(self)
+      % A full (re)initialization of .labels_plot, from .data (using aux
+      % info from self)
+  
+      jld = self.data;
+      expi = jld.expi;
+      flies = jld.flies;
+      nFlies = numel(flies);
+      t0 = jld.t0_curr;
+      t1 = jld.t1_curr;
+      tIdx = t0:t1;
+      
+      labels_plot = LabelsPlot.labelsPlot(t0,t1,jld.ntimelines,...
+        jld.nbehaviors,jld.iLbl2iCls,jld.iCls2iLbl,nFlies);
+                  
+      labelidx = jld.GetLabelIdx(expi,flies);
+      if jld.classifierIsPresent()
+        prediction = jld.GetPredictedIdx(expi,flies);
+        predictedidx = prediction.predictedidx;
+        scores = jld.NormalizeScores(prediction.scoresidx);
+        confThreshs = jld.GetConfidenceThreshold(1:jld.nbehaviors);
+      else
+        predictedidx = [];
+        scores = [];
+        confThreshs = [];
+      end
+      for iFly = 1:nFlies
+        fly = flies(iFly);
+        x = jld.GetTrxValues('X1',expi,fly,tIdx);
+        y = jld.GetTrxValues('Y1',expi,fly,tIdx);
+        
+        labels_plot = LabelsPlot.labelsPlotWriteXYFull(labels_plot,iFly,...
+          x,y,labelidx.vals,predictedidx,scores,confThreshs);
+      end
+      
+      self.labels_plot = labels_plot;
+      self.jlabelCall('UpdateTimelineImages'); % sets other state on self.labels_plot
+    end
+    
   end
+  
   
   %% MISC
   
