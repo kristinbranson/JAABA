@@ -6161,11 +6161,8 @@ if t >= handles.data.t0_curr && t <= handles.data.t1_curr,
     'Label',s);
   s = sprintf('Accept %s bout (%d:%d)',handles.bookmark_info.label,...
     handles.bookmark_info.t0,handles.bookmark_info.t1);
-  set(handles.contextmenu_timeline_automatic_accept_bout,'Visible','on',...
-    'Label',s);
 else
   set(handles.contextmenu_timeline_automatic_bookmark_bout,'Visible','off');
-  set(handles.contextmenu_timeline_automatic_accept_bout,'Visible','off');
 end
   
 % inside the current selection?
@@ -6228,14 +6225,6 @@ UpdatePlots(handles,...
   'refresh_curr_prop',false);
 
 guidata(hObject,handles);
-return
-
-
-% --------------------------------------------------------------------
-function contextmenu_timeline_automatic_accept_bout_Callback(hObject, eventdata, handles)
-% hObject    handle to contextmenu_timeline_automatic_accept_bout (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 return
 
 
@@ -9060,6 +9049,19 @@ if ok
   
   handles = resetLabelButtons(handles);
   UpdateLabelButtons(handles);  
+  handles = UpdateTimelineImages(handles);
+  guidata(handles.figure_JLabel,handles);
+  UpdatePlots(handles, ...
+    'refreshim',false, ...
+    'refreshflies',true,  ...
+    'refreshtrx',true, ...
+    'refreshlabels',true,...
+    'refresh_timeline_manual',true,...
+    'refresh_timeline_xlim',false,...
+    'refresh_timeline_hcurr',false,...
+    'refresh_timeline_selection',false,...
+    'refresh_curr_prop',false);
+  
 end
 
 
