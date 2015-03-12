@@ -627,10 +627,7 @@ for i = 2:numel(handles.guidata.axes_timelines),
   set(handles.guidata.axes_timelines(i),'XTickLabel',{});
 end
 
-ylo = 0.5;
-yhi = handles.data.ntimelines+0.5;
-set(handles.axes_timeline_manual,'ylim',[ylo yhi]);
-set(handles.guidata.hselection(end),'YData',[ylo yhi yhi ylo ylo]);
+handles.guidata.updateManualTimelineYLims();
 linkaxes(handles.guidata.axes_timelines,'x');
 
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
@@ -1636,78 +1633,14 @@ if ~doforce && ...
   return;
 end
 
-% form of labels for easier plotting:
-% x, y positions of all labels
-handles.guidata.labels_plot = LabelsPlot.labelsPlot(...
-  data.t0_curr,data.t1_curr,data.ntimelines,data.nbehaviors,...
-  data.iLbl2iCls,data.iCls2iLbl,numel(data.flies));
-
-% handles.guidata.labels_plot = struct;
-% n = handles.data.t1_curr-handles.data.t0_curr+1;
-% handles.guidata.labels_plot.im = zeros([1,n,3]);
-% handles.guidata.labels_plot.predicted_im = zeros([1,n,3]);
-% handles.guidata.labels_plot.suggest_xs = nan;
-% handles.guidata.labels_plot.error_xs = nan;
-% %handles.guidata.labels_plot.suggested_im = zeros([1,n,3]);
-% %handles.guidata.labels_plot.error_im = zeros([1,n,3]);
-% handles.guidata.labels_plot.x = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-% handles.guidata.labels_plot.y = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-% handles.guidata.labels_plot.predx = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-% handles.guidata.labels_plot.predy = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-% handles.guidata.labels_plot.off = 1-handles.data.t0_curr;
-% % set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto,...
-% %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
-% %   'XData',[handles.data.t0_curr,handles.data.t1_curr]);
 set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto],...
   'XData',[handles.data.t0_curr,handles.data.t1_curr]);
 
-labelidx = data.GetLabelIdx(handles.data.expi,flies);
-
-classifierPresent = data.classifierIsPresent();
-if classifierPresent
-  prediction = data.GetPredictedIdx(handles.data.expi,flies);
-  predictedidx = prediction.predictedidx;
-  scores = data.NormalizeScores(prediction.scoresidx);
-  confThreshs = data.GetConfidenceThreshold(1:data.nbehaviors);
-else
-  predictedidx = [];
-  scores = [];
-  confThreshs = [];
-end
-for flyi = 1:numel(flies)
-  fly = flies(flyi);
-  x = data.GetTrxValues('X1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
-  y = data.GetTrxValues('Y1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
-    
-  handles.guidata.labels_plot = LabelsPlot.labelsPlotWriteXYFull(...
-    handles.guidata.labels_plot,flyi,x,y,labelidx.vals,predictedidx,scores,...
-    confThreshs);
-%   for behaviori = 1:data.nbehaviors
-%     idx = find(labelidx == behaviori);
-%     idx1 = min(idx+1,numel(x));
-%     handles.guidata.labels_plot.x(1,idx,behaviori,flyi) = x(idx);
-%     handles.guidata.labels_plot.x(2,idx,behaviori,flyi) = x(idx1);
-%     handles.guidata.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
-%     handles.guidata.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
-%     
-%     if classifierPresent ,
-%       % idx = find(predictedidx == behaviori);
-%       idx = find((predictedidx == behaviori) & ...
-%         (abs(scores)>data.GetConfidenceThreshold(behaviori)));
-%       idx1 = min(idx+1,numel(x));
-%       handles.guidata.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
-%       handles.guidata.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
-%       handles.guidata.labels_plot.predy(1,idx,behaviori,flyi) = y(idx);
-%       handles.guidata.labels_plot.predy(2,idx,behaviori,flyi) = y(idx1);
-%     end
-%   end
-end
-handles = UpdateTimelineImages(handles);
+handles.guidata.labelsPlotInit();
 
 % update timelines
 set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
 set(handles.axes_timeline_manual,'xlim',[handles.data.t0_curr-.5,handles.data.t1_curr+.5]);
-%set(handles.axes_timeline_manual,'ylim',[.5 handles.data.ntimelines+0.5]); % AL is this necessary?
 
 % update zoom
 for h = handles.guidata.axes_timeline_labels,
@@ -1770,7 +1703,8 @@ return
 % -------------------------------------------------------------------------
 function handles = UpdateTimelineImages(handles)
 % AL: no need to return handles, it is unchanged
-% AL: might as well move this into JLGD
+% AL: might as well move this into JLGD. Effect is to set
+% guidata.labels_plot
 
 %MERGESTUPDATED
 
@@ -2162,21 +2096,12 @@ info.button_height = info.button1_pos(4);
 
 handles.labelButtonLayoutInfo = info;
 
-function handles = resetLabelButtons(handles)
-% Destroy all created labeling buttons   
-
-deleteHandleNotNan(handles.guidata.togglebutton_label_behaviors(2:end));
-handles.guidata.togglebutton_label_behaviors = handles.guidata.togglebutton_label_behaviors(1);
-deleteHandleNotNan(handles.guidata.togglebutton_unknown_behaviors);
-handles.guidata.togglebutton_unknown_behaviors = [];
-handles.guidata.togglebutton_unknowns = handles.togglebutton_label_unknown;
-deleteHandleNotNan(handles.guidata.togglebutton_label_noneall);
-handles.guidata.togglebutton_label_noneall = [];
 
 %--------------------------------------------------------------------------
 function handles = UpdateLabelButtons(handles)
 % Create/position label buttons as appropriate for current project.
 % AL 20150306: Return arg may be unnecessary
+% AL: Can move into JLabelGUIData
 
 if ~handles.data.thereIsAnOpenFile,
   nBehaviors=2;  % just for layout purposes
@@ -8050,7 +7975,7 @@ UpdateGUIToMatchGroundTruthingMode(handles);
 % Update the GUI to match the current "model" state
 UpdateEnablementAndVisibilityOfControls(handles);
 
-handles = resetLabelButtons(handles);
+handles.guidata.resetLabelButtons();
 
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
@@ -9042,15 +8967,13 @@ if ok
       return;
     end
   end
-  
-  for i = iClsRm(:)'
-    handles.data.rmClassifier(clsnames{i});
+
+  iLblsRm = handles.data.iCls2iLbl(iClsRm);
+  for iCls = iClsRm(:)'
+    handles.data.rmClassifier(clsnames{iCls});
   end
+  handles.guidata.classifiersRemoved(iClsRm,iLblsRm);
   
-  handles = resetLabelButtons(handles);
-  UpdateLabelButtons(handles);  
-  handles = UpdateTimelineImages(handles);
-  guidata(handles.figure_JLabel,handles);
   UpdatePlots(handles, ...
     'refreshim',false, ...
     'refreshflies',true,  ...
@@ -9060,8 +8983,7 @@ if ok
     'refresh_timeline_xlim',false,...
     'refresh_timeline_hcurr',false,...
     'refresh_timeline_selection',false,...
-    'refresh_curr_prop',false);
-  
+    'refresh_curr_prop',false);  
 end
 
 
