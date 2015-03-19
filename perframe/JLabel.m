@@ -8840,7 +8840,7 @@ end
 
 
 % --------------------------------------------------------------------
-function menu_classifier_ethogram_Callback(hObject, eventdata, handles)
+function menu_classifier_ethogram_scorefiles_Callback(hObject, eventdata, handles)
 
 %assert(handles.data.isST);
 
@@ -8871,18 +8871,20 @@ ClearStatus(handles);
 % --------------------------------------------------------------------
 function menu_classifier_labelgram_Callback(hObject, eventdata, handles)
 
-%assert(handles.data.isST);
-
 SetStatus(handles,'Saving..');
 menu_file_save_Callback(hObject,eventdata,handles);
 
+jld = handles.data;
+
 SetStatus(handles,'Opening labelgram..');
-expdirs = handles.data.expdirs;
-jabname = handles.data.everythingFileNameAbs;
-endframesperexp = handles.data.endframes_per_exp;
-maxendframe = cellfun(@max,endframesperexp);
-maxendframe = max(maxendframe);
-labels_plot(expdirs,{jabname},maxendframe);
+expdirs = jld.expdirs;
+jabname = jld.everythingFileNameAbs;
+
+firstFramesPerExp = jld.firstframes_per_exp;
+endFramesPerExp = jld.endframes_per_exp;
+T0 = min(cellfun(@min,firstFramesPerExp));
+T1 = max(cellfun(@max,endFramesPerExp));
+labels_plot(expdirs,{jabname},T0,T1);
 ClearStatus(handles);
 
 
