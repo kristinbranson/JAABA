@@ -170,10 +170,18 @@ bins = linspace(-scoreNorm,scoreNorm,numBins);
 bins = [-inf bins(2:end-1) inf];
 histPos = histc(lscores(pos),bins);
 histNeg = histc(lscores(neg),bins);
-if ~isempty(histPos),histPos(end) = []; 
-else histPos = zeros(numBins-1,1);end
-if ~isempty(histNeg),histNeg(end) = []; 
-else histNeg = zeros(numBins-1,1);end
+if ~isempty(histPos),
+  histPos(end) = []; 
+  histPos = histPos(:);
+else
+  histPos = zeros(numBins-1,1);
+end
+if ~isempty(histNeg),
+  histNeg(end) = []; 
+  histNeg = histNeg(:);
+else
+  histNeg = zeros(numBins-1,1);
+end
 
 handles.posColor = handles.JLabelHandle.guidata.labelcolors(1,:);
 handles.negColor = handles.JLabelHandle.guidata.labelcolors(2,:);
