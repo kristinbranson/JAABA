@@ -1087,13 +1087,13 @@ for i = axes2,
           iLblTmp = iLblsFoc(allflypred);
           curcolor = handles.guidata.labelcolors(iLblTmp,:);
         end
+        set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
+          'Color',curcolor);
+        if ~isempty(handles.guidata.hflies_extra)
+          set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
+        end
       else
-        curcolor = [0 0 0];
-      end
-      set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
-        'Color',curcolor);
-      if ~isempty(handles.guidata.hflies_extra)
-        set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
+        % none; nontarget flies keep original color
       end
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
@@ -1655,21 +1655,7 @@ for i = 1:numel(handles.guidata.axes_previews),
   end
 end
 
-% Update colors for all other flies. 
-inbounds = data.firstframes_per_exp{handles.data.expi} <= handles.guidata.ts(i) & ...
-  data.endframes_per_exp{handles.data.expi} >= handles.guidata.ts(i);
-
-for i = 1:numel(handles.guidata.axes_previews),
-  for j = 1:numel(handles.guidata.idx2fly),
-    fly = handles.guidata.idx2fly(j);
-    if fly == 0 || ~inbounds(fly),
-      continue;
-    end
-    set(handles.guidata.hflies(j,i),'Color',handles.guidata.fly_colors(fly,:));
-    set(handles.guidata.hflies_extra(j,:,i),'Color',handles.guidata.fly_colors(fly,:),...
-      'MarkerFaceColor',handles.guidata.fly_colors(fly,:));
-  end
-end
+handles.guidata.resetFlyColors();
 
 % status bar text
 syncStatusBarTextWhenClear(handles);
@@ -8801,7 +8787,8 @@ function menu_view_showpredictionsall_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if handles.guidata.showPredictionsAllFlies 
   handles.guidata.showPredictionsAllFlies = false;
-  set(handles.menu_view_showpredictionsall,'Checked','off');  
+  set(handles.menu_view_showpredictionsall,'Checked','off');
+  handles.guidata.resetFlyColors();
 else
   handles.guidata.showPredictionsAllFlies = true;
   set(handles.menu_view_showpredictionsall,'Checked','on');

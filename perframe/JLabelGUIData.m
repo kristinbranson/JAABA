@@ -67,7 +67,7 @@ classdef JLabelGUIData < handle
     nframes = nan;
     play_FPS = 2;
     
-    ts = 0;
+    ts = 0; % vector with length equal to numel(self.axes_previews)
     hplaying = nan;
     edit_framenumbers = [];
     pushbutton_playstops = [];
@@ -914,6 +914,28 @@ classdef JLabelGUIData < handle
       
       self.labels_plot = labels_plot;
       self.jlabelCall('UpdateTimelineImages'); % sets other state on self.labels_plot
+    end
+    
+    function resetFlyColors(self)
+      jld = self.data;
+      expi = jld.expi;            
+      firstfrms = jld.firstframes_per_exp{expi};
+      lastfrms = jld.endframes_per_exp{expi};
+      
+      for i = 1:numel(self.axes_previews)
+        inbounds = firstfrms <= self.ts(i) & lastfrms >= self.ts(i);
+                 
+        for j = 1:numel(self.idx2fly)
+          fly = self.idx2fly(j);
+          if fly==0 || ~inbounds(fly),
+            continue;
+          end
+          flyclr = self.fly_colors(fly,:);
+          set(self.hflies(j,i),'Color',flyclr);
+          set(self.hfly_markers(j,i),'Color',flyclr);
+          set(self.hflies_extra(j,:,i),'Color',flyclr,'MarkerFaceColor',flyclr);
+        end
+      end
     end
     
   end
