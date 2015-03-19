@@ -9767,8 +9767,12 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function result = classifierIsPresent(obj)
-      result = ~isempty(obj.classifier);
+    function tf = classifierIsPresent(obj)
+      % For multiclassifier projects, returns true only if all classifiers
+      % present      
+      
+      cls = obj.classifier;
+      tf = ~isempty(cls) && ~any(cellfun(@isempty,cls));
     end
     
     
