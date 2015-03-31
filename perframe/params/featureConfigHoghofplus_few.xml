@@ -18,61 +18,13 @@
     <diff_neighbor_min/>
     <diff_neighbor_max/>
     <zscore_neighbors/>
-  </normal>
-  
-  <more
-    sanitycheck="0"
-    min_window_radius="1" 
-    max_window_radius="10" 
-    nwindow_radii="5" 
-    window_offsets="0,0.5,-0.5,-1,1" 
-    trans_types="none"  >
-    <mean min_window_radius="0"/>
-    <min/>
-    <max/>
-    <hist hist_edges="-1,1"/>
-    <change change_window_radii="1,3"/>
-    <std/>
-    <harmonic num_harmonic="5"/>
-    <diff_neighbor_mean/>
-    <diff_neighbor_min/>
-    <diff_neighbor_max/>
-    <zscore_neighbors/>
-  </more>  
-  
-  <less
-    sanitycheck="0"
-    min_window_radius="1" 
-    max_window_radius="10" 
-    nwindow_radii="2" 
-    window_offsets="0,-1,1" 
-    trans_types="none"  >
-    <mean min_window_radius="0"/>
-    <min/>
-    <max/>
-    <change change_window_radii="1,3"/>
-    <std/>
-    <harmonic num_harmonic="3"/>
-    <diff_neighbor_mean/>
-    <diff_neighbor_min/>
-    <diff_neighbor_max/>
-    <zscore_neighbors/>
-  </less>
-
-  <hoghof   
-    sanitycheck="0"   
-    min_window_radius="1"    
-    max_window_radius="10"    
-    nwindow_radii="3"    
-    window_offsets="0,-1,1"    
-    trans_types="none"  >   
-    <mean min_window_radius="0"/>   
-  </hoghof>   
+  </normal>   
      
   </defaults>   
      
-  <perframe>   
-    <a_mm trans_types="none,abs" type="appearance"/>
+  <perframe> 
+
+ 
     
     <absanglefrom1to2_nose2ell  trans_types="none" type="social"/>
 
@@ -96,30 +48,12 @@
     
     <angleonclosestfly trans_types="flip,abs" type="social"/>
     
-    <anglesub trans_types="none" type="social"/>
-    
-    <area trans_types="none,relative" type="appearance"/>
-    
-    <arena_angle trans_types="none" type="position"/>
-    
-    <arena_r trans_types="none" type="arena,position"/>
-    
-    <b_mm trans_types="none,abs" type="appearance"/>
-    
-    <closestfly_anglesub trans_types="none" type="identity"/>
-    
-    <closestfly_center  trans_types="none" type="identity"/>
-    
-    <closestfly_ell2nose  trans_types="none" type="identity"/>
-    
-    <closestfly_nose2ell  trans_types="none" type="identity"/>
-    
+    <anglesub trans_types="none" type="social"/>  
+   
     <corfrac_maj trans_types="none,abs" type="locomotion"/>
     
     <corfrac_min trans_types="flip,abs" type="locomotion"/>
-    
-    <dangle2wall trans_types="flip,abs" type="arena"/>
-    
+        
     <danglesub trans_types="none,abs" type="social"/>
     
     <darea trans_types="none,abs,relative" type="appearance"/>
@@ -132,11 +66,7 @@
     
     <ddcenter trans_types="none,abs" type="social"/>
     
-    <ddist2wall trans_types="none" type="arena"/>
-    
     <decc trans_types="none,abs,relative" type="appearance"/>
-    
-    <dell2nose trans_types="none,relative" type="social"/>
     
     <dnose2ell_angle_30tomin30 trans_types="none" type="social"/>
     
@@ -146,10 +76,8 @@
     
     <dist2wall trans_types="none,relative" type="arena"/>
     
-    <dnose2ell trans_types="none,relative" type="social"/>
-    
-    <dnose2tail trans_types="none,relative" type="social"/>
-    
+    <dnose2ell trans_types="none,relative" type="social"/>   
+       
     <dphi trans_types="none,abs" type="locomotion"/>
     
     <dtheta trans_types="flip,abs" type="locomotion"/>
@@ -172,7 +100,7 @@
     
     <magveldiff_anglesub trans_types="none,relative" type="social"/>
     
-    <magveldiff_nose2ell trans_types="none,relative" type="social"/>
+   
     
     <nflies_close trans_types="none" type="social"/>
 
@@ -188,7 +116,7 @@
     
     <velmag_tail trans_types="none,relative" type="locomotion"/>
     
-    <veltoward_anglesub trans_types="none,relative" type="social"/>
+  
     
     <veltoward_nose2ell trans_types="none,relative" type="social"/>
     
@@ -196,6 +124,9 @@
     
     <absyaw trans_types="none" type="compatbility"/>
 
+
+
+       
     <hogftrs_0001 trans_types="none" type="hog"/>  
     <hogftrs_0002 trans_types="none" type="hog"/>  
     <hogftrs_0003 trans_types="none" type="hog"/>  
