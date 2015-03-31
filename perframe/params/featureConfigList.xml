@@ -17,6 +17,7 @@
 <larva_highres file="params/featureConfigLarvaehighres.xml" animal="larvacontour"/>
 <flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
 <flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
+<flies_hoghofplus file="params/featureConfigHoghofplus.xml" animal="fly"/>
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
 
 </params>
