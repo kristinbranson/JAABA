@@ -821,7 +821,20 @@ classdef Labels
         labelcolors = [labelcolors Labels.noneColor(labelcolors(3*(i-1)+1:3*(i-1)+3))]; %#ok<AGROW>
       end      
     end
-    
+
+    function labelcolors = augmentColors(labelcolors,nlabels,noBehColorStyle)
+      % Smarter color-augmentation than cropOrAugment, this does not
+      % disturb assignment of existing colors
+      
+      assert(size(labelcolors,2)==3,'Expected RGB color array.');
+      nOrig = size(labelcolors,1);
+      assert(mod(nOrig,2)==0,'Expected an even number of colors.');
+            
+      labelcolors = Labels.cropOrAugmentLabelColors(labelcolors,nlabels,noBehColorStyle);
+      labelcolors = [labelcolors(1:nOrig/2,:); labelcolors(end-1,:); ...
+                     labelcolors(nOrig/2+1:nOrig,:); labelcolors(end,:)];
+    end
+      
   end
   
 end
