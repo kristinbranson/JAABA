@@ -273,14 +273,14 @@ classdef JLabelData < matlab.mixin.Copyable
     % last-used path for loading experiments
     expdefaultpath
 
-    % windowfeaturesparams{iCls} is:
+    % windowfeaturesparams{iCls} (row vec) is:
     % struct from curperframefns->[structs containing window feature parameters]
     % Each field holds the parameters for a single per-frame feature in the
     % feature vocabulary, with the field name being the per-frame feature
     % name. Score features are included in the feature vocabulary.
     windowfeaturesparams
     
-    % windowfeaturescellparams{iCls} is:
+    % windowfeaturescellparams{iCls} (row vec) is:
     % struct from curperframefns->[cell array of window feature parameters]
     % parameters of window features, represented as a cell array of
     % parameter name, parameter value, so that it can be input to
@@ -313,7 +313,7 @@ classdef JLabelData < matlab.mixin.Copyable
                     % include a subset of the score features (but the
                     % subset might be the empty set).  I would 
                     % call this the 'vocabulary'.  --ALT, May 18, 2013.
-                    % Indexed by classifier, ie curperframefns{iCls}.
+                    % Indexed by classifier, ie curperframefns{iCls} (row vec).
       % Thus curperframefns is the subset of allperframefns that are enabled.                    
       
     % units for perframedata
@@ -682,9 +682,101 @@ classdef JLabelData < matlab.mixin.Copyable
       % AL: second condition because labels.timelinetimestamp, see Labels.m
     end
     
-    
-    function addClassifier(obj,behaviorName)
+    function noneToNoBeh(obj)
+      % For single-classfier projects: Convert 'None' to 'No_<behavior>'
       
+      assert(obj.nclassifiers==1);
+      
+      oldNoBeh = obj.labelnames{2};
+      newNoBeh = Labels.noBehaviorName(obj.labelnames{1});
+      assert(strcmp(oldNoBeh,'None'));
+      obj.labelnames{2} = newNoBeh;
+      
+      obj.labels = Labels.renameBehaviorRaw(obj.labels,oldNoBeh,newNoBeh);
+    end
+    
+    
+    function addClassifier(obj,classifierName)
+      tf = strcmp(classifierName,obj.classifiernames);
+      if any(tf)
+        error('JLabelData:addClassifier','Classifier with name ''%s'' already exists.',...
+          classifierName);
+      end
+      
+      obj.StoreLabelsForCurrentAnimal(); % store label info for current fly/expi from .labelIdx -> .labels
+      if obj.nclassifiers==1
+        obj.noneToNoBeh();
+      end
+      
+      % Get some state before we start modifying props
+      origNCls = obj.nclassifiers;
+      origLabelNames = obj.labelnames; % not quite original if origNCls==1
+%       behnobeh = obj.iCls2LblNames;
+%       iLblsRm = obj.iCls2iLbl;
+      
+      noBehName = Labels.noBehaviorName(classifierName);
+      obj.labelnames = [origLabelNames(1:origNCls) {classifierName} origLabelNames(origNCls+1:end) {noBehName}];
+      sfn = ScoreFile.defaultScoreFilename(classifierName);
+      obj.scorefilename{end+1} = sfn;
+      % mapping from old label idxs -> new label idxs
+      [~,oldLblIdx2NewLblIdx] = ismember(origLabelNames,obj.labelnames);
+
+      [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
+      obj.labelcolors = Labels.cropOrAugmentLabelColors(obj.labelcolors,numel(obj.labelnames),'lines');
+      
+      % Labels
+      obj.labels = Labels.addClassifier(obj.labels,classifierName,noBehName);
+      obj.reinitLabelIdx();
+      
+      % data/features 
+      obj.windowdata(end+1,1) = WindowData.windowdata(1);
+      obj.windowdata = WindowData.windowdataRemapLabelIdxs(obj.windowdata,...
+        oldLblIdx2NewLblIdx);
+      FLDS = {
+        'windowfeaturesparams' 
+        'windowfeaturescellparams' 
+        'curperframefns' 
+        'savewindowdata' 
+        'loadwindowdata'}';
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        val = obj.(f);
+        if iscell(val)
+          assert(all(cellfun(@(x)isequaln(x,val{1}),val)));
+        else
+          assert(all(val(1)==val));
+        end
+      end
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        val = obj.(f);
+        obj.(f)(end+1) = val(1); % works for both cells and arrs
+      end
+      obj.SetWindowFeatureNames();
+            
+      % predictions
+      obj.PredictDataAddClassifier();      
+      obj.predictblocks(end+1,1) = Predict.predictblocks(1);
+      % obj.fastPredict -- see call to FindFastPredictParams below
+      obj.UpdatePredictedIdx();
+      
+      % classifier
+      cs = ClassifierStuff;
+      obj.classifiertype{1,end+1} = cs.type;
+      obj.classifier{1,end+1} = cs.params;
+      obj.classifier_old{1,end+1} = [];
+      obj.classifier_params{1,end+1} = cs.trainingParams;
+      obj.classifierTS(1,end+1) = cs.timeStamp;
+      obj.confThresholds(end+1,:) = cs.confThresholds;
+      obj.windowdata(end).scoreNorm = cs.scoreNorm;
+      obj.postprocessparams{1,end+1} = cs.postProcessParams;
+      obj.savewindowdata(1,end+1) = cs.savewindowdata; % set this above
+      % obj.loadwindowdata % see above      
+      obj.trainstats{1,end+1} = [];
+      
+      if ~obj.isST
+        obj.FindFastPredictParams();
+      end
+      
+      obj.needsave = true;
     end
     
     
@@ -1373,7 +1465,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
       if numel(obj.predictdata)<obj.nexps
         obj.SetStatus('Initializing prediction data for %s...',expName);
-        obj.InitPredictionData(obj.nexps);
+        obj.PredictDataInit(obj.nexps);
       end
             
       % % Set the default path to the experiment directory's parent
@@ -2383,7 +2475,7 @@ classdef JLabelData < matlab.mixin.Copyable
           civilizedStringFromCellArrayOfStrings(sfn(~tfValid)));
       end
       
-      obj.scorefilename = sfn;
+      obj.scorefilename = sfn(:)';
       obj.needsave = true;
       [success,msg] = obj.UpdateStatusTable('scores');
     end
@@ -3998,7 +4090,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.flies = flies;
 
       if numel(obj.predictdata)<obj.expi
-        obj.InitPredictionData(obj.expi);
+        obj.PredictDataInit(obj.expi);
       end
       obj.UpdatePredictedIdx();
       obj.ClearStatus();
@@ -5004,7 +5096,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      obj.MoveCurPredictionsToOld();
+      obj.PredictDataMoveCurToOld();
       obj.FindFastPredictParams();
       obj.PredictLoaded();
  
@@ -5439,46 +5531,68 @@ classdef JLabelData < matlab.mixin.Copyable
   methods % (more private)
         
     
-    % ---------------------------------------------------------------------
-    function InitPredictionData(obj,expi)
-      % Dimensions the predictions for experiment expi.
-
-      % MERGESTOK
+    function pd = PredictDataCtor(obj,iExp,iTarget)
+      % Construct a new/blank predictdata element.
       
+      firstframe = obj.firstframes_per_exp{iExp}(iTarget);
+      endframe = obj.endframes_per_exp{iExp}(iTarget);
+      nframes = endframe-firstframe+1;
+      nanArray = nan(1,nframes);
+      falseArray = false(1,nframes);
+      
+      pd = struct();
+      pd.t = (firstframe:endframe);
+      pd.cur = nanArray;
+      pd.cur_pp = nanArray;
+      pd.cur_valid = falseArray;
+      pd.old = nanArray;
+      pd.old_pp = nanArray;
+      pd.old_valid = falseArray;
+      pd.loaded = nanArray;
+      pd.loaded_pp = nanArray;
+      pd.loaded_valid = falseArray;
+      pd.timestamp = nanArray;          
+    end
+      
+    % ---------------------------------------------------------------------
+    function PredictDataInit(obj,iExp)
+      % Dimensions the predictions for experiment iExp.
+      
+      % MERGESTOK
+            
       % Create the cell array for this exeriment
-      nTargets = obj.nflies_per_exp(expi);
-      obj.predictdata{expi} = cell(1,nTargets);
+      nTargets = obj.nflies_per_exp(iExp);
+      obj.predictdata{iExp} = cell(1,nTargets);
       nTL = obj.ntimelines;
             
-      % For each target, and each field in the scalar struct, set it to a
-      % double or logical array of the proper length.  Set all double
-      % values to nan, all logical value to false.
-      for iTarget = 1:obj.nflies_per_exp(expi)
-        firstframe = obj.firstframes_per_exp{expi}(iTarget);
-        endframe = obj.endframes_per_exp{expi}(iTarget);
-        nframes = endframe-firstframe+1;
-        nanArray = nan(1,nframes);
-        falseArray = false(1,nframes);
-        
+      for iTarget = 1:nTargets
+        pd = obj.PredictDataCtor(iExp,iTarget);       
         for i = 1:nTL
-          obj.predictdata{expi}{iTarget}(1,i).t = (firstframe:endframe);
-          obj.predictdata{expi}{iTarget}(1,i).cur = nanArray;
-          obj.predictdata{expi}{iTarget}(1,i).cur_pp = nanArray;
-          obj.predictdata{expi}{iTarget}(1,i).cur_valid = falseArray;
-          obj.predictdata{expi}{iTarget}(1,i).old = nanArray;
-          obj.predictdata{expi}{iTarget}(1,i).old_pp = nanArray;
-          obj.predictdata{expi}{iTarget}(1,i).old_valid = falseArray;
-          obj.predictdata{expi}{iTarget}(1,i).loaded = nanArray;
-          obj.predictdata{expi}{iTarget}(1,i).loaded_pp = nanArray;
-          obj.predictdata{expi}{iTarget}(1,i).loaded_valid = falseArray;
-          obj.predictdata{expi}{iTarget}(1,i).timestamp = nanArray;
+          obj.predictdata{iExp}{iTarget}(1,i) = pd;
+        end
+        assert(numel(obj.predictdata{iExp}{iTarget})==nTL);
+      end
+    end
+    
+    
+    function PredictDataAddClassifier(self)
+      % Adds "blank" predictdata to end of each
+      % obj.predictdata{iExp}{iTarget}
+      
+      %nCls = self.nclassifiers;
+      nExps = self.nexps;
+      for iExp = 1:nExps
+        nTargets = self.nflies_per_exp(iExp);
+        for iTarget = 1:nTargets
+          %assert(numel(self.predictdata{iExp}{iTarget})==nCls);
+          self.predictdata{iExp}{iTarget}(1,end+1) = self.PredictDataCtor(iExp,iTarget);
         end
       end
     end
 
     
     % ---------------------------------------------------------------------
-    function invalidatePredictions(self)
+    function PredictDataInvalidate(self)
       % Mark the current and old classifier predictions as invalid.
       nExps=self.nexps;
       for iExp=1:nExps
@@ -5500,7 +5614,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
 
     % ---------------------------------------------------------------------
-    function MoveCurPredictionsToOld(obj)
+    function PredictDataMoveCurToOld(obj)
       for expi = 1:numel(obj.predictdata)
         for flies = 1:numel(obj.predictdata{expi})
           for iTL = 1:numel(obj.predictdata{expi}{flies})
@@ -5672,7 +5786,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       %%% Full Prediction      
-      if isempty(obj.fastPredict(1).classifier)
+      if any(arrayfun(@(x)isempty(x.classifier),obj.fastPredict)) % isempty(obj.fastPredict(1).classifier)
         obj.FindFastPredictParams();
       end
       
@@ -7244,7 +7358,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       if ~success,error(msg);end   
 
       % Move the current predictions out of the way
-      self.MoveCurPredictionsToOld();
+      self.PredictDataMoveCurToOld();
       
       if ~self.isST
         
@@ -7348,7 +7462,7 @@ classdef JLabelData < matlab.mixin.Copyable
         if isfield(everythingParams.file,'scorefilename'),
           scorefilename = everythingParams.file.scorefilename;
         else
-          scorefilename = {sprintf('scores_%s.mat',obj.labelnames{1})};
+          scorefilename = {ScoreFile.defaultScoreFilename(obj.labelnames{1})};
         end
         [success1,msg] = obj.setScoreFileName(scorefilename);
         if ~success1,
@@ -7433,7 +7547,7 @@ classdef JLabelData < matlab.mixin.Copyable
       for iCls = 1:nCls
         self.windowdata(iCls).scoreNorm = 0;
       end
-      self.invalidatePredictions();
+      self.PredictDataInvalidate();
       self.UpdatePredictedIdx(); % update cached predictions for current target
       self.needsave = true;
     end

@@ -294,6 +294,8 @@ classdef LabelsPlot
       nTL = labels_plot.nTL;
       assert(isequal(size(scores),[nTL labels_plot.n]));
       assert(numel(scorecolors)==nTL);
+      
+      scores(isnan(scores)) = 0;
 
       labels_plot.predicted_im = zeros(nTL,labels_plot.n,3);
       im = labels_plot.predicted_im;

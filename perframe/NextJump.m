@@ -186,6 +186,12 @@ classdef NextJump < handle
       obj.seek_behaviors_go = setdiff(obj.seek_behaviors_go,iLbls);      
     end
     
+    function behaviorsAdded(obj,iLbls)
+      % iLbls: label/behavior indices for added behaviors
+      sbg = union(obj.seek_behaviors_go,iLbls);
+      obj.seek_behaviors_go = sbg(:)';      
+    end
+    
   end
   
   methods
