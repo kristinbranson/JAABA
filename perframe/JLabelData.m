@@ -722,7 +722,7 @@ classdef JLabelData < matlab.mixin.Copyable
       [~,oldLblIdx2NewLblIdx] = ismember(origLabelNames,obj.labelnames);
 
       [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
-      obj.labelcolors = Labels.cropOrAugmentLabelColors(obj.labelcolors,numel(obj.labelnames),'lines');
+      obj.labelcolors = Labels.augmentColors(obj.labelcolors,numel(obj.labelnames),'lines');
       
       % Labels
       obj.labels = Labels.addClassifier(obj.labels,classifierName,noBehName);

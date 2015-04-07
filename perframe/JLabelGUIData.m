@@ -725,8 +725,7 @@ classdef JLabelGUIData < handle
       %nCls = self.data.nclassifiers;
       nLbl = self.data.nbehaviors;
       
-      self.labelcolors = Labels.cropOrAugmentLabelColors(self.labelcolors,...
-        nLbl,'lines');
+      self.labelcolors = Labels.augmentColors(self.labelcolors,nLbl,'lines');
       self.initHLabelLine();
       self.initScoreColor();
       self.NJObj.SetSeekBehaviorsGo(1:nLbl);
