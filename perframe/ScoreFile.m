@@ -97,6 +97,10 @@ classdef ScoreFile
       tf = all(isfield(sf,REQD_FIELDS));
     end
     
+    function n = defaultScoreFilename(classifiername)
+      n = sprintf('scores_%s.mat',classifiername);
+    end
+    
   end
   
   methods (Static) % allScores substructure

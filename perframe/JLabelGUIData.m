@@ -26,6 +26,7 @@ classdef JLabelGUIData < handle
       'timeline_label_automatic';
       'automaticTimelinePopup';
       'togglebutton_label_unknown';
+      'classifierFocusPopup';
     };
   end
 
@@ -138,8 +139,8 @@ classdef JLabelGUIData < handle
     hflies_extra = [];
     hfly_markers = []; % nfly-by-numAxes handle array. The dot/star at the center of each fly.    
     hlabel_curr = [];  % 1-by-numAxes handle. The line showing labeling-in-progress.
-    hlabels = [];      % 1-by-nbehavior handle array. The lines (trx-overlay) showing labels for each behavior.
-    hpredicted = [];   % 1-by-nbehavior handle array. The lines (trx-overlay) showing predictions for each behavior.
+    hlabels = [];      % numAxes-by-nbehavior handle array. The lines (trx-overlay) showing labels for each behavior.
+    hpredicted = [];   % numAxes-by-nbehavior handle array. The lines (trx-overlay) showing predictions for each behavior.
     % hlabelstarts = [];
     
     %% Timelines
@@ -255,6 +256,16 @@ classdef JLabelGUIData < handle
     
     % 1x2 row vec, behavior/label indices corresponding to behaviorFocusIdx.
     behaviorFocusLbls;
+  end
+  
+  properties (Dependent)
+    numAxPreview;
+  end
+  
+  methods
+    function v = get.numAxPreview(obj)
+      v = numel(obj.axes_previews);
+    end
   end
     
   methods (Access=public)
@@ -509,26 +520,7 @@ classdef JLabelGUIData < handle
         end
       end
       
-      % scorecolor init
-      scorecolor = cell(self.data.nclassifiers,1);
-      for iCls = 1:self.data.nclassifiers
-        iLbls = self.data.iCls2iLbl{iCls};
-        sc = nan(63,3,3);
-        for channel = 1:3
-          startValue = self.labelcolors(iLbls(2),channel);
-          endValue = self.labelcolors(iLbls(1),channel);
-          midValue = self.labelunknowncolor(channel);
-          
-          sc(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
-          sc(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
-        end
-        for ndx = 1:63
-          sc(ndx,:,2) = ShiftColor.shiftColorFwd(sc(ndx,:,1));
-          sc(ndx,:,3) = ShiftColor.shiftColorBkwd(sc(ndx,:,1));  
-        end
-        scorecolor{iCls} = sc;
-      end
-      self.scorecolor = scorecolor;
+      self.initScoreColor();
 
       self.correctcolor = [0,.7,0];
       self.incorrectcolor = [.7,.7,0];
@@ -596,7 +588,7 @@ classdef JLabelGUIData < handle
       self.hplaying = nan;
 
 %       self.bookmark_windows = [];
-    end
+    end    
     
     function initializeFinal(self)
       % See initializeAfterBasicParamsSet-- for the usual silly reasons a
@@ -666,6 +658,29 @@ classdef JLabelGUIData < handle
   
   methods 
     
+    function initScoreColor(self)
+      % Init .scorecolor from .labelcolors and .labelunknowncolor
+      scorecolor = cell(self.data.nclassifiers,1);
+      for iCls = 1:self.data.nclassifiers
+        iLbls = self.data.iCls2iLbl{iCls};
+        sc = nan(63,3,3);
+        for channel = 1:3
+          startValue = self.labelcolors(iLbls(2),channel);
+          endValue = self.labelcolors(iLbls(1),channel);
+          midValue = self.labelunknowncolor(channel);
+          
+          sc(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
+          sc(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
+        end
+        for ndx = 1:63
+          sc(ndx,:,2) = ShiftColor.shiftColorFwd(sc(ndx,:,1));
+          sc(ndx,:,3) = ShiftColor.shiftColorBkwd(sc(ndx,:,1));  
+        end
+        scorecolor{iCls} = sc;
+      end
+      self.scorecolor = scorecolor;
+    end
+      
     function classifiersRemoved(self,iCls,iLbls)
       % React to classifiers being removed from the project. self.data
       % should already be properly updated.
@@ -683,13 +698,13 @@ classdef JLabelGUIData < handle
         'Repeated label indices being removed.');
       
       self.labelcolors(iLbls,:) = [];
-      self.hlabels(iLbls) = [];
-      self.hpredicted(iLbls) = [];
+      self.hlabels(:,iLbls) = [];
+      self.hpredicted(:,iLbls) = [];
       self.scorecolor(iCls) = [];
       self.NJObj.behaviorsRemoved(iLbls);
       
       % Order important here; set classifierFocus in order to update
-      % timeline images properly in labelsPlotINit
+      % timeline images properly in labelsPlotInit
       if self.data.nclassifiers==1
         self.setClassifierFocus(1);
       else
@@ -703,6 +718,34 @@ classdef JLabelGUIData < handle
       self.jlabelCall('UpdateEnablementAndVisibilityOfControls');
     end
     
+    function classifierAdd(self)
+      % React to a classifier being appended to the JLabelData. self.data
+      % should already be properly updated.
+      
+      %nCls = self.data.nclassifiers;
+      nLbl = self.data.nbehaviors;
+      
+      self.labelcolors = Labels.cropOrAugmentLabelColors(self.labelcolors,...
+        nLbl,'lines');
+      self.initHLabelLine();
+      self.initScoreColor();
+      self.NJObj.SetSeekBehaviorsGo(1:nLbl);
+      
+      self.labelsPlotInit();      
+      if self.data.nclassifiers==1
+        self.setClassifierFocus(1);
+      else
+        self.unsetClassifierFocus();
+      end
+      self.updateManualTimelineYLims();
+      
+      self.resetLabelButtons();
+      self.initClassifierFocusPopup();
+      self.initHTimelineLabelCurr();
+      self.jlabelCall('UpdateLabelButtons');
+      self.jlabelCall('UpdateEnablementAndVisibilityOfControls');      
+    end
+    
     function resetLabelButtons(self)
       deleteHandleNotNan(self.togglebutton_label_behaviors(2:end));
       self.togglebutton_label_behaviors = self.togglebutton_label_behaviors(1);
@@ -712,7 +755,61 @@ classdef JLabelGUIData < handle
       deleteHandleNotNan(self.togglebutton_label_noneall);
       self.togglebutton_label_noneall = [];
     end
-   
+    
+    function initHLabelLine(self)
+      nAx = self.numAxPreview;
+      nBeh = self.data.nbehaviors;
+      
+      delete(self.hlabels(ishandle(self.hlabels)));
+      delete(self.hpredicted(ishandle(self.hpredicted)));
+      
+      self.hlabels = nan(nAx,nBeh);
+      self.hpredicted = nan(nAx,nBeh);
+      for iAx = 1:nAx
+        for iBeh = 1:nBeh
+          self.hlabels(iAx,iBeh) = self.hLabelLine(iAx,iBeh);
+          self.hpredicted(iAx,iBeh) = self.hLabelLine(iAx,iBeh);
+        end
+      end
+      
+      set(self.hlabels,'Visible',onIff(self.plot_labels_manual));
+      set(self.hpredicted,'Visible',onIff(self.plot_labels_automatic));
+    end
+    
+    function hLine = hLabelLine(self,iAx,iLbl)
+      hLine = line('parent',self.axes_previews(iAx), ...
+        'xdata',nan, ...
+        'ydata',nan, ...
+        'linestyle','-', ...
+        'color',self.labelcolors(iLbl,:), ...
+        'linewidth',5, ...
+        'HitTest','off');
+    end
+       
+    function initClassifierFocusPopup(self)
+      if self.data.isMultiClassifier
+        tmp = [{'<all classifiers>'};self.data.classifiernames(:)];
+        set(self.gdata.classifierFocusPopup,'String',tmp,'Value',1);
+      end
+    end
+    
+    function initHTimelineLabelCurr(self)
+      axMan = self.gdata.axes_timeline_manual;
+      yl = ylim(axMan);      
+      ydata = [yl(1)+diff(yl)*.025,yl(2)-diff(yl)*.025];
+
+      self.htimeline_label_curr = ...
+        patch('Parent',axMan,...
+        'xdata',nan(1,5), ...
+        'ydata',ydata([1,2,2,1,1]), ...
+        'facecolor','k',...
+        'LineStyle','--', ...
+        'EdgeColor','w',...
+        'HitTest','off', ...
+        'Linewidth',3, ...
+        'Clipping','on');
+    end
+    
     function updateManualTimelineYLims(self)
       % Ultimately private method
       
@@ -824,14 +921,14 @@ classdef JLabelGUIData < handle
       end
       
       if self.plot_labels_manual
-        set(self.hlabels(tfBehVis),'Visible','on');
-        set(self.hlabels(~tfBehVis),'Visible','off');
+        set(self.hlabels(:,tfBehVis),'Visible','on');
+        set(self.hlabels(:,~tfBehVis),'Visible','off');
         set(self.hpredicted,'Visible','off');
       end
       if self.plot_labels_automatic
         set(self.hlabels,'Visible','off');
-        set(self.hpredicted(tfBehVis),'Visible','on');
-        set(self.hpredicted(~tfBehVis),'Visible','off');
+        set(self.hpredicted(:,tfBehVis),'Visible','on');
+        set(self.hpredicted(:,~tfBehVis),'Visible','off');
       end
       
       % AL 20150219: seems like might be unnecessary, since all we have

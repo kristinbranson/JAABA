@@ -294,6 +294,16 @@ classdef Labels
         end
       end
     end
+    
+    function labels = addClassifier(labels,behname,nobehname) %#ok<INUSD>
+      Labels.verifyLabels(labels);
+      for iExp = 1:numel(labels)
+        for iFly = 1:numel(labels(iExp).flies)
+          assert(~isfield(labels(iExp).timelinetimestamp{iFly},behname));
+          labels(iExp).timelinetimestamp{iFly}.(behname) = now;
+        end
+      end
+    end
       
     function labels = clearLabels(labels,behname,realbehname)
       % Clears all bouts of behavior <behname> corresponding to
