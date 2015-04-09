@@ -310,6 +310,8 @@ classdef Labels
       % realbehavior <realbehname>. 
       % Timelinetimestamp is updated
       
+      % AL: doesn't clear imp_t0s, imp_t1s
+      
       Labels.verifyLabels(labels);
       
        for iExp = 1:numel(labels)
