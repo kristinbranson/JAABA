@@ -2,6 +2,7 @@ classdef Macguffin < handle
   % This holds all the stuff that gets saved to the .jab file.  In fact,
   % the .jab file is a .mat file holding one variable, x, which is a
   % Macguffin.
+  
   properties
     featureLexiconName
     featureLexicon
@@ -23,7 +24,7 @@ classdef Macguffin < handle
       % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
       %           flies_extra_marker, and flies_extra_linestyle fields in
       %           trxGraphicParams.
-  end  % properties
+  end
     
   % -----------------------------------------------------------------------
   methods (Access=private)
@@ -607,23 +608,31 @@ classdef Macguffin < handle
         dowarn = false;
       end
       
-      for i = 1:numel(self)
-        [self(i).labels,tfmodlbl] = Labels.modernizeLabels(self(i).labels,Labels.verifyBehaviorNames(self(i).behaviors.names));
-        tfmodcls = self(i).classifierStuff.modernize();
-        % tfmodtags = isequal(self(i).expDirTags,[]);
+      for i = 1:numel(self)        
+        obj = self(i);
+        
+        if isfield(obj.behaviors,'nbeh')
+          assert(obj.behaviors.nbeh==numel(obj.behaviors.names)/2);
+        else
+          obj.behaviors.nbeh = numel(obj.behaviors.names)/2;
+        end
+        
+        [obj.labels,tfmodlbl] = Labels.modernizeLabels(obj.labels,Labels.verifyBehaviorNames(obj.behaviors.names));
+        tfmodcls = obj.classifierStuff.modernize();
+        % tfmodtags = isequal(obj.expDirTags,[]);
         % if tfmodtags
-        %   self(i).expDirTags = ExperimentTags.expTags(self(i).expDirNames);
+        %   obj.expDirTags = ExperimentTags.expTags(obj.expDirNames);
         % end
         
-        if ischar(self(i).file.scorefilename)
-          self(i).file.scorefilename = {self(i).file.scorefilename};
+        if ischar(obj.file.scorefilename)
+          obj.file.scorefilename = {obj.file.scorefilename};
         end          
-        if isstruct(self(i).windowFeaturesParams)
-          self(i).windowFeaturesParams = {self(i).windowFeaturesParams};
+        if isstruct(obj.windowFeaturesParams)
+          obj.windowFeaturesParams = {obj.windowFeaturesParams};
         end
-        nCls = numel(self(i).classifierStuff);
-        assert(isequal(nCls,numel(self(i).file.scorefilename),...
-                       numel(self(i).windowFeaturesParams)));
+        nCls = numel(obj.classifierStuff);
+        assert(isequal(nCls,numel(obj.file.scorefilename),...
+                       numel(obj.windowFeaturesParams)));
         
         tfmod = tfmodlbl || tfmodcls; % || tfmodtags;
         if dowarn && tfmod
@@ -632,121 +641,5 @@ classdef Macguffin < handle
       end
     end
   end  % methods
-    
-  methods (Static) % jabfile convenience methods
-    
-    function jabClearLabels(jab,realbeh)
-      % Clear all labels for realbeh and No-realbeh 
-      
-      assert(ischar(jab) && exist(jab,'file')==2,...
-        'Cannot find jabfile ''%s''.',jab);
-            
-      Q = loadAnonymous(jab);
-      Q.modernize();
-      
-      jabrealbehs = Q.behaviors.names(1:Q.behaviors.nbeh);
-      tf = strcmpi(realbeh,jabrealbehs);
-      assert(any(tf),'Specified behavior ''%s'' not present in jabfile.',realbeh);
-      assert(nnz(tf)==1);
-      realbeh = jabrealbehs{tf}; % case could be different
-      
-      tfMultiCls = Q.behaviors.nbeh>1;
-      if tfMultiCls
-        nobeh = Labels.noBehaviorName(realbeh);
-      else
-        nobeh = 'None';
-      end
-      
-      Q.labels = Labels.clearLabels(Q.labels,realbeh,realbeh);
-      Q.labels = Labels.clearLabels(Q.labels,nobeh,realbeh);
-      
-      saveAnonymous(jab,Q);
-    end
-     
-    function jabMerge(jabfiles,jabout)
-      % jabMerge(jabfiles,jabout)
-      % jabfiles: optional. cellstr of jab filenames
-      % jabout: optional. output jab filename
-
-      % ALTODO: verify behavior, eg this uses ExpPP.loadConfigVal
-
-      
-      if ~exist('jabfiles','var') || isempty(jabfiles)
-        [tfsuccess,jabfiles] = ExpPP.uiGetJabFiles('promptstr','Select jab files to combine');
-        if ~tfsuccess
-          return;
-        end
-      end
-      
-      if ischar(jabfiles)
-        jabfiles = cellstr(jabfiles);
-      end
-      assert(iscellstr(jabfiles),'Expected ''jabfiles'' to be a cellstr of jab filenames.');
-      
-      % ALTODO: create a new verify method
-      %Macguffin.jabVerifyAug2014(jabfiles);      
-      
-      Q = cellfun(@loadAnonymous,jabfiles,'uni',0);
-      Q = cat(1,Q{:});
-      Qmerge = Macguffin(Q);
-      
-      % come up with a proposed name for combined jab
-      if ~exist('jabout','var') || isempty(jabout)
-        MAXFILENAMELENGTH = 45;
-        behnames = Labels.verifyBehaviorNames(Qmerge.behaviors.names);
-        combjabname = '';
-        for i = 1:numel(behnames)
-          combjabname = [combjabname behnames{i} '.']; %#ok<AGROW>
-          if numel(combjabname)>MAXFILENAMELENGTH
-            combjabname = [combjabname 'etc.']; %#ok<AGROW>
-            break;
-          end
-        end
-        combjabname = [combjabname 'jab'];
-
-        jabpath = ExpPP.loadConfigVal('jabpath');
-        if isempty(jabpath)
-          jabpath = pwd;
-        end    
-        [filename,pathname] = ...
-          uiputfile({'*.jab','JAABA files (*.jab)'},'Save combined jabfile',fullfile(jabpath,combjabname));
-        if ~ischar(filename),
-          % user hit cancel
-          return;
-        end
-        
-        jabout = fullfile(pathname,filename);
-      else
-        if exist(jabout,'file')
-          uiwait(warndlg(sprintf('Output file ''%s'' exists and will be overwritten.',jabout)));
-        end
-      end
-        
-      tmp.x = Qmerge; %#ok<STRNU>
-      save(jabout,'-struct','tmp');
-      ExpPP.saveConfigVal('jabpath',fileparts(jabout));
-    end
-    
-    function tf = jabfileIsMultiClassifier(jabname)
-      % tf = jabfileIsMultiClassifier(filename)
-      x = loadAnonymous(jabname);
-      tf = x.isMultiClassifier();      
-    end
-    
-    function [scorefiles,behaviors] = jabfileScoresBehs(jabname)
-      % [scorefiles,behaviors] = jabfileScoresBehs(jabname)
-      % scorefile: cellstr of score files
-      % behaviors: cellstr of "real" behaviors (doesn't include No_<beh>)
-      
-      x = loadAnonymous(jabname);
-      scorefiles = x.file.scorefilename;      
-      if ischar(scorefiles)
-        scorefiles = cellstr(scorefiles);
-      end
-      behaviors = Labels.verifyBehaviorNames(x.behaviors.names);      
-      assert(numel(scorefiles)==numel(behaviors));
-    end    
-    
-  end
   
-end  % classdef
+end
