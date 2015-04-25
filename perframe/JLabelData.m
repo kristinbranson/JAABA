@@ -9514,7 +9514,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       jabparams = load(obj.everythingFileNameAbs,'-mat');
-      assert(numel(jabparams.x.classifierStuff==1),'Unsupported for multiple classifiers.');
+      assert(numel(jabparams.x.classifierStuff)==1,'Unsupported for multiple classifiers.');
       frames2exclude = cell(1,obj.nexps);
       for ndx = numel(jabparams.x.expDirNames)
         matchingGtexp = find(strcmp(jabparams.x.expDirNames{ndx},obj.expdirs));
