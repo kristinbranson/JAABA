@@ -19,5 +19,5 @@
 <flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
 <flies_hoghofplus file="params/featureConfigHoghofplus.xml" animal="fly"/>
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
-
+<adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
 </params>
