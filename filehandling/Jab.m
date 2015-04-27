@@ -130,9 +130,18 @@ classdef Jab < handle
       Jab.savePrompt(J,jabfile);
     end
      
+    function tf = formatChangedBetweenVersions(v1,v2)
+      % v2 should be later-than-or-equal-to-v1.
+      %
+      % This method introduced in version 0.6.0. Jabs saved in prior
+      % versions have version prop enclosed in double-cell array. We avoid
+      % the complications for now and just return true if v2 is 0.6.0 and
+      % v1 is not. This will need to be updated with subsequent versions.
+
+      tf = strcmp(v2,'0.6.0') && ~strcmp(v1,'0.6.0');
+    end  
     
-    
-    function jabMerge(jabfiles,jabout)
+    function merge(jabfiles,jabout)
       % jabMerge(jabfiles,jabout)
       % jabfiles: optional. cellstr of jab filenames
       % jabout: optional. output jab filename
@@ -209,6 +218,8 @@ classdef Jab < handle
       behaviors = Labels.verifyBehaviorNames(x.behaviors.names);      
       assert(numel(scorefiles)==numel(behaviors));
     end    
+    
+    
     
   end
   
