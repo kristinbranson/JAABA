@@ -2960,7 +2960,7 @@ classdef JLabelData < matlab.mixin.Copyable
                   CACHED_TRX = trx;
                   CACHED_TRX_EXPNAME = obj.expnames{expi};
                 else
-                  fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+%                   fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
                   trx = CACHED_TRX;
                 end
 %               catch ME,
@@ -4055,7 +4055,7 @@ classdef JLabelData < matlab.mixin.Copyable
             CACHED_TRX = obj.trx;
             CACHED_TRX_EXPNAME = obj.expnames{expi};
           else
-            fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+%            fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
             obj.trx = CACHED_TRX;
           end
           % store trx_info, in case this is the first time these trx have
