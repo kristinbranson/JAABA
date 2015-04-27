@@ -7197,30 +7197,49 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function saveJabFile(self,fileNameAbs)
-      fileNameRel=fileNameRelFromAbs(fileNameAbs);
+      fileNameRel = fileNameRelFromAbs(fileNameAbs);
       self.SetStatus(sprintf('Saving to %s...',fileNameRel));
       % Extract the structure that will be saved in the everything file
-      macguffin=self.getMacguffin();
-      % write the everything structure to disk
+      macguffin = self.getMacguffin();
+     
       try
         if exist(fileNameAbs,'file')
-          backupFileNameAbs=[fileNameAbs,'~'];
-          [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
+          % Warn if overwriting with updated/modernized jab
+          oldQ = loadAnonymous(fileNameAbs);
+          oldVer = oldQ.version;
+          curVer = self.version; 
+          if Jab.formatChangedBetweenVersions(oldVer,curVer)
+            queststr = sprintf('The file ''%s'' will be saved in the latest format and will not be readable by some older versions of JAABA.',fileNameRel);
+            btn = questdlg(queststr,...
+              'Update File Format','OK, Continue','Cancel','OK, Continue');
+            switch btn
+              case 'OK, Continue'
+              otherwise
+                self.ClearStatus();
+                return;
+            end
+          end
+          
+          % back up old jab anyway
+          backupFileNameAbs = [fileNameAbs,'~'];
+          [success,message,identifier] = copyfile(fileNameAbs,backupFileNameAbs); %#ok
           if ~success,
-            backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
+            backupFileNameRel = fileNameRelFromAbs(backupFileNameAbs);
             warning('JLabelData:unableToCreateBackup', ...
                   'Unable to create backup file %s.',backupFileNameRel);
           end
         end
-        old=warning('query','MATLAB:structOnObject');
-        warning('off','MATLAB:structOnObject');  % turn off annoying warning
+        
+        old = warning('query','MATLAB:structOnObject');
+        warning('off','MATLAB:structOnObject'); % turn off annoying warning
         macguffinStruct = struct(macguffin);
-        warning(old);  % restore annoying warning
+        warning(old); % restore annoying warning
         saveAnonymous(fileNameAbs,macguffinStruct);
       catch excp
         self.ClearStatus();
         rethrow(excp);
       end
+      
       % Do follow-up book-keeping
       self.everythingFileNameAbs=fileNameAbs;
       self.userHasSpecifiedEverythingFileName=true;      
