@@ -3,6 +3,15 @@ classdef Macguffin < handle
   % the .jab file is a .mat file holding one variable, x, which is a
   % Macguffin.
   
+  properties (Constant)
+    VERSION_HISTORY = {'0.5.0' '0.5.1' '0.6.0'};
+    % 0.5.0 : Original
+    % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
+    %           flies_extra_marker, and flies_extra_linestyle fields in
+    %           trxGraphicParams.
+    % 0.6.0 : Multiclassifier and ST updates.
+  end
+  
   properties
     featureLexiconName
     featureLexicon
@@ -20,10 +29,6 @@ classdef Macguffin < handle
     classifierStuff
     extra=struct()  % a structure that stores additional information
     version=''
-      % 0.5.0 : Original
-      % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
-      %           flies_extra_marker, and flies_extra_linestyle fields in
-      %           trxGraphicParams.
   end
     
   % -----------------------------------------------------------------------
@@ -640,6 +645,7 @@ classdef Macguffin < handle
         end
       end
     end
+    
   end  % methods
   
 end
