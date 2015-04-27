@@ -5,13 +5,26 @@ Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
 http://jaaba.sourceforge.net/
 bransonk@janelia.hhmi.org
 
+
+CHANGES from 0.6.0:
+
+JAABA:
+
+* Support for multple classifiers.
+* Support for ST features.
+* Ethogram and Labelgram.
+* Various minor bugfixes.
+* Updated project (.jab) file format.
+* Substantial internal cleanup/refactoring.
+
+***
+
 CHANGES from 0.5.0:
 
 JAABA:
 
 * Major changes to file management. All JAABA-related data is now stored in a single file with the extension .jab. Previously, this information had all been stored in the JAABA project, JAABA classifier, and JAABA labels files. The parts of the GUI related to file and project management have been restructured to reflect this change. The code was also refactored to some extent during this change. 
 * Made plotting trajectories more efficient if there are lots of short-lived trajectories. 
-
 
 JAABAPlot:
 
@@ -22,7 +35,6 @@ JAABAPlot:
  * Can no
 * Bug fix: Fixed bug in computing intersections of features. 
 * Bug fix: Fixed bug in computing mean statistics per bout. 
-
 
 ***
 
