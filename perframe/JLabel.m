@@ -1460,7 +1460,7 @@ end
 
 % enable GUI components
 UpdateEnablementAndVisibilityOfControls(handles);
-menu_view_show_whole_frame_Callback(handles.menu_view_show_whole_frame,[],handles);
+
 success = true;
 return
 
