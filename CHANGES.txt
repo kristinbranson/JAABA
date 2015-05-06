@@ -10,7 +10,7 @@ CHANGES from 0.6.0:
 
 JAABA:
 
-* Support for multple classifiers.
+* Support for multiple classifiers.
 * Support for ST features.
 * Ethogram and Labelgram.
 * Various minor bugfixes.
