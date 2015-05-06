@@ -287,10 +287,7 @@ classdef Macguffin < handle
     function initFromMacguffins(self,m)
       % init from 1+ Macguffins
       % Combines multiple Macguffins into single multi-classifier Macguffin
-      % ALTODO: Caveat emptor, unverified functionality
-      
-      assert(false,'ALTODO MERGEST update');
-              
+                    
       assert(isa(m,'Macguffin'));
       assert(~isempty(m),'Input Macguffin cannot be empty,');
       
@@ -306,124 +303,161 @@ classdef Macguffin < handle
         return;
       end
       
+      %%% Check all nonessential fields
+      % Expected to be the same for all jabs being merged
+      % XXXXXXXXXXXXXX: version?
       FIELDSTHATMIGHTDIFFER = {'behaviors' 'file' 'labels' 'expDirNames' 'classifierStuff'};
-      fieldsMustBeSame = setdiff(flds,FIELDSTHATMIGHTDIFFER);       
+      fieldsMustBeSame = setdiff(flds,FIELDSTHATMIGHTDIFFER);
       for f = fieldsMustBeSame(:)', f=f{1}; %#ok<FXSET>
-        files = {m.(f)};
-        if ~isequaln(files{:}),
-          error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''%s''.',f);
+        vals = {m.(f)};
+        if ~isequaln(vals{:})
+          error('Macguffin:merge',...
+            'Objects differ unexpectedly in field ''%s''.',f);
         end
-        self.(f) = files{1};
+        self.(f) = vals{1};
       end      
       
+      %%% Behaviors
       Nobj = numel(m);
+      allbehs = cell(1,0);
+      allnobehs = cell(1,0);
+      nbehs = nan(Nobj,1);
+      allsfns = cell(1,0);
+      allcs = ClassifierStuff.empty(0,1);
+      for i = 1:Nobj
+        bhvrs = m(i).behaviors;
+        if ~strcmp(bhvrs.type,m(1).behaviors.type)
+          error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''%s''.','behaviors');
+        end
+        [behs,nobehs] = Labels.verifyBehaviorNames(bhvrs.names);
+        
+        allbehs = [allbehs behs]; %#ok<AGROW>
+        allnobehs = [allnobehs nobehs]; %#ok<AGROW>
+        nbehs(i) = numel(behs); % record for comparison to classifierStuff
+        
+        sfn = m(i).file.scorefilename;
+        assert(numel(sfn)==nbehs(i));
+        allsfns = [allsfns sfn]; %#ok<AGROW>
+        
+        cs = m(i).classifierStuff(:);
+        assert(numel(cs)==nbehs(i));
+        allcs = [allcs; cs(:)];
+      end
+      % Print some diagnostics
+      allbehsUn = unique(allbehs);
+      allbehsUnCnt = cellfun(@(x)nnz(strcmp(x,allbehs)),allbehsUn);
+      nAllbehsUn = numel(allbehsUn);
+      fprintf(1,'New jab contents:\n');      
+      for iBeh = 1:numel(allbehsUn)
+        fprintf(1,'  Classifier %s (%d objs)\n',allbehsUn{iBeh},allbehsUnCnt(iBeh));
+      end
+      % Set combined .behaviors 
+      self.behaviors.type = m(1).behaviors.type;
+      self.behaviors.names = Labels.behnames2labelnames(allbehsUn);
+      % Note, labelcolors are reset and not carried over
+      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(self.behaviors.names),'lines');
+      self.behaviors.labelcolors = Labels.addNoBehColors(self.behaviors.labelcolors);
+      self.behaviors.labelcolors = reshape(self.behaviors.labelcolors,3,[])';
+      self.behaviors.unknowncolor = m(1).behaviors.unknowncolor;
+      self.behaviors.nbeh = nAllbehsUn;
       
-      %%% files
+      %%% Files
       % all fields but scorefilename must be equal
       files = {m.file};
       filesNoSfn = cellfun(@(x)rmfield(x,'scorefilename'),files,'uni',0);
       if ~isequaln(filesNoSfn{:})
         error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''.file''.');
       end
-      % combined .file.scorefilename is concatenated cellstr
-      self.file = files{1};
-      scoreFileNames = cellfun(@(x)cellstr(x.scorefilename),files,'uni',0); % x.scorefilename might be char for single-classifier jab
-      scoreFileNames = cellfun(@(x)x(:)',scoreFileNames,'uni',0);
-      scoreFileNames = cat(2,scoreFileNames{:});
-      if numel(unique(scoreFileNames))~=numel(scoreFileNames)
-        error('Macguffin:repeatedScoreFile','Macguffins contain duplicate scorefile names.');
-      end
-      self.file.scorefilename = scoreFileNames;
-
-      %%% behaviors/labels
-      allbehnames = cell(1,0);
-      alllabels = cell(Nobj,1); % contains modified .labels struct for each MacGuffin
-      nbehs = nan(Nobj,1);
-      for i = 1:Nobj                
-        % check no duped behaviors
-        % compile combined behavior list        
-        bhvrs = m(i).behaviors;
-        if ~strcmp(bhvrs.type,m(1).behaviors.type)
-          error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''%s''.','behaviors');
+      % Check for inconsistent scorefilenames for repeated behaviors
+      sfn = cell(nAllbehsUn,1);
+      for iBeh = 1:nAllbehsUn
+        beh = allbehsUn{iBeh};
+        defsfn = ScoreFile.defaultScoreFilename(beh);
+        idx = strcmp(beh,allbehs);
+        if ~all(strcmp(defsfn,allsfns(idx)))
+          warning('Macguffin:merge','Scorefile name for classifier ''%s'' reset to ''%s''.',...
+            beh,defsfn);
         end
-        [behs,nobehs] = Labels.verifyBehaviorNames(bhvrs.names);
-        if any(ismember(lower(behs),lower(allbehnames)))
-          error('Macguffin:dupBehavior','Input Macguffins contain duplicate behaviors.');
-        end 
-        allbehnames = [allbehnames behs]; %#ok<AGROW>        
-        nbehs(i) = numel(behs); % record for comparison to classifierStuff
-        
-        % convert all 'None's to No_<beh> in labels
-        lbls = m(i).labels;
-        if numel(behs)==1 && strcmpi(nobehs{1},'none')
-          lbls = Labels.renameBehaviorRaw(lbls,nobehs{1},Labels.noBehaviorName(behs{1}));
-        end
-        alllabels{i} = lbls;
+        sfn{iBeh} = defsfn;
       end
-      % set combined .behaviors 
-      self.behaviors.type = m(1).behaviors.type;
-      self.behaviors.names = [allbehnames cellfun(@Labels.noBehaviorName,allbehnames,'uni',0)];
-      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(self.behaviors.names),'lines');
-      self.behaviors.labelcolors = Labels.addNoBehColors(self.behaviors.labelcolors);
-      self.behaviors.labelcolors = reshape(self.behaviors.labelcolors,3,[])';
-      self.behaviors.unknowncolor = m(1).behaviors.unknowncolor;
-      self.behaviors.nbeh = numel(allbehnames);      
+      self.file.scorefilename = sfn;
       
       %%% expdirnames
       % - compile combined expdir list
+      arrayfun(@(x)assert(isrow(x.expDirNames),...
+        'Expected .expDirNames to be a rowvector.'),m);
       allexpdirnames = cat(2,m.expDirNames);
-      allexpdirnames = unique(allexpdirnames);      
-      self.expDirNames = allexpdirnames;
-      warnNoTrace('Macguffin:discardingExpTags','Discarding existing experiment tags in merged jab.');
-      % TODO: could be smart about combining expdirtags
-      self.expDirTags = ExperimentTags.expTags(self.expDirNames); 
+      allexpdirnamesUn = unique(allexpdirnames);
+      allexpdirnamesUnCnt = cellfun(@(x)nnz(strmcp(x,allexpdirnames)),allexpdirnamesUn);
+      nAllExp = numel(allexpdirnamesUn);
+      nRptExp = numel(allexpdirnamesUnCnt>1);
+      fprintf(1,'Merged object will contain %d experiments in all.\n',nAllExp);
+      fprintf(1,'%d/%d experiments are present in more than one input object.\n',nRptExp,nAllExp);      
+      self.expDirNames = allexpdirnamesUn;
+      
+      %%% Labels
+      alllabels = cell(Nobj,1); % contains modified .labels struct for each MacGuffin
+      for i = 1:Nobj
+        lbls = m(i).labels;
+        if nAllbehsUn>1 
+          [behs,nobehs] = Labels.verifyBehaviorNames(m(i).behaviors.names);
+          if numel(behs)==1 && strcmpi(nobehs,'none')
+            % We are now a multiclassifier jab, but input obj i is a single
+            % classifier jab. Convert 'None' to No_<beh> in labels
+            lbls = Labels.renameBehaviorRaw(lbls,nobehs,Labels.noBehaviorName(behs));
+          end
+        end
+        alllabels{i} = lbls;
+      end      
       % compile/combine labels
-      self.labels = Labels.compileLabels(allexpdirnames,alllabels,{m.expDirNames});      
+      self.labels = Labels.compileLabels(allexpdirnamesUn,alllabels,{m.expDirNames});
         
       %%% classifierStuff
-      % TODO Consider moving into ClassifierStuff
-      CSFIELDS_SAME = {'type' 'postProcessParams' 'featureNames' 'windowdata' 'savewindowdata'};
-      selfCS = ClassifierStuff();
-      mCS = [m.classifierStuff];
-      for f = CSFIELDS_SAME,f=f{1}; %#ok<FXSET>
-        val = {mCS.(f)};
-        if ~isequaln(val{:})
-          error('Macguffin:incompatibleObjs','Input Macguffins'' classifierStuff differ unexpectedly in field ''%s''.',f);
-        end
-        selfCS.(f) = val{1};
-      end
-      FLDS = {'params' 'trainingParams'};
-      for f = FLDS,f=f{1}; %#ok<FXSET>
-        for i = 1:numel(mCS)
-          if ~iscell(mCS(i).(f))
-            % not sure if this ever occurs
-            mCS(i).(f) = {mCS(i).(f)};
+      % Consider moving into ClassifierStuff
+      assert(numel(allbehs)==numel(allcs));
+      csNewAll = cell(nAllbehsUn,1);
+      for iBeh = 1:nAllbehsUn
+        beh = allbehsUn{iBeh};
+        idx = strcmp(beh,allbehs);
+        csBeh = allcs(idx); % all classifierstuffs for this behavior        
+        csNew = ClassifierStuff();
+
+        CSFIELDS_SAME = {'type' 'postProcessParams' 'trainingParams' 'featureNames'};
+        for f = CSFIELDS_SAME,f=f{1}; %#ok<FXSET>
+          val = {csBeh.(f)};
+          if numel(csBeh)>1 && ~isequaln(val{:})
+            error('Macguffin:incompatibleObjs',...
+              'ClassifierStuffs for behavior ''%s'' differ unexpectedly in field ''%s''.',...
+              beh,f);
           end
-          assert(isrow(mCS(i).(f)),'Expected row vector for classifier.%s',f);
-          assert(numel(mCS(i).(f))==nbehs(i),'Mismatch between behaviors and classifier.%s.',f);
+          csNew.(f) = val{1};
         end
-        selfCS.(f) = cat(2,mCS.(f));
-        assert(numel(selfCS.(f))==self.behaviors.nbeh);
+        
+        CSFIELDS_CLEAR = {'params' 'timeStamp' 'windowdata' 'savewindowdata'};
+        for f = CSFIELDS_CLEAR,f=f{1}; %#ok<FXSET>
+          val = {csBeh.(f)};
+          val{1,end+1} = csNew.(f); %#ok<AGROW> csNew contains default/new value of field f
+          if ~isequaln(val{:})
+            warning('Macguffin:clearField',...
+              'Field ''%s'' in classifierStuff for behavior ''%s'' will be reset.',...
+              f,beh);
+          end
+        end
+        
+        CSFIELD_PICKONE = {'confThresholds' 'scoreNorm'};        
+        for f = CSFIELD_PICKONE,f=f{1}; %#ok<FXSET>
+          val = {csBeh.(f)};
+          if ~isequaln(val{:})
+            warning('Macguffin:oneField',...
+              'Differing values present for classifierStuff field ''%s'' for behavior ''%s''. One value will be selected.',...
+              f,beh);
+          end
+          csNew.(f) = val{1};
+        end
+        
+        csNewAll{iBeh} = csNew;
       end
-      
-      % AL 20140826: new classifierStuffs have independent timestamps
-      % for each classifier; old classifierStuffs have a single timestamp
-      % even if multiple behaviors. Rather than sort this out, just set
-      % classifier timestamps in new (merged) jab to be zeros.
-      selfCS.timeStamp = zeros(1,self.behaviors.nbeh);
-      
-      allConfThresh = nan(0,2);
-      for i = 1:Nobj
-        ct = m(i).classifierStuff.confThresholds;
-        nbeh = numel(Labels.verifyBehaviorNames(m(i).behaviors.names));
-        assert(isequal(size(ct),[1 2*nbeh])); % [beh1 beh2 ... No_beh1 No_beh2...] (I think)
-        ct = reshape(ct,[],2);
-        allConfThresh = [allConfThresh;ct]; %#ok<AGROW>
-      end
-      selfCS.confThresholds = allConfThresh(:)'; % all "real behavior" confThresholds, then all "No behavior" confThresholds
-      assert(self.behaviors.nbeh*2==numel(selfCS.confThresholds));
-      selfCS.scoreNorm = [mCS.scoreNorm];
-      self.classifierStuff = selfCS;
+      self.classifierStuff = cell2mat(csNewAll);
     end
             
     
