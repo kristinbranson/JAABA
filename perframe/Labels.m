@@ -438,72 +438,58 @@ classdef Labels
       end
     end
     
-    function labelsComb = compileLabels(combExpDirNames,labelsCell,expDirNamesCell)
+    function labelsComb = compileLabels(combExpDirNames,labels,expDirNames)
       % Compile/combine multiple label struct arrays.
       % 
       % combExpDirNames: cellstr, desired/target master list of experiments
-      % labelsCell: cell array containing labels struct arrays. Typically
-      % each element of labelsCell represents labels for a certain
-      % behavior.
-      % expDirNames: cell array containing cellstrs of expdirnames for
-      % labelCell. expDirNames{i} are the expdirnames for labelsCell{i}. 
+      % labels: struct array of Labels. 
+      % expDirNames: cellstr of expdirnames for labels.
       % 
-      % labelsCell and expDirNamesCell must have the same number of
-      % elements; labelsCell{i} and expDirNames{i} must have the same 
-      % number of elements.
-      %
       % labelsComb: struct array of labels structures labeled by
-      % combExpDirNames that contains all bouts in labelsCell.
+      % combExpDirNames that contains all bouts in labels.
+      %
+      % This method works iterating over labels and applying its bouts
+      % consecutively onto an initially "blank slate".
       
       assert(iscellstr(combExpDirNames));
-      assert(iscell(labelsCell));
-      assert(iscell(expDirNamesCell));
-      assert(numel(labelsCell)==numel(expDirNamesCell));
+      Labels.verifyLabels(labels);
+      
+      assert(iscellstr(expDirNames) && numel(expDirNames)==numel(labels));
+      [tf,loc] = ismember(expDirNames,combExpDirNames);
+      assert(all(tf),'Master list of experiments does not cover all labeled experiments.');
       
       % Initialize combLabels
       NCombExps = numel(combExpDirNames);
       labelsComb = Labels.labels(NCombExps);
       
       % Loop over input labels and add bouts to combLabels
-      N = numel(labelsCell);
-      realbehnames = cell(N,1); % realbehnames{i} holds realbehnames for labelsCell{i}
-      for i = 1:N
-        lbls = labelsCell{i};
-        edirs = expDirNamesCell{i};
-        assert(numel(lbls)==numel(edirs));
+      Nlbl = numel(labels);
+      realBehsSeen = cell(0,1);
+      for i = 1:Nlbl
+        lbls = labels(i);
+        iExpComb = loc(i);
         
-        [tf,loc] = ismember(edirs,combExpDirNames);
-        assert(all(tf),'Master list of experiments does not cover all labeled experiments.');
-        for iExp = 1:numel(lbls)
-          iExpComb = loc(iExp);
-          for iFly = 1:numel(lbls(iExp).flies)
-            fly = lbls(iExp).flies(iFly);
-            off = lbls(iExp).off(iFly);
-            Nbout = numel(lbls(iExp).t0s{iFly});
-            for iBout = 1:Nbout
-              labelsComb = Labels.addBout(labelsComb,iExpComb,fly,...
-                lbls(iExp).t0s{iFly}(iBout),...
-                lbls(iExp).t1s{iFly}(iBout),...
-                lbls(iExp).names{iFly}{iBout},...
-                off,...
-                lbls(iExp).timestamp{iFly}(iBout));
-            end            
-            
-            if iFly==1
-              timelineTS = lbls(iExp).timelinetimestamp{iFly};
-              realbehnames{i} = fieldnames(timelineTS);
-              % fieldnames for .timelinetimestamp should be same for all
-              % exps/flies of lbls
-            end
+        for iFly = 1:numel(lbls.flies)
+          fly = lbls.flies(iFly);
+          off = lbls.off(iFly);
+          Nbout = numel(lbls.t0s{iFly});
+          for iBout = 1:Nbout
+            labelsComb = Labels.addBout(labelsComb,iExpComb,fly,...
+              lbls.t0s{iFly}(iBout),...
+              lbls.t1s{iFly}(iBout),...
+              lbls.names{iFly}{iBout},...
+              off,...
+              lbls.timestamp{iFly}(iBout));
           end
+          
+          timelineTS = lbls.timelinetimestamp{iFly};
+          realBehsSeen = union(realBehsSeen,fieldnames(timelineTS));
+          % fieldnames for .timelinetimestamp is probably the same for 
+          % all flies in lbls but to be safe etc
         end
       end
       
-      realbehnames = cat(1,realbehnames{:});
-      assert(numel(realbehnames)==numel(unique(realbehnames)),...
-        'Labels to be merged contain duplicate behavior names.');
-      
-      labelsComb = Labels.initTimelineTimestamps(labelsComb,realbehnames);
+      labelsComb = Labels.initTimelineTimestamps(labelsComb,realBehsSeen);
     end
     
     function m = labelMatrix(labels,T0,T1,behNames)
