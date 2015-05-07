@@ -232,7 +232,7 @@ classdef Jab < handle
       end
         
       Jab.save(Jmerge,jabout);
-      ExpPP.saveConfigVal('jabpath',fileparts(jabout));
+      %ExpPP.saveConfigVal('jabpath',fileparts(jabout));
     end    
     
     function [scorefiles,behaviors] = jabfileScoresBehs(jabname)
