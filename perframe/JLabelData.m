@@ -1716,10 +1716,6 @@ classdef JLabelData < matlab.mixin.Copyable
           res = obj.moviefilename;
         case 'trx',
           res = obj.trxfilename;
-%         case 'label',
-%           res = obj.labelfilename;
-%         case 'gt_label',
-%             res = obj.gt_labelfilename;            
         case {'perframedir','perframe'},
           res = obj.perframedir;
         case {'clipsdir','clips'},
@@ -4639,7 +4635,6 @@ classdef JLabelData < matlab.mixin.Copyable
       nExps = length(self.expdirs);
       for expi = 1:nExps
         self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
-        %self.labelfilename = 0;
         self.UpdateStatusTable(statusTableString);   
       end
     end
@@ -9673,7 +9668,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % TODO: debug this
     % override stuff set in the config file: 
     %
-    % moviefilename, trxfilename, labelfilename, perframedir, clipsdir: names of
+    % moviefilename, trxfilename, perframedir, clipsdir: names of
     % files within experiment directories: 
     % featureparamsfilename: file containing feature parameters
     % rootoutputdir: in case we don't want to write to the experiment
