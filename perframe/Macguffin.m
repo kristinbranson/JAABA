@@ -646,6 +646,12 @@ classdef Macguffin < handle
       for i = 1:numel(self)        
         obj = self(i);
         
+        if isscalar(obj.behaviors.names)
+          % Legacy (pre v0.5.2?)
+          assert(~strcmpi(obj.behaviors.names,'none'));
+          obj.behaviors.names{end+1} = 'None';
+        end
+          
         if isfield(obj.behaviors,'nbeh')
           assert(obj.behaviors.nbeh==numel(obj.behaviors.names)/2);
         else
