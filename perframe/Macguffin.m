@@ -46,7 +46,7 @@ classdef Macguffin < handle
       self.file.scorefilename = '';
       self.file.trxfilename = '';
       self.file.moviefilename = '';
-      self.scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
+      self.scoreFeatures = Macguffin.ScoreFeatures;
       self.featureLexicon=featureLexicon;
       featureLexiconPFNames = fieldnames(featureLexicon.perframe);
       self.sublexiconPFNames = featureLexiconPFNames;
@@ -303,20 +303,19 @@ classdef Macguffin < handle
         return;
       end
       
-      %%% Check all nonessential fields
-      % Expected to be the same for all jabs being merged
-      % XXXXXXXXXXXXXX: version?
-      FIELDSTHATMIGHTDIFFER = {'behaviors' 'file' 'labels' 'expDirNames' 'classifierStuff'};
-      fieldsMustBeSame = setdiff(flds,FIELDSTHATMIGHTDIFFER);
+      %%% Check all fields that must be the same for all input jabs 
+      % (otherwise we don't know how to merge)
+      FIELDS_ALLOWED_TO_DIFFER = {'behaviors' 'file' 'trxGraphicParams' 'labels' 'expDirNames' 'classifierStuff' 'version'};
+      fieldsMustBeSame = setdiff(flds,FIELDS_ALLOWED_TO_DIFFER);
       for f = fieldsMustBeSame(:)', f=f{1}; %#ok<FXSET>
         vals = {m.(f)};
         if ~isequaln(vals{:})
           error('Macguffin:merge',...
-            'Objects differ unexpectedly in field ''%s''.',f);
+            'Currently unsupported merge: input objects differ in field ''%s''.',f);
         end
         self.(f) = vals{1};
       end      
-      
+
       %%% Behaviors
       Nobj = numel(m);
       allbehs = cell(1,0);
@@ -327,7 +326,8 @@ classdef Macguffin < handle
       for i = 1:Nobj
         bhvrs = m(i).behaviors;
         if ~strcmp(bhvrs.type,m(1).behaviors.type)
-          error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''%s''.','behaviors');
+          error('Macguffin:incompatibleObjs',...
+            'Unsupported merge: input objects differ in field ''%s''.','behaviors');
         end
         [behs,nobehs] = Labels.verifyBehaviorNames(bhvrs.names);
         
@@ -341,7 +341,7 @@ classdef Macguffin < handle
         
         cs = m(i).classifierStuff(:);
         assert(numel(cs)==nbehs(i));
-        allcs = [allcs; cs(:)];
+        allcs = [allcs; cs(:)]; %#ok<AGROW>
       end
       % Print some diagnostics
       allbehsUn = unique(allbehs);
@@ -366,7 +366,8 @@ classdef Macguffin < handle
       files = {m.file};
       filesNoSfn = cellfun(@(x)rmfield(x,'scorefilename'),files,'uni',0);
       if ~isequaln(filesNoSfn{:})
-        error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''.file''.');
+        error('Macguffin:incompatibleObjs',...
+          'Currently unsupported merge: input objects differ in field ''.file''.');
       end
       % Check for inconsistent scorefilenames for repeated behaviors
       sfn = cell(nAllbehsUn,1);
@@ -375,20 +376,31 @@ classdef Macguffin < handle
         defsfn = ScoreFile.defaultScoreFilename(beh);
         idx = strcmp(beh,allbehs);
         if ~all(strcmp(defsfn,allsfns(idx)))
-          warning('Macguffin:merge','Scorefile name for classifier ''%s'' reset to ''%s''.',...
+          warningNoTrace('Macguffin:merge','Scorefile name for classifier ''%s'' reset to ''%s''.',...
             beh,defsfn);
         end
         sfn{iBeh} = defsfn;
       end
       self.file.scorefilename = sfn;
       
+      
+      %%% trxGraphicParams
+      vals = {m.trxGraphicParams};
+      if isequaln(vals{:})
+        self.trxGraphicParams = vals{1};
+      else
+        warningNoTrace('Macguffin:merge',...
+          'Projects differ in field .trxGraphicParams. This property will be re-initialized from the animal type.');
+        self.trxGraphicParams = trxGraphicParamsFromAnimalType(self.behaviors.type);
+      end
+            
       %%% expdirnames
       % - compile combined expdir list
       arrayfun(@(x)assert(isrow(x.expDirNames),...
         'Expected .expDirNames to be a rowvector.'),m);
       allexpdirnames = cat(2,m.expDirNames);
       allexpdirnamesUn = unique(allexpdirnames);
-      allexpdirnamesUnCnt = cellfun(@(x)nnz(strmcp(x,allexpdirnames)),allexpdirnamesUn);
+      allexpdirnamesUnCnt = cellfun(@(x)nnz(strcmp(x,allexpdirnames)),allexpdirnamesUn);
       nAllExp = numel(allexpdirnamesUn);
       nRptExp = numel(allexpdirnamesUnCnt>1);
       fprintf(1,'Merged object will contain %d experiments in all.\n',nAllExp);
@@ -408,14 +420,16 @@ classdef Macguffin < handle
           end
         end
         alllabels{i} = lbls;
-      end      
+      end
+      alllabels = cell2mat(alllabels);
+      assert(numel(alllabels)==numel(allexpdirnames));
       % compile/combine labels
-      self.labels = Labels.compileLabels(allexpdirnamesUn,alllabels,{m.expDirNames});
+      self.labels = Labels.compileLabels(allexpdirnamesUn,alllabels,allexpdirnames);
         
       %%% classifierStuff
       % Consider moving into ClassifierStuff
       assert(numel(allbehs)==numel(allcs));
-      csNewAll = cell(nAllbehsUn,1);
+      csNewAll = [];
       for iBeh = 1:nAllbehsUn
         beh = allbehsUn{iBeh};
         idx = strcmp(beh,allbehs);
@@ -427,7 +441,7 @@ classdef Macguffin < handle
           val = {csBeh.(f)};
           if numel(csBeh)>1 && ~isequaln(val{:})
             error('Macguffin:incompatibleObjs',...
-              'ClassifierStuffs for behavior ''%s'' differ unexpectedly in field ''%s''.',...
+              'Unsupported merge: ClassifierStuffs for behavior ''%s'' differ in field ''%s''.',...
               beh,f);
           end
           csNew.(f) = val{1};
@@ -438,7 +452,7 @@ classdef Macguffin < handle
           val = {csBeh.(f)};
           val{1,end+1} = csNew.(f); %#ok<AGROW> csNew contains default/new value of field f
           if ~isequaln(val{:})
-            warning('Macguffin:clearField',...
+            warningNoTrace('Macguffin:clearField',...
               'Field ''%s'' in classifierStuff for behavior ''%s'' will be reset.',...
               f,beh);
           end
@@ -448,16 +462,16 @@ classdef Macguffin < handle
         for f = CSFIELD_PICKONE,f=f{1}; %#ok<FXSET>
           val = {csBeh.(f)};
           if ~isequaln(val{:})
-            warning('Macguffin:oneField',...
+            warningNoTrace('Macguffin:oneField',...
               'Differing values present for classifierStuff field ''%s'' for behavior ''%s''. One value will be selected.',...
               f,beh);
           end
           csNew.(f) = val{1};
         end
         
-        csNewAll{iBeh} = csNew;
+        csNewAll = [csNewAll csNew]; %#ok<AGROW>
       end
-      self.classifierStuff = cell2mat(csNewAll);
+      self.classifierStuff = csNewAll;
     end
             
     
@@ -609,7 +623,6 @@ classdef Macguffin < handle
               'Main behavior is not defined');
       end
     end  % method
-
     
     % ---------------------------------------------------------------------
     function setMainBehaviorName(self,behaviorName)
@@ -658,6 +671,15 @@ classdef Macguffin < handle
           obj.behaviors.nbeh = numel(obj.behaviors.names)/2;
         end
         
+        FILE_OBSOLETE_FIELDS = {'gt_labelfilename' 'labelfilename' 'rootoutputdir' 'windowfilename'};
+        fileflds = fieldnames(obj.file);
+        obj.file = rmfield(obj.file,intersect(FILE_OBSOLETE_FIELDS,fileflds));
+        
+        if isempty(obj.scoreFeatures)
+          % Standardize empty scoreFeatures shape
+          obj.scoreFeatures = Macguffin.ScoreFeatures;
+        end
+        
         [obj.labels,tfmodlbl] = Labels.modernizeLabels(obj.labels,Labels.verifyBehaviorNames(obj.behaviors.names));
         tfmodcls = obj.classifierStuff.modernize();
         % tfmodtags = isequal(obj.expDirTags,[]);
@@ -681,7 +703,20 @@ classdef Macguffin < handle
         end
       end
     end
-    
+        
   end  % methods
+  
+  methods (Static) % ScoreFeatures
+  
+    function sf = ScoreFeatures
+      % ScoreFeatures constructor
+      % 
+      % Currently we default to a 0x0 struct but a 1x0 or 0x1 probably
+      % makes more sense
+          
+      sf = struct('classifierfile',{},'ts',{},'scorefilename',{});
+    end
+    
+  end
   
 end
