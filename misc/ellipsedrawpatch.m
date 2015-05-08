@@ -1,4 +1,4 @@
-function [hEllipse,X,Y] = ellipsedrawpatch(a,b,x0,y0,phi,lineStyle)
+function [hEllipse,X,Y] = ellipsedrawpatch(a,b,x0,y0,phi,lineStyle,varargin)
 %ELLIPSEDRAWPATCH can draw an arbitrary ellipse with given parameters.
 %   The properties of that ellipse plot can be customized 
 %   by setting the ellipse handle. 
@@ -77,4 +77,4 @@ theta = 0:0.01:2*pi;
 
 % Plot the ellipse
 %----------------------------------------
- hEllipse = patch(X,Y,lineStyle);
+ hEllipse = patch(X,Y,lineStyle,varargin{:});

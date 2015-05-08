@@ -44,7 +44,11 @@ for i = 1:numel(s),
     end
     
   end
-  res{end+1} = fullfile(p,s(i).name); %#ok<AGROW>
+  if exist(p,'dir'),
+    res{end+1} = fullfile(p,s(i).name); %#ok<AGROW>
+  else
+    res{end+1} = p; %#ok<AGROW>
+  end
   infocurr = s(i);
   infocurr.path = p;
   info = structappend(info,infocurr);
