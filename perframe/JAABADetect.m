@@ -2,10 +2,12 @@ function [classifierinfo,allScores] = JAABADetect(expdir,varargin)
 % Run classifiers trained from JAABA on experiments
 % JAABADetect(expdir,'jabfiles',jabfiles)
 % JAABADetect(expdir,'jablistfile',jablistfile)
-% expdir (String or cell array of string) -- is the experiment directory 
+%
+% expdir (String or cell array of strings) -- is the experiment directory 
 % or a list of experiment directories. 
-% jabfiles (Cell array of Strings) -- locations of the jab files
-% for the behaviors that you want to detect.
+% jabfiles (Cell array of strings) -- locations of the jab files for the 
+% behaviors that you want to detect.
+% 
 % Example usage:
 % JAABADetect('testExp','jabfiles',{'ChaseClassifier.jab'});
 
@@ -19,7 +21,6 @@ end
   'jablistfile',0,...
   'forcecompute',false,...
   'debug',false);
-
 
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
@@ -43,7 +44,7 @@ if ischar(jablistfile),
     if l(1) == '#',
       continue;
     end
-    jabfiles{end+1} = l; %#ok<AGROW>
+    jabfiles{end+1} = l; 
   end
 end
 
@@ -59,16 +60,24 @@ jabts = zeros(1,nbehaviors);
 behavior = cell(1,nbehaviors);
 classifierinfo = [];
 for ndx = 1:nbehaviors
-  Q = load(jabfiles{ndx},'-mat');
-  [~,scorefilenames{ndx},~] = fileparts(Q.x.file.scorefilename);
-  scoresasinputs{ndx} = Q.x.scoreFeatures;
-  jabts(ndx) = Q.x.classifierStuff.timeStamp;
-  behavior{ndx} = Q.x.behaviors.names{1};
+  Q = loadAnonymous(jabfiles{ndx});
+  if isstruct(Q)
+    Q = Macguffin(Q);
+  end
+  Q.modernize(true);
+  
+  assert(numel(Q.behaviors.names)==2,...
+    'JAABADetect is currently unsupported for multiclassifier projects.');
+  
+  [~,scorefilenames{ndx},~] = fileparts(Q.file.scorefilename{1});
+  scoresasinputs{ndx} = Q.scoreFeatures;
+  jabts(ndx) = Q.classifierStuff.timeStamp;
+  behavior{ndx} = Q.behaviors.names{1};
   classifierinfocurr = struct('jabfile',jabfiles{ndx},...
     'behavior',behavior{ndx},...
     'scorefilename',scorefilenames{ndx},...
-    'timestamp',Q.x.classifierStuff.timeStamp,...
-    'jaaba_version',Q.x.version);
+    'timestamp',Q.classifierStuff.timeStamp,...
+    'jaaba_version',Q.version);
   classifierinfo = structappend(classifierinfo,classifierinfocurr);
 end
 

@@ -1,6 +1,8 @@
 function labels=cookLabels(labelsRaw)
 % Make sure the labels only contains the fields we want from the raw labels.
 
+% ALTODO: remove me or put in Labels
+
 nLabels=length(labelsRaw);
 labels = ...
   struct('t0s',cell(1,nLabels), ...

@@ -1,4 +1,10 @@
-function [binVals] = findThresholds(data,params)
+function [binVals] = findThresholds(data,params,varargin)
+% [binVals] = findThresholds(data,params,varargin)
+% Optional PVs: 
+%   determinisitic: scalar logical, default false
+
+deterministic = myparse(varargin,...
+  'deterministic',false);
 
 numDim = size(data,2);
 numBins = params.numBins;
@@ -21,19 +27,34 @@ end
 % 
 % toc
 
-parfor dim = 1:numDim
-  curD = data(:,dim);
-%   rrand = randperm(numPts);
-%   sel = curD(rrand(1:sampleSize));
-  rrand = randperm(numPts,sampleSize);
-  sel = curD(rrand);
-  curVals = prctile(sel,prcValues);
-  binVals(:,dim) = curVals;
-%   binVals3(1,dim,:) = curVals;
-%   curBins = sum(bsxfun(@gt,curD,curVals),2)+1;
-%   bins(dim,:) = curBins;
+if deterministic
+  rng(deterministic);
+  
+  subsets = nan(numDim,sampleSize);
+  for i = 1:numDim
+    subsets(i,:) = randperm(numPts,sampleSize);
+  end
+  parfor dim = 1:numDim
+    curD = data(:,dim);
+    rrand = subsets(dim,:);
+    sel = curD(rrand);
+    curVals = prctile(sel,prcValues);
+    binVals(:,dim) = curVals;
+  end
+else
+  parfor dim = 1:numDim
+    curD = data(:,dim);
+  %   rrand = randperm(numPts);
+  %   sel = curD(rrand(1:sampleSize));
+    rrand = randperm(numPts,sampleSize);
+    sel = curD(rrand);
+    curVals = prctile(sel,prcValues);
+    binVals(:,dim) = curVals;
+  %   binVals3(1,dim,:) = curVals;
+  %   curBins = sum(bsxfun(@gt,curD,curVals),2)+1;
+  %   bins(dim,:) = curBins;
+  end
 end
-
 % toc
 
 

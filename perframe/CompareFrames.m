@@ -52,6 +52,8 @@ function CompareFrames_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to CompareFrames (see VARARGIN)
 
+% MERGEST UPDATED whole file 
+
 % Choose default command line output for CompareFrames
 handles.output = hObject;
 
@@ -65,6 +67,7 @@ handles.cropSz = 201;
 
 handles.JLabelH = JLabelH;
 handles.data = handles.JLabelH.guidata.data;
+assert(handles.data.nclassifiers==1,'Unsupported for multiple classifiers.');
 handles.JLabelH.guidata.NJObj.SetCompareFramesHandle(hObject);
 
 handles.expnum = expnum;
@@ -444,7 +447,7 @@ for behaviori = 1:handles.data.nbehaviors
     timg(1,idx,channel) = curcolor(channel);
     timg(2,idxPred,channel) = curcolor(channel);
     scoreNdx = ceil(handles.scoresCache(idxPred)*31)+32;
-    timg(3,idxPred,channel) = handles.JLabelH.guidata.scorecolor(scoreNdx,channel,1);
+    timg(3,idxPred,channel) = handles.JLabelH.guidata.scorecolor{1}(scoreNdx,channel,1);
   end
   
   
@@ -476,7 +479,9 @@ check = false;
     return;
   end
   
-  if handles.data.fastPredictBag.ts < handles.data.classifierTS
+  assert(handles.data.nclassifiers==1,'Unsupported for multiple classifiers.');
+  ICLS = 1;
+  if handles.data.fastPredictBag.ts < handles.data.classifierTS(ICLS);
     uiwait(warndlg('Bagging was done before the current classifier was trained. Things maybe out of sync'));
     return;
   end

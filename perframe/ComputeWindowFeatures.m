@@ -280,7 +280,14 @@ end
 
 resolution = 2;
 prcBins = 0:resolution:100;
-relativeBins = prctile(x(~isnan(x)),prcBins);
+nsamples = 5000;
+nx = x(~isnan(x));
+if numel(nx)>nsamples,
+  sx = randsample(numel(nx),5000);
+  relativeBins = prctile(nx(sx),prcBins);
+else
+  relativeBins = prctile(nx,prcBins);
+end  
 relativeParams.relativeBins = relativeBins;
 relativeParams.prcBins = prcBins;
 
