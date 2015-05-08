@@ -372,6 +372,8 @@ classdef Labels
       % may represent either real behaviors or no-behaviors.
       % WARNING: timelinetimestamps are unmodified. See
       % Lables.renameBehavior for a safer rename method.
+      assert(ischar(behOld));
+      assert(ischar(behNew));
 
       for iExp = 1:numel(labels)
         for iFly = 1:numel(labels(iExp).flies)
@@ -449,7 +451,9 @@ classdef Labels
       % combExpDirNames that contains all bouts in labels.
       %
       % This method works iterating over labels and applying its bouts
-      % consecutively onto an initially "blank slate".
+      % consecutively onto an initially "blank slate". Note, the labels
+      % applied may overlap but so far this does not appear to break
+      % anything.
       
       assert(iscellstr(combExpDirNames));
       Labels.verifyLabels(labels);
