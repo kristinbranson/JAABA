@@ -2,6 +2,7 @@ classdef Macguffin < handle
   % This holds all the stuff that gets saved to the .jab file.  In fact,
   % the .jab file is a .mat file holding one variable, x, which is a
   % Macguffin.
+  
   properties
     featureLexiconName
     featureLexicon
@@ -23,7 +24,8 @@ classdef Macguffin < handle
       % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
       %           flies_extra_marker, and flies_extra_linestyle fields in
       %           trxGraphicParams.
-  end  % properties
+      % 0.6.0 : Multiclassifier and ST updates.
+  end
     
   % -----------------------------------------------------------------------
   methods (Access=private)
@@ -36,7 +38,7 @@ classdef Macguffin < handle
       self.file.perframedir = 'perframe';
       self.file.clipsdir = 'clips';
       %self.windowfeatures = struct;
-      self.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
+      self.behaviors.labelcolors = [JLabelGUIData.COLOR_BEH_DEFAULT JLabelGUIData.COLOR_NOBEH_DEFAULT];
       self.behaviors.unknowncolor = [0,0,0];
       self.trxGraphicParams=trxGraphicParamsFromAnimalType(animalType);
       self.labelGraphicParams.colormap = 'line';
@@ -48,7 +50,7 @@ classdef Macguffin < handle
       self.featureLexicon=featureLexicon;
       featureLexiconPFNames = fieldnames(featureLexicon.perframe);
       self.sublexiconPFNames = featureLexiconPFNames;
-      self.windowFeaturesParams=struct();  % scalar sctruct with no fields
+      self.windowFeaturesParams={struct()};  % scalar struct with no fields
         % This is valid b/c no per-frame features have been enabled yet
       self.labels=struct('t0s',{}, ...
                          't1s',{}, ...
@@ -77,6 +79,9 @@ classdef Macguffin < handle
       self.extra.perframe.landmarkParams.arena_center_mm_y = 0;
       self.extra.perframe.landmarkParams.arena_radius_mm = 60;
       self.extra.perframe.landmarkParams.arena_type = 'circle';
+
+      self.extra.usePastOnly = false;
+
       self.addversion
       
     end  % method
@@ -95,11 +100,15 @@ classdef Macguffin < handle
       self.behaviors.names=jld.labelnames;
       self.behaviors.labelcolors=jld.labelcolors;
       self.behaviors.unknowncolor=jld.unknowncolor;
+      % TODO AL: .behaviors.names seems more like label names. Resolve
+      % timelines vs behaviors naming
+      self.behaviors.nbeh = Labels.determineNumTimelines(jld.labelnames); 
       self.file.moviefilename=jld.moviefilename;
       self.file.trxfilename=jld.trxfilename;
       self.file.scorefilename=jld.scorefilename;
       self.file.clipsdir=jld.clipsdir;                  
-      self.file.perframedir=jld.perframedir;                  
+      self.file.perframedir=jld.perframedir;
+      self.file.stfeatures=jld.stfeatures;
       self.labelGraphicParams=jld.labelGraphicParams;
       self.trxGraphicParams=jld.trxGraphicParams;
       if isnonempty(jld.landmark_params) ,
@@ -122,6 +131,10 @@ classdef Macguffin < handle
       % Put the classifier in self
       self.classifierStuff=jld.getClassifierStuff();
       self.version = jld.version;
+
+      if isprop(jld,'usePastOnly'),
+        self.extra.usePastOnly = jld.usePastOnly;
+      end
 
     end  % method
 
@@ -271,6 +284,148 @@ classdef Macguffin < handle
       self.addversion;
     end  % method
     
+    function initFromMacguffins(self,m)
+      % init from 1+ Macguffins
+      % Combines multiple Macguffins into single multi-classifier Macguffin
+      % ALTODO: Caveat emptor, unverified functionality
+      
+      assert(false,'ALTODO MERGEST update');
+              
+      assert(isa(m,'Macguffin'));
+      assert(~isempty(m),'Input Macguffin cannot be empty,');
+      
+      m.modernize();
+      
+      flds = fieldnames(m);
+            
+      % Special case early return 
+      if isscalar(m)
+        for f = flds(:)',f=f{1}; %#ok<FXSET>
+          self.(f) = m.(f);
+        end
+        return;
+      end
+      
+      FIELDSTHATMIGHTDIFFER = {'behaviors' 'file' 'labels' 'expDirNames' 'classifierStuff'};
+      fieldsMustBeSame = setdiff(flds,FIELDSTHATMIGHTDIFFER);       
+      for f = fieldsMustBeSame(:)', f=f{1}; %#ok<FXSET>
+        files = {m.(f)};
+        if ~isequaln(files{:}),
+          error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''%s''.',f);
+        end
+        self.(f) = files{1};
+      end      
+      
+      Nobj = numel(m);
+      
+      %%% files
+      % all fields but scorefilename must be equal
+      files = {m.file};
+      filesNoSfn = cellfun(@(x)rmfield(x,'scorefilename'),files,'uni',0);
+      if ~isequaln(filesNoSfn{:})
+        error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''.file''.');
+      end
+      % combined .file.scorefilename is concatenated cellstr
+      self.file = files{1};
+      scoreFileNames = cellfun(@(x)cellstr(x.scorefilename),files,'uni',0); % x.scorefilename might be char for single-classifier jab
+      scoreFileNames = cellfun(@(x)x(:)',scoreFileNames,'uni',0);
+      scoreFileNames = cat(2,scoreFileNames{:});
+      if numel(unique(scoreFileNames))~=numel(scoreFileNames)
+        error('Macguffin:repeatedScoreFile','Macguffins contain duplicate scorefile names.');
+      end
+      self.file.scorefilename = scoreFileNames;
+
+      %%% behaviors/labels
+      allbehnames = cell(1,0);
+      alllabels = cell(Nobj,1); % contains modified .labels struct for each MacGuffin
+      nbehs = nan(Nobj,1);
+      for i = 1:Nobj                
+        % check no duped behaviors
+        % compile combined behavior list        
+        bhvrs = m(i).behaviors;
+        if ~strcmp(bhvrs.type,m(1).behaviors.type)
+          error('Macguffin:incompatibleObjs','Input Macguffins differ unexpectedly in field ''%s''.','behaviors');
+        end
+        [behs,nobehs] = Labels.verifyBehaviorNames(bhvrs.names);
+        if any(ismember(lower(behs),lower(allbehnames)))
+          error('Macguffin:dupBehavior','Input Macguffins contain duplicate behaviors.');
+        end 
+        allbehnames = [allbehnames behs]; %#ok<AGROW>        
+        nbehs(i) = numel(behs); % record for comparison to classifierStuff
+        
+        % convert all 'None's to No_<beh> in labels
+        lbls = m(i).labels;
+        if numel(behs)==1 && strcmpi(nobehs{1},'none')
+          lbls = Labels.renameBehaviorRaw(lbls,nobehs{1},Labels.noBehaviorName(behs{1}));
+        end
+        alllabels{i} = lbls;
+      end
+      % set combined .behaviors 
+      self.behaviors.type = m(1).behaviors.type;
+      self.behaviors.names = [allbehnames cellfun(@Labels.noBehaviorName,allbehnames,'uni',0)];
+      self.behaviors.labelcolors = Labels.cropOrAugmentLabelColors(zeros(1,0),numel(self.behaviors.names),'lines');
+      self.behaviors.labelcolors = Labels.addNoBehColors(self.behaviors.labelcolors);
+      self.behaviors.labelcolors = reshape(self.behaviors.labelcolors,3,[])';
+      self.behaviors.unknowncolor = m(1).behaviors.unknowncolor;
+      self.behaviors.nbeh = numel(allbehnames);      
+      
+      %%% expdirnames
+      % - compile combined expdir list
+      allexpdirnames = cat(2,m.expDirNames);
+      allexpdirnames = unique(allexpdirnames);      
+      self.expDirNames = allexpdirnames;
+      warnNoTrace('Macguffin:discardingExpTags','Discarding existing experiment tags in merged jab.');
+      % TODO: could be smart about combining expdirtags
+      self.expDirTags = ExperimentTags.expTags(self.expDirNames); 
+      % compile/combine labels
+      self.labels = Labels.compileLabels(allexpdirnames,alllabels,{m.expDirNames});      
+        
+      %%% classifierStuff
+      % TODO Consider moving into ClassifierStuff
+      CSFIELDS_SAME = {'type' 'postProcessParams' 'featureNames' 'windowdata' 'savewindowdata'};
+      selfCS = ClassifierStuff();
+      mCS = [m.classifierStuff];
+      for f = CSFIELDS_SAME,f=f{1}; %#ok<FXSET>
+        val = {mCS.(f)};
+        if ~isequaln(val{:})
+          error('Macguffin:incompatibleObjs','Input Macguffins'' classifierStuff differ unexpectedly in field ''%s''.',f);
+        end
+        selfCS.(f) = val{1};
+      end
+      FLDS = {'params' 'trainingParams'};
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        for i = 1:numel(mCS)
+          if ~iscell(mCS(i).(f))
+            % not sure if this ever occurs
+            mCS(i).(f) = {mCS(i).(f)};
+          end
+          assert(isrow(mCS(i).(f)),'Expected row vector for classifier.%s',f);
+          assert(numel(mCS(i).(f))==nbehs(i),'Mismatch between behaviors and classifier.%s.',f);
+        end
+        selfCS.(f) = cat(2,mCS.(f));
+        assert(numel(selfCS.(f))==self.behaviors.nbeh);
+      end
+      
+      % AL 20140826: new classifierStuffs have independent timestamps
+      % for each classifier; old classifierStuffs have a single timestamp
+      % even if multiple behaviors. Rather than sort this out, just set
+      % classifier timestamps in new (merged) jab to be zeros.
+      selfCS.timeStamp = zeros(1,self.behaviors.nbeh);
+      
+      allConfThresh = nan(0,2);
+      for i = 1:Nobj
+        ct = m(i).classifierStuff.confThresholds;
+        nbeh = numel(Labels.verifyBehaviorNames(m(i).behaviors.names));
+        assert(isequal(size(ct),[1 2*nbeh])); % [beh1 beh2 ... No_beh1 No_beh2...] (I think)
+        ct = reshape(ct,[],2);
+        allConfThresh = [allConfThresh;ct]; %#ok<AGROW>
+      end
+      selfCS.confThresholds = allConfThresh(:)'; % all "real behavior" confThresholds, then all "No behavior" confThresholds
+      assert(self.behaviors.nbeh*2==numel(selfCS.confThresholds));
+      selfCS.scoreNorm = [mCS.scoreNorm];
+      self.classifierStuff = selfCS;
+    end
+            
     
     % ---------------------------------------------------------------------
     function appendClassifierAndLabels(self,projectParams,classifierParams)
@@ -357,7 +512,9 @@ classdef Macguffin < handle
   methods
     % ---------------------------------------------------------------------
     function self=Macguffin(varargin)
-      if length(varargin)==1 && ischar(varargin{1})
+      if length(varargin)==1 && isa(varargin{1},'Macguffin')
+        self.initFromMacguffins(varargin{1});
+      elseif length(varargin)==1 && ischar(varargin{1})
         self.initFromFeatureLexiconName(varargin{1});
       elseif length(varargin)==1 && isequal(class(varargin{1}),'JLabelData')
         jld=varargin{1};
@@ -389,6 +546,11 @@ classdef Macguffin < handle
       end
     end  % constructor method
 
+    % ---------------------------------------------------------------------
+    function tf=isMultiClassifier(self)
+      % tf=isMultiClassifier(self)
+      tf = isfield(self.behaviors,'nbeh') && self.behaviors.nbeh>1;
+    end
     
     % ---------------------------------------------------------------------
     function result=getMainBehaviorName(self)
@@ -417,7 +579,7 @@ classdef Macguffin < handle
     
     % ---------------------------------------------------------------------
     function setMainBehaviorName(self,behaviorName)
-      self.behaviors.names={behaviorName};
+      self.behaviors.names={behaviorName 'None'};
     end  % method
 
     % ---------------------------------------------------------------------
@@ -439,8 +601,47 @@ classdef Macguffin < handle
         vid = fopen('version.txt','r');
         vv = textscan(vid,'%s');
         fclose(vid);
-        self.version = vv{1};
+        self.version = vv{1}{1};
+    end
+    
+    function modernize(self,dowarn)
+      if ~exist('dowarn','var')
+        dowarn = false;
+      end
+      
+      for i = 1:numel(self)        
+        obj = self(i);
+        
+        if isfield(obj.behaviors,'nbeh')
+          assert(obj.behaviors.nbeh==numel(obj.behaviors.names)/2);
+        else
+          obj.behaviors.nbeh = numel(obj.behaviors.names)/2;
+        end
+        
+        [obj.labels,tfmodlbl] = Labels.modernizeLabels(obj.labels,Labels.verifyBehaviorNames(obj.behaviors.names));
+        tfmodcls = obj.classifierStuff.modernize();
+        % tfmodtags = isequal(obj.expDirTags,[]);
+        % if tfmodtags
+        %   obj.expDirTags = ExperimentTags.expTags(obj.expDirNames);
+        % end
+        
+        if ischar(obj.file.scorefilename)
+          obj.file.scorefilename = {obj.file.scorefilename};
+        end          
+        if isstruct(obj.windowFeaturesParams)
+          obj.windowFeaturesParams = {obj.windowFeaturesParams};
+        end
+        nCls = numel(obj.classifierStuff);
+        assert(isequal(nCls,numel(obj.file.scorefilename),...
+                       numel(obj.windowFeaturesParams)));
+        
+        tfmod = tfmodlbl || tfmodcls; % || tfmodtags;
+        if dowarn && tfmod
+          warningNoTrace('Macguffin:modernized','Jab contents modernized. Opening and resaving jabfiles in JAABA will update them and eliminate this warning.');
+        end
+      end
     end
     
   end  % methods
-end  % classdef
+  
+end

@@ -1,4 +1,5 @@
-function [scores model binVals bins] = loglossboostLearnRandomFeatures(data,labels,numIters,initWt,binVals,bins,params,obj)
+function [scores model binVals bins] = loglossboostLearnRandomFeatures(...
+  data,labels,numIters,initWt,binVals,bins,params,obj)
 
 numEx = size(data,1);
 wt = initWt;
