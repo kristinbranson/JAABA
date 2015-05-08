@@ -99,6 +99,11 @@ function out = uipickfiles(varargin)
 %               instead of a cell array containing just one string.  The
 %               default is 'cell'.
 %
+%   DirsOnly    Whether to only show directories. Default: false. 
+%
+%   SmartAdd    Logical scalar, defaults to false. If true, include "Smart
+%               Add" button.
+%
 % All properties and values are case-insensitive and need only be
 % unambiguous.  For example,
 %
@@ -121,6 +126,8 @@ prop.prompt = 'Select files';
 prop.numfiles = [];
 prop.append = [];
 prop.output = 'cell';
+prop.dirsonly = false;
+prop.smartadd = false;
 
 % Process inputs and set prop fields.
 prop = parsepropval(prop,varargin{:});
@@ -232,6 +239,10 @@ else
 		'ambiguous.'],prop.output)
 end
 
+% Validate SmartAdd property.
+if ~(islogical(prop.smartadd) && isscalar(prop.smartadd))
+  error('SmartAdd property must be a logical scalar.')
+end
 
 % Set style preference for display of folders.
 %   1 => folder icon before and filesep after
@@ -262,7 +273,7 @@ if exist(new_network_vol,'dir')
 	network_volumes = unique([network_volumes,{new_network_vol}]);
 end
 fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-	@(x)file_sort(x,[1 0 0]));
+	@(x)file_sort(x,[1 0 0]),prop.dirsonly);
 filenames = {fdir.name}';
 filenames = annotate_file_names(filenames,fdir,fsdata);
 
@@ -413,6 +424,15 @@ addbut = uicontrol('Style','pushbutton',...
 	'CData',arrow_im,...
 	'KeyPressFcn',@keypressmisc,...
 	'Callback',@add);
+if prop.smartadd
+  addsmartbut = uicontrol('Style','pushbutton',...
+    'Position',[270 340 80 20],...
+    'String','Add Smart',...
+    'Enable','off',...
+    'Callback',@addsmart);
+else
+  addsmartbut = [];
+end
 
 removebut = uicontrol('Style','pushbutton',...
 	'Position',[290 205 80 20],...
@@ -614,6 +634,28 @@ setpref('uipickfiles','figure_position',fig_pos)
 
 % ----------------- Callback nested functions ----------------
 
+  function addsmart(varargin)
+    values = get(navlist,'Value');
+    for i = 1:max(length(values),1)
+      dir_pick = fdir(values(i));
+      pick = dir_pick.name;
+      PAT1 = '([md]\d+[a-zA-Z]{0,1}.jab)$';
+      PAT2 = '(\d+[a-zA-Z]{0,1}.jab)$';
+      tok = regexp(pick,PAT1,'tokens');
+      if isempty(tok)
+        tok = regexp(pick,PAT2,'tokens');
+      end
+      if ~isempty(tok)
+        tok = tok{1}{1};
+        set(refilter_ed,'String',tok);
+        setrefilter();
+        set(navlist,'Value',1:numel(get(navlist,'String')));
+        clicknav();
+        add();
+      end      
+    end
+  end
+
 	function add(varargin)
 		values = get(navlist,'Value');
 		for i = 1:length(values)
@@ -675,7 +717,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 			full_filter = fullfile(current_dir,filter);
 			path_cell = path2cell(current_dir);
 			fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 			filenames = {fdir.name}';
 			filenames = annotate_file_names(filenames,fdir,fsdata);
 			set(dir_popup,'String',path_cell,'Value',length(path_cell))
@@ -686,7 +728,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 			end
 			set(pathbox,'String',current_dir)
 			set(navlist,'ListboxTop',1,'Value',[],'String',filenames)
-			set(addbut,'Enable','off')
+			set([addbut addsmartbut],'Enable','off')
 			set(openbut,'Enable','off')
 			set(fig,'pointer','arrow')
 		end
@@ -698,9 +740,9 @@ setpref('uipickfiles','figure_position',fig_pos)
 		dbl_click_fcn = @add;
 		switch nval
 			case 0
-				set([addbut,openbut],'Enable','off')
+				set([addbut,addsmartbut,openbut],'Enable','off')
 			case 1
-				set(addbut,'Enable','on');
+				set([addbut,addsmartbut],'Enable','on');
 				if fdir(value).isdir
 					set(openbut,'Enable','on')
 					dbl_click_fcn = @open;
@@ -708,7 +750,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 					set(openbut,'Enable','off')
 				end
 			otherwise
-				set(addbut,'Enable','on')
+				set([addbut,addsmartbut],'Enable','on')
 				set(openbut,'Enable','off')
 		end
 		if strcmp(get(fig,'SelectionType'),'open')
@@ -822,7 +864,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		set(sort_cb,{'CData'},tri_icon(sort_state + 2)')
 		
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(dir_popup,'String',path_cell,'Value',length(path_cell))
@@ -833,7 +875,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		set(pathbox,'String',current_dir)
 		set(navlist,'String',filenames,'Value',[])
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(openbut,'Enable','off')
 		set(fig,'pointer','arrow')
 	end
@@ -861,7 +903,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 			make_history_cm()
 			full_filter = fullfile(current_dir,filter);
 			fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		end
 		filenames = {fdir.name}';
 		selected = find(strcmp(filenames,container));
@@ -874,7 +916,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		set(pathbox,'String',current_dir)
 		set(navlist,'String',filenames,'Value',selected)
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(fig,'pointer','arrow')
 	end
 
@@ -901,7 +943,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 			make_history_cm()
 			full_filter = fullfile(current_dir,filter);
 			fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		end
 		filenames = {fdir.name}';
 		selected = find(strcmp(filenames,container));
@@ -914,7 +956,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		set(pathbox,'String',current_dir)
 		set(navlist,'String',filenames,'Value',selected)
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(fig,'pointer','arrow')
 	end
 
@@ -944,7 +986,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 			network_volumes = unique([network_volumes,{new_network_vol}]);
 		end
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(dir_popup,'String',path_cell,'Value',length(path_cell))
@@ -955,7 +997,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		set(pathbox,'String',current_dir)
 		set(navlist,'String',filenames,'Value',[])
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(openbut,'Enable','off')
 		set(fig,'pointer','arrow')
 	end
@@ -1048,11 +1090,11 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		full_filter = fullfile(current_dir,filter);
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(navlist,'String',filenames,'Value',[])
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(fig,'pointer','arrow')
 	end
 
@@ -1063,11 +1105,11 @@ setpref('uipickfiles','figure_position',fig_pos)
 		prop.redirs = value;
 		full_filter = fullfile(current_dir,filter);
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(navlist,'String',filenames,'Value',[])
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(fig,'pointer','arrow')
 	end
 
@@ -1093,11 +1135,11 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		full_filter = fullfile(current_dir,filter);
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(navlist,'String',filenames,'Value',[])
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(fig,'pointer','arrow')
 	end
 
@@ -1106,11 +1148,11 @@ setpref('uipickfiles','figure_position',fig_pos)
 		drawnow
 		re_filter = get(refilter_ed,'String');
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(navlist,'String',filenames,'Value',[])
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(fig,'pointer','arrow')
 	end
 
@@ -1156,7 +1198,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		full_filter = fullfile(current_dir,filter);
 		path_cell = path2cell(current_dir);
 		fdir = filtered_dir(full_filter,re_filter,prop.redirs,...
-				@(x)file_sort(x,sort_state));
+				@(x)file_sort(x,sort_state),prop.dirsonly);
 		filenames = {fdir.name}';
 		filenames = annotate_file_names(filenames,fdir,fsdata);
 		set(dir_popup,'String',path_cell,'Value',length(path_cell))
@@ -1167,7 +1209,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		end
 		set(pathbox,'String',current_dir)
 		set(navlist,'ListboxTop',1,'Value',[],'String',filenames)
-		set(addbut,'Enable','off')
+		set([addbut addsmartbut],'Enable','off')
 		set(openbut,'Enable','off')
 		set(fig,'pointer','arrow')
 	end
@@ -1221,6 +1263,7 @@ setpref('uipickfiles','figure_position',fig_pos)
 		set(frame1,P,[navw+5 h-234 110 70])
 		set(openbut,P,[navw+20 h-194 80 20])
 		set(addbut,P,[navw+20 h-224 80 20])
+                set(addsmartbut,P,[navw+20 h-154 80 20]);
 		
 		frame2y = round((h-234 + 110 - 100)/2);
 		set(frame2,P,[w-pckw-115 frame2y 110 100])
@@ -1289,7 +1332,84 @@ setpref('uipickfiles','figure_position',fig_pos)
 		hist_menus(num_hist+2) = uimenu(hist_cm,'Label',...
 			sprintf('Set Number of Recent Folders (%d) ...',history_size),...
 			'Callback',@set_history_size);
-	end
+  end
+
+% --------------------
+
+  function d = filtered_dir(full_filter,re_filter,filter_both,sort_fcn,dirsonly)
+    % Like dir, but applies filters and sorting.
+    p = fileparts(full_filter);
+    if exist('showallfiles','var'),
+      vshowallfiles = get(showallfiles,'Value');
+    else
+      vshowallfiles = false;
+    end
+    if isempty(p) && full_filter(1) == '/'
+      p = '/';
+    end
+    if nargin >= 5 && dirsonly && ~vshowallfiles,
+      dfiles = struct('name',cell(0,1),...
+        'date',cell(0,1),...
+        'bytes',cell(0,1),...
+        'isdir',cell(0,1),...
+        'datenum',cell(0,1));
+    else
+      if exist(full_filter,'dir')
+        dfiles = dir(' ');
+      else
+        dfiles = dir(full_filter);
+      end
+      if ~isempty(dfiles)
+        dfiles([dfiles.isdir]) = [];
+      end
+    end
+    
+    ddir = dir(p);
+    ddir = ddir([ddir.isdir]);
+    [~,index0] = sort(lower({ddir.name}));
+    ddir = ddir(index0);
+    ddir(strcmp({ddir.name},'.') | strcmp({ddir.name},'..')) = [];
+    
+    % Additional regular expression filter.
+    if nargin > 1 && ~isempty(re_filter)
+      if ispc || ismac
+        no_match = cellfun('isempty',regexpi({dfiles.name},re_filter));
+      else
+        no_match = cellfun('isempty',regexp({dfiles.name},re_filter));
+      end
+      dfiles(no_match) = [];
+    end
+    if filter_both,
+      if nargin > 1 && ~isempty(re_filter)
+        if ispc || ismac
+          no_match = cellfun('isempty',regexpi({ddir.name},re_filter));
+        else
+          no_match = cellfun('isempty',regexp({ddir.name},re_filter));
+        end
+        ddir(no_match) = [];
+      end
+    end
+    % Set navigator style:
+    %	1 => list all folders before all files, case-insensitive sorting
+    %	2 => mix files and folders, case-insensitive sorting
+    %	3 => list all folders before all files, case-sensitive sorting
+    nav_style = 1;
+    switch nav_style
+      case 1
+        [~,index1] = sort_fcn(dfiles);
+        [~,index2] = sort_fcn(ddir);
+        d = [ddir(index2);dfiles(index1)];
+      case 2
+        d = [dfiles;ddir];
+        [~,index] = sort(lower({d.name}));
+        d = d(index);
+      case 3
+        [~,index1] = sort({dfiles.name});
+        [~,index2] = sort({ddir.name});
+        d = [ddir(index2);dfiles(index1)];
+    end
+  end
+
 
 end
 
@@ -1323,69 +1443,6 @@ if ispc
 	p = fullfile(c{2:end},'');
 else
 	p = fullfile(c{:},'');
-end
-end
-
-% --------------------
-
-function d = filtered_dir(full_filter,re_filter,filter_both,sort_fcn)
-% Like dir, but applies filters and sorting.
-p = fileparts(full_filter);
-if isempty(p) && full_filter(1) == '/'
-	p = '/';
-end
-if exist(full_filter,'dir')
-	dfiles = dir(' ');
-else
-	dfiles = dir(full_filter);
-end
-if ~isempty(dfiles)
-	dfiles([dfiles.isdir]) = [];
-end
-
-ddir = dir(p);
-ddir = ddir([ddir.isdir]);
-[unused,index0] = sort(lower({ddir.name})); %#ok<ASGLU>
-ddir = ddir(index0);
-ddir(strcmp({ddir.name},'.') | strcmp({ddir.name},'..')) = [];
-
-% Additional regular expression filter.
-if nargin > 1 && ~isempty(re_filter)
-	if ispc || ismac
-		no_match = cellfun('isempty',regexpi({dfiles.name},re_filter));
-	else
-		no_match = cellfun('isempty',regexp({dfiles.name},re_filter));
-	end
-	dfiles(no_match) = [];
-end
-if filter_both
-	if nargin > 1 && ~isempty(re_filter)
-		if ispc || ismac
-			no_match = cellfun('isempty',regexpi({ddir.name},re_filter));
-		else
-			no_match = cellfun('isempty',regexp({ddir.name},re_filter));
-		end
-		ddir(no_match) = [];
-	end
-end
-% Set navigator style:
-%	1 => list all folders before all files, case-insensitive sorting
-%	2 => mix files and folders, case-insensitive sorting
-%	3 => list all folders before all files, case-sensitive sorting
-nav_style = 1;
-switch nav_style
-	case 1
-		[unused,index1] = sort_fcn(dfiles); %#ok<ASGLU>
-		[unused,index2] = sort_fcn(ddir); %#ok<ASGLU>
-		d = [ddir(index2);dfiles(index1)];
-	case 2
-		d = [dfiles;ddir];
-		[unused,index] = sort(lower({d.name})); %#ok<ASGLU>
-		d = d(index);
-	case 3
-		[unused,index1] = sort({dfiles.name}); %#ok<ASGLU>
-		[unused,index2] = sort({ddir.name}); %#ok<ASGLU>
-		d = [ddir(index2);dfiles(index1)];
 end
 end
 
