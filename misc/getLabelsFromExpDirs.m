@@ -1,5 +1,7 @@
 function labels=getLabelsFromExpDirs(expDirNames,labelFileNameRel)
 
+% ALTODO: guess this is deprecated
+
 nExps=length(expDirNames);
 labels = ...
   struct('t0s',cell(1,nExps), ...

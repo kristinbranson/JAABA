@@ -173,6 +173,7 @@ else
     headerinfo = info;
     headerinfo.type = 'avi';
   else
+    try
     readerobj = VideoReader(filename);
     nframes = get(readerobj,'NumberOfFrames');
     if isempty(nframes),
@@ -190,6 +191,24 @@ else
       headerinfo.nframes = headerinfo.Duration*headerinfo.FrameRate;
     end
     readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+    catch ME_videoreader,
+      
+      % try using aviread
+      try
+        headerinfo = aviinfo(filename); %#ok<FREMO>
+        nframes = headerinfo.NumFrames;
+        fps = headerinfo.FramesPerSecond;
+
+        readframe = @(f) aviread_helper(filename,f,fps);
+        headerinfo.type = 'avi';
+        fid = -1;
+      catch ME_aviread,
+        error('Could not open file %s with VideoReader (%s) or with aviread (%s)',...
+          filename,getReport(ME_videoreader),getReport(ME_aviread));
+      end
+      
+      
+    end
   end
 end
 
@@ -216,5 +235,15 @@ end
 timestamp = (f-1)/headerinfo.FrameRate;
 
 
+function [im,stamp] = aviread_helper(filename,f,fps)
 
-
+if numel(f) == 2,
+  M = aviread_rawy8(filename,f(1):f(2));
+else
+  M = aviread_rawy8(filename,f);
+end
+im = flipdim(cat(4,M.cdata),1);
+stamp = f / fps;
+    
+    
+    

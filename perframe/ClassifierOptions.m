@@ -52,16 +52,24 @@ function ClassifierOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to ClassifierOptions (see VARARGIN)
 
-
+%MERGESTUPDATED
 
 handles.data = varargin{1};
-handles.classifier_params = handles.data.classifier_params;
-set(handles.edit_iter,'String',num2str(handles.data.classifier_params.iter));
-set(handles.iter_updates,'String',num2str(handles.data.classifier_params.iter_updates));
-set(handles.edit_sample,'String',num2str(handles.data.classifier_params.numSample));
-set(handles.edit_bins,'String',num2str(handles.data.classifier_params.numBins));
-set(handles.folds,'String',num2str(handles.data.classifier_params.CVfolds));
-set(handles.popup_baseclassifier,'String',handles.data.classifier_params.baseClassifierTypes);
+clsParams = handles.data.classifier_params;
+tf = cellfun(@(x)isequal(x,clsParams{1}),clsParams(2:end));
+if ~all(tf)
+  warning('ClassifierOptions:multiclass',...
+    'Multiple classifiers do not share common parameters. This interface will set all classifiers to have the same parameters.');
+end
+params = clsParams{1};
+
+handles.classifier_params = params;
+set(handles.edit_iter,'String',num2str(params.iter));
+set(handles.iter_updates,'String',num2str(params.iter_updates));
+set(handles.edit_sample,'String',num2str(params.numSample));
+set(handles.edit_bins,'String',num2str(params.numBins));
+set(handles.folds,'String',num2str(params.CVfolds));
+set(handles.popup_baseclassifier,'String',params.baseClassifierTypes);
 
 % Choose default command line output for ClassifierOptions
 handles.output = hObject;
@@ -196,11 +204,9 @@ function pushbutton_apply_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_apply (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if handles.data.classifier_params.numBins ~= handles.classifier_params.numBins,
-  handles.data.windowdata.binVals = [];
-  handles.data.windowdata.bins = [];  
-end
-handles.data.classifier_params = handles.classifier_params;
+
+paramCell = repmat({handles.classifier_params},1,handles.data.nclassifiers);
+handles.data.setClassifierParams(paramCell);
 uiresume(handles.figure1);
 
 

@@ -54,7 +54,7 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
 
 % So that we can't be closed before we're done opening
-handles.doneWithOpeningFunction=false;
+handles.doneWithOpeningFunction = false;
 guidata(hObject,handles);
 
 % Process input arguments
@@ -67,7 +67,7 @@ figureJLabel = varargin{1};
 % Need to keep the parent JLabel's JLabelData object around (a ref to it,
 % really), for various annoying reasons
 jld = JLabel('getJLabelData',figureJLabel);
-handles.jld=jld;
+handles.jld = jld;
 
 % Get the cached version of maxWindowRadiusCommon out of JLabel
 maxWindowRadiusCommonCached= ...
@@ -78,8 +78,13 @@ maxWindowRadiusCommonCached= ...
 % well-suited to SelectFeatures
 featureLexicon = jld.featureLexicon;
 scoreFeatures = jld.scoreFeatures;
-toBeCalculatedPFNames=jld.allperframefns;
+toBeCalculatedPFNames = jld.allperframefns;
+% For now, windowFeatureParams are the same for all JLD classifiers
 windowFeatureParams = jld.GetPerframeParams();
+assert(iscell(windowFeatureParams) && ~isempty(windowFeatureParams));
+assert(all(cellfun(@(x)isequaln(x,windowFeatureParams{1}),...
+    windowFeatureParams(2:end))));
+windowFeatureParams = windowFeatureParams{1};
 handles.featureVocabulary= ...
   FeatureVocabularyForSelectFeatures(featureLexicon, ...
                                      scoreFeatures, ...
