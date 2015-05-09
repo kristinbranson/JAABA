@@ -52,6 +52,8 @@ function PostProcess_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to PostProcess (see VARARGIN)
 
+%MERGESTUPDATED whole file
+
 % Choose default command line output for PostProcess
 handles.output = hObject;
 
@@ -59,8 +61,14 @@ set(handles.uipanel_method,'SelectionChangeFcn',@methodchange)
 
 handles.data = varargin{1};
 handles.JLabelHandle = varargin{2};
+
+if handles.data.nclassifiers>1
+  error('PostProcess:multiClass',...
+    'PostProcessing UI not functional for multiple classifiers.');
+end
+
 params = handles.data.GetPostprocessingParams();
-% params = [];
+params = params{1}; % single classifier
 
 if isempty(params)
   params.method = 'Hysteresis';
@@ -111,8 +119,9 @@ function pushbutton_update_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.data.SetPostprocessingParams(handles.params);
-blen = handles.data.GetPostprocessedBoutLengths();
+
+handles.data.SetPostprocessingParams({handles.params});
+blen = handles.data.GetPostprocessedBoutLengths(1);
 
 JLabel('UpdateTimelineImages',handles.JLabelHandle);
 JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false,...
@@ -148,7 +157,7 @@ else
   
 end
 
-[labels,lscores,allscores,scoreNorm] = handles.data.GetAllLabelsAndScores();
+[labels,lscores,allscores,scoreNorm] = handles.data.GetAllLabelsAndScores(1);
 if isempty(allscores), 
   axis(handles.axes2,'off'); 
   return; 
@@ -161,10 +170,18 @@ bins = linspace(-scoreNorm,scoreNorm,numBins);
 bins = [-inf bins(2:end-1) inf];
 histPos = histc(lscores(pos),bins);
 histNeg = histc(lscores(neg),bins);
-if ~isempty(histPos),histPos(end) = []; 
-else histPos = zeros(numBins-1,1);end
-if ~isempty(histNeg),histNeg(end) = []; 
-else histNeg = zeros(numBins-1,1);end
+if ~isempty(histPos),
+  histPos(end) = []; 
+  histPos = histPos(:);
+else
+  histPos = zeros(numBins-1,1);
+end
+if ~isempty(histNeg),
+  histNeg(end) = []; 
+  histNeg = histNeg(:);
+else
+  histNeg = zeros(numBins-1,1);
+end
 
 handles.posColor = handles.JLabelHandle.guidata.labelcolors(1,:);
 handles.negColor = handles.JLabelHandle.guidata.labelcolors(2,:);
@@ -207,7 +224,7 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.data.SetPostprocessingParams(handles.params);
+handles.data.SetPostprocessingParams({handles.params});
 %handles.data.ApplyPostprocessing();
   % now done inside SetPostprocessingParams()
 JLabel('UpdateTimelineImages',handles.JLabelHandle);

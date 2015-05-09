@@ -1,6 +1,6 @@
 function glo = deployedRelative2Global(rel)
 
-if isdeployed && ~ismac && ~isglobalpath(rel),
+if isdeployed && ~isunix && ~isglobalpath(rel),
   path = pwd;
   glo = fullfile(path,rel);
 else

@@ -1,4 +1,3 @@
-
 classdef ShiftColor < handle
   
   properties (Access = public)

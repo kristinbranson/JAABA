@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+    <normal
+        sanitycheck="0"
+        min_window_radius="1" 
+        max_window_radius="10" 
+        nwindow_radii="3" 
+        window_offsets="0,-1,1" 
+        trans_types="none"  >
+      <mean min_window_radius="0"/>
+      <min/>
+      <max/>
+      <change change_window_radii="1,3"/>
+      <std/>
+      <harmonic num_harmonic="3"/>
+      <diff_neighbor_mean/>
+      <diff_neighbor_min/>
+      <diff_neighbor_max/>
+      <zscore_neighbors/>
+    </normal>
+  </defaults>
+  
+  <perframe>
+    <a_mm trans_types="none,abs" type="appearance"/>
+  </perframe>
+  
+  <perframe_params fov="3.1416" max_dnose2ell_anglerange="127"
+                    nbodylengths_near="2.5"
+                    thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+
+  <st/>
+
+</params>
