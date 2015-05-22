@@ -928,7 +928,7 @@ end
         tfBehVis(iLbls) = true;
       else
         tfBehVis = false(1,self.data.nbehaviors);
-        tfBehVis(1,self.data.nbehaviors/2) = true;
+        tfBehVis(1:self.data.nbehaviors/2) = true;
       end
       
       if self.plot_labels_manual
