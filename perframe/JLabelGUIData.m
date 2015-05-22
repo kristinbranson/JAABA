@@ -70,6 +70,8 @@ classdef JLabelGUIData < handle
     
     ts = 0; % vector with length equal to numel(self.axes_previews)
     hplaying = nan;
+    
+    
     edit_framenumbers = [];
     pushbutton_playstops = [];
 
@@ -352,8 +354,13 @@ classdef JLabelGUIData < handle
       temp = self.labels_timelines(1:end-2);
       self.labels_timelines(1:end-2) = temp(order);
 
-      self.text_timeline_props = nan(size(self.axes_timeline_props));
-      self.text_timelines = nan(size(self.axes_timelines));
+      if verLessThan('matlab','8.4.0'),
+        self.text_timeline_props = nan(size(self.axes_timeline_props));
+        self.text_timelines = nan(size(self.axes_timelines));
+      else
+        self.text_timeline_props = gobjects(size(self.axes_timeline_props));
+        self.text_timelines = gobjects(size(self.axes_timelines));        
+      end
       [~,idx] = ismember(self.axes_timeline_props,self.axes_timelines);
       for ii = 1:numel(self.axes_timeline_props),
         i = idx(ii);
@@ -585,7 +592,11 @@ classdef JLabelGUIData < handle
       end
 
       % play/stop
+if verLessThan('matlab','8.4.0'),
       self.hplaying = nan;
+else
+      self.hplaying = gobjects;
+end
 
 %       self.bookmark_windows = [];
     end    
@@ -916,7 +927,8 @@ classdef JLabelGUIData < handle
         tfBehVis = false(1,self.data.nbehaviors);
         tfBehVis(iLbls) = true;
       else
-        tfBehVis = true(1,self.data.nbehaviors);
+        tfBehVis = false(1,self.data.nbehaviors);
+        tfBehVis(1,self.data.nbehaviors/2) = true;
       end
       
       if self.plot_labels_manual
