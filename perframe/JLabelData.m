@@ -1280,53 +1280,15 @@ classdef JLabelData < matlab.mixin.Copyable
         error('JLabelData:expDirDoesNotExist', '%s', ...
               expDirName);
       end
-      
-%       % Is there an output directory?
-%       isoutexpdir = false;
-      
-      % Did the caller provide extra information about the tracks
-      %istrxinfo = false;
-
+ 
       [~,expName] = myfileparts(expDirName);
       
-%       % expnames and rootoutputdir must match (do we still need this?)
-%       if isoutexpdir,
-%         [rootoutputdir,outname] = myfileparts(outexpdir);
-%         if ~strcmp(expname,outname),
-%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-%           return;
-%         end
-%       elseif ~ischar(obj.rootoutputdir),
-%         outexpdir = expdir;
-%         rootoutputdir = 0;
-%       else
-%         rootoutputdir = obj.rootoutputdir;        
-%       end
-      
-%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
-%         outexpdir = fullfile(rootoutputdir,expname);
-%       end
-      %outexpdir=expDirName;
-
-%       % create missing outexpdirs
-%       if ~exist(outexpdir,'dir'),
-%         [success1,msg1] = mkdir(rootoutputdir,expname);
-%         if ~success1,
-%           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
-%           return;
-%         end
-%       end
-
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(expDirName,clipsdir);  %#ok
 
       % okay, checks succeeded, start storing stuff
-      %obj.nexps = obj.nexps + 1;
       obj.expdirs{end+1} = expDirName;
-      %obj.expnames{end+1} = expName;
-      %obj.rootoutputdir = rootoutputdir;
-      %obj.outexpdirs{end+1} = outexpdir;
 
       % If we call remove, it's to roll-back a failed experiment add, so we
       % don't want to set needsave in this case.
@@ -1422,15 +1384,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %           end
 %       end
       
-      % Set the fields describing the tracks, either using info provided by
-      % the caller, or by reading from the trx file.
-%       if istrxinfo,
-%         obj.nflies_per_exp(end+1) = nFlies;
-%         obj.sex_per_exp{end+1} = sex;
-%         obj.frac_sex_per_exp{end+1} = fracSex;
-%         obj.firstframes_per_exp{end+1} = firstFrames;
-%         obj.endframes_per_exp{end+1} = endFrames;
-%       else
       % Read from the trx file
       obj.SetStatus('Getting basic trx info for %s...',expName);
       trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
@@ -1454,7 +1407,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.frac_sex_per_exp{end+1} = fracSex;
       obj.firstframes_per_exp{end+1} = firstFrames;
       obj.endframes_per_exp{end+1} = endFrames;
-%       end
       
       % Initialize the labels for the current labeling mode
       iExp = obj.nexps;
@@ -1764,10 +1716,6 @@ classdef JLabelData < matlab.mixin.Copyable
           res = obj.moviefilename;
         case 'trx',
           res = obj.trxfilename;
-%         case 'label',
-%           res = obj.labelfilename;
-%         case 'gt_label',
-%             res = obj.gt_labelfilename;            
         case {'perframedir','perframe'},
           res = obj.perframedir;
         case {'clipsdir','clips'},
@@ -4687,7 +4635,6 @@ classdef JLabelData < matlab.mixin.Copyable
       nExps = length(self.expdirs);
       for expi = 1:nExps
         self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
-        %self.labelfilename = 0;
         self.UpdateStatusTable(statusTableString);   
       end
     end
@@ -9721,7 +9668,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % TODO: debug this
     % override stuff set in the config file: 
     %
-    % moviefilename, trxfilename, labelfilename, perframedir, clipsdir: names of
+    % moviefilename, trxfilename, perframedir, clipsdir: names of
     % files within experiment directories: 
     % featureparamsfilename: file containing feature parameters
     % rootoutputdir: in case we don't want to write to the experiment
