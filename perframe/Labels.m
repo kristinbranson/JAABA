@@ -569,12 +569,84 @@ classdef Labels
       end
     end
     
+    function labels = assignFlyLabelsRaw(labels,labelsShort,fly)
+      % Assign bouts for single target (labelsShort) into labels
+      %
+      % labels: scalar labels struct
+      % labelShort: labelsShort for a single target
+      % fly: target ID (value, not target index)
+      %
+      % IMPORTANT: labels.timelinetimestamp is expanded as necessary to
+      % include target if it is new, but is NOT SUBSTANTIVELY UPDATED
+      
+      assert(isscalar(labels));
+      assert(isscalar(fly)&&isnumeric(fly));
+      
+      if isempty(labels.flies)
+        % AL: special-case branch may be unnecessary; labels.flies should 
+        % be col vec even when empty
+        tfFlyExists = false; 
+      else
+        [tfFlyExists,j] = ismember(fly,labels.flies,'rows');
+      end
+      if ~tfFlyExists
+        j = size(labels.flies,1)+1;
+      end
+
+      labels.t0s{j} = labelsShort.t0s;
+      labels.t1s{j} = labelsShort.t1s;
+      labels.names{j} = labelsShort.names;
+      labels.flies(j,:) = fly;
+      labels.off(j) = labelsShort.off;
+      labels.timestamp{j} = labelsShort.timestamp;
+      NtimelineTS = numel(labels.timelinetimestamp);
+      if NtimelineTS<j
+        labels.timelinetimestamp(NtimelineTS+1:j) = {struct()};
+      end
+      labels.imp_t0s{j} = labelsShort.imp_t0s;
+      labels.imp_t1s{j} = labelsShort.imp_t1s;
+    end
+    
     function labelsShort = labelsShort()
       % labelsShort constructor
       labelsShort = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],...
         'off',0,'imp_t0s',[],'imp_t1s',[]);      
     end
+    
+    function labelsShort = labelsShortFromLabelIdx(labelidx)
+      % Construct a labelsShort from a labelidx
+
+      labelsShort = Labels.labelsShort();
+      labelsShort.off = labelidx.off;
       
+      for iTL = 1:labelidx.nTL
+        iBehs = labelidx.TL2idxBeh{iTL};
+        assert(isrow(iBehs));
+        for iB = iBehs
+          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==iB);
+          if ~isempty(i0s)
+            n = numel(i0s);
+            labelsShort.t0s(end+1:end+n) = i0s - labelidx.off;
+            labelsShort.t1s(end+1:end+n) = i1s - labelidx.off;
+            labelsShort.names(end+1:end+n) = repmat(labelidx.labelnames(iB),[1,n]);
+            labelsShort.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
+            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
+          end
+        end
+      end
+      % write importance
+      if labelidx.nTL==1
+        [i0s,i1s] = get_interval_ends(labelidx.imp);
+        if ~isempty(i0s)
+          labelsShort.imp_t0s = i0s - labelidx.off;
+          labelsShort.imp_t1s = i1s - labelidx.off;
+        end
+      else
+        % ALXXX EXTENDED
+        % Multiclassifier importance for GT
+      end
+    end
+
     function [labelsShort,tffly] = labelsShortInit(labelsShort,labels,fly)
       % Init labelShort from SCALAR labels and fly specification
       %
@@ -601,7 +673,7 @@ classdef Labels
         labelsShort.timestamp = labels.timestamp{ifly};
       end
     end
-      
+          
   end
   
   methods (Static,Access=private)
