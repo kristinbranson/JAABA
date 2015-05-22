@@ -4740,74 +4740,25 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % MERGESTUPDATED
       
-      % Write label info to newlabels structure
-      % TODO: don't know why writing to intermediate variable rather than obj.labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
+      assert(labelidx.off==labelidx_off);
       assert(isequal(labelidx.labelnames,obj.labelnames));
-      assert(labelidx.nbeh==obj.nbehaviors);
-      for iTL = 1:labelidx.nTL
-        
-        % Write bouts
-        % ALTODO: Optimization: don't loop over all behaviors/labels, just those relevant
-        % to this timeline
-        for j = 1:obj.nbehaviors,
-          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);          
-          if ~isempty(i0s)
-            n = numel(i0s);
-            newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-            newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
-            newlabels.names(end+1:end+n) = repmat(labelidx.labelnames(j),[1,n]);
-            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
-            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
-          end
-        end
-      end
-      % write importance
-      if labelidx.nTL==1
-        [i0s,i1s] = get_interval_ends(labelidx.imp);
-        if ~isempty(i0s)
-          newlabels.imp_t0s = i0s - labelidx_off;
-          newlabels.imp_t1s = i1s - labelidx_off;
-        end
-      else
-        % ALXXX EXTENDED
-        % Multiclassifier importance for GT
-      end
-      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+      assert(labelidx.nbeh==obj.nbehaviors);      
       
-      if isempty(obj.labels(expi).flies),
-        ism = false;
-      else
-        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
-      end
-      if ~ism,
-        j = size(obj.labels(expi).flies,1)+1;
-      end
+      labelsShort = Labels.labelsShortFromLabelIdx(labelidx);
+      obj.labels(expi) = Labels.assignFlyLabelsRaw(obj.labels(expi),labelsShort,flies);
 
-      obj.labels(expi).t0s{j} = newlabels.t0s;
-      obj.labels(expi).t1s{j} = newlabels.t1s;
-      obj.labels(expi).names{j} = newlabels.names;
-      obj.labels(expi).flies(j,:) = flies;
-      obj.labels(expi).off(j) = labelidx_off; % ALTODO: Don't understand, if we have adjusted by labelidx_off above, why are we recording this?
-      obj.labels(expi).timestamp{j} = newlabels.timestamp;
-      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
-      NtimelineTS = numel(obj.labels(expi).timelinetimestamp);
-      if NtimelineTS<j
-        obj.labels(expi).timelinetimestamp(NtimelineTS+1:j) = {struct()};
-      end
+      % Update labels.timelinetimestamp
+      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+      [tf,ifly] = ismember(flies,obj.labels(expi).flies,'rows');
+      assert(tf);
       for iTL = 1:labelidx.nTL
         classifiername = obj.labelnames{iTL};
-        if ~isfield(obj.labels(expi).timelinetimestamp{j},classifiername)
-          obj.labels(expi).timelinetimestamp{j}.(classifiername) = 0;
+        if ~isfield(obj.labels(expi).timelinetimestamp{ifly},classifiername)
+          obj.labels(expi).timelinetimestamp{ifly}.(classifiername) = 0;
         end
-        obj.labels(expi).timelinetimestamp{j}.(classifiername) = ...
-          max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
-      end          
-
-%       %AL: isn't obj.labels(expi).flies always unique?
-%       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-%       obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s); % AL: seems wrong, doesn't account for other flies
+        obj.labels(expi).timelinetimestamp{ifly}.(classifiername) = ...
+          max(obj.labels(expi).timelinetimestamp{ifly}.(classifiername),maxtimestamps(iTL));
+      end
     end
 
     
