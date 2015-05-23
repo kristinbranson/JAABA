@@ -252,7 +252,3 @@ classdef Jab < handle
   end
   
 end
-  
-  
-  
-  
