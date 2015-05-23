@@ -440,20 +440,22 @@ classdef Labels
       end
     end
     
-    function labelsComb = compileLabels(combExpDirNames,labels,expDirNames)
+    function labelsComb = compileLabels(combExpDirNames,labels,expDirNames,labelnames)
       % Compile/combine multiple label struct arrays.
       % 
       % combExpDirNames: cellstr, desired/target master list of experiments
       % labels: struct array of Labels. 
       % expDirNames: cellstr of expdirnames for labels.
+      % labelnames: cellstr of desired/expected "total set" of 
+      %   labelnames (in standard order, <beh> <nobeh>). Used to init
+      %   timelinetimestamps etc.
       % 
       % labelsComb: struct array of labels structures labeled by
       % combExpDirNames that contains all bouts in labels.
       %
-      % This method works iterating over labels and applying its bouts
-      % consecutively onto an initially "blank slate". Note, the labels
-      % applied may overlap but so far this does not appear to break
-      % anything.
+      % This method works by iterating over labels and applying its bouts
+      % consecutively onto an initially "blank slate".
+      % IMPORTANT: The bouts in the resulting labels struct may overlap.
       
       assert(iscellstr(combExpDirNames));
       Labels.verifyLabels(labels);
@@ -493,7 +495,48 @@ classdef Labels
         end
       end
       
-      labelsComb = Labels.initTimelineTimestamps(labelsComb,realBehsSeen);
+      clsNames = Labels.verifyBehaviorNames(labelnames);
+      assert(all(ismember(realBehsSeen,clsNames)),...
+        'Behavior names encountered that are not included in supplied ''labelnames''.');      
+      labelsComb = Labels.initTimelineTimestamps(labelsComb,clsNames);      
+      labelsComb = Labels.removeOverlappingBoutsRaw(labelsComb,labelnames);
+    end
+    
+    function labels = removeOverlappingBoutsRaw(labels,labelnames)
+      % Remove overlapping bouts by transforming
+      % labels->labelsShort->labelIdx->labelsShort->labels, ie write bouts
+      % to timelines, and then back.
+      %
+      % labelnames: cellstr of labelnames in standard ordering (<behs> then
+      % <nobehs>). This is just for implementation convenience and is
+      % theoretically unnecessary.
+      %
+      % IMPORTANT: 
+      % * .imp_t0s, .imp_t1s may not be set correctly for multiclassifier labels.
+      % * timelinetimestamp is not substantively updated.
+      
+      Nlbl = numel(labels);
+      for i = 1:Nlbl
+        nFly = numel(labels(i).flies);
+        for iFly = 1:nFly
+          % get labelsShort for this fly
+          fly = labels(i).flies(iFly);
+          lblShort = Labels.labelsShort();
+          [lblShort,tffly] = Labels.labelsShortInit(lblShort,labels(i),fly);     
+          assert(tffly);
+          
+          % create/init a "blank" labelIdx for this fly
+          off = labels(i).off(iFly);
+          T0 = 1-off;
+          T1 = max([lblShort.t0s(:); lblShort.t1s(:); ... 
+                    lblShort.imp_t0s(:); lblShort.imp_t1s(:); T0]) + 1; % make T1 as large as necessary to hold all bouts
+          lblIdx = Labels.labelIdx(labelnames,T0,T1);
+
+          lblIdx = Labels.labelIdxInit(lblIdx,lblShort);
+          lblShort = Labels.labelsShortFromLabelIdx(lblIdx);
+          labels(i) = Labels.assignFlyLabelsRaw(labels(i),lblShort,fly);
+        end
+      end
     end
     
     function m = labelMatrix(labels,T0,T1,behNames)
