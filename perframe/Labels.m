@@ -567,8 +567,7 @@ classdef Labels
       
       for iExp = 1:nExp
         L = labels(iExp);
-        for iFly = 1:numel(L.flies)
-          
+        for iFly = 1:numel(L.flies)          
           tts = L.timelinetimestamp{iFly};
           fns = fieldnames(tts);
           tf = ismember(behNames,fns);
@@ -607,6 +606,39 @@ classdef Labels
               end
               m(iExp,idx,iTL) = -1;
             end
+          end
+        end
+      end
+    end
+    
+    function bouts = boutList(labels,expNames)
+      % Return a struct array where each element represents a distinct bout
+      % in labels.
+      
+      assert(numel(labels)==numel(expNames));
+     
+      bouts = struct('id',cell(0,1),'t0',[],'t1',[],'name',[],'exp',[],'fly',[],'flyoff',[],'timestamp',[]);      
+      for iExp = 1:numel(labels)
+        exp = expNames{iExp};
+        lblsExp = labels(iExp);
+        for iFly = 1:numel(lblsExp.flies)
+          fly = lblsExp.flies(iFly);
+          flyoff = lblsExp.off(iFly);          
+          for iBout = 1:numel(lblsExp.t0s{iFly})
+            t0 = lblsExp.t0s{iFly}(iBout);
+            t1 = lblsExp.t1s{iFly}(iBout);
+            nm = lblsExp.names{iFly}{iBout};
+            
+            id = sprintf('%s|%d|%s|%d|%d',exp,fly,nm,t0,t1);
+
+            bouts(end+1,1).id = id; %#ok<AGROW>
+            bouts(end).exp = exp; 
+            bouts(end).fly = fly;
+            bouts(end).flyoff = flyoff;
+            bouts(end).t0 = t0;
+            bouts(end).t1 = t1;
+            bouts(end).name = nm;
+            bouts(end).timestamp = lblsExp.timestamp{iFly}(iBout);
           end
         end
       end
