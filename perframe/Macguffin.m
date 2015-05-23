@@ -431,7 +431,7 @@ classdef Macguffin < handle
       alllabels = cat(2,alllabels{:});
       assert(numel(alllabels)==numel(allexpdirnames));
       % compile/combine labels
-      self.labels = Labels.compileLabels(allexpdirnamesUn,alllabels,allexpdirnames);
+      self.labels = Labels.compileLabels(allexpdirnamesUn,alllabels,allexpdirnames,self.behaviors.names);
         
       %%% windowFeaturesParams
       assert(numel(allbehs)==numel(allwfp));
