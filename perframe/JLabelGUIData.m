@@ -211,8 +211,6 @@ classdef JLabelGUIData < handle
     outavi_quality = 95;
     useVideoWriter = false;
     
-    % bookmark_windows = [];
-
     %% Misc
     
     % Status Bar
@@ -598,7 +596,6 @@ else
       self.hplaying = gobjects;
 end
 
-%       self.bookmark_windows = [];
     end    
     
     function initializeFinal(self)

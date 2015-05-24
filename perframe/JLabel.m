@@ -2581,6 +2581,8 @@ return
 function handles = LoadRC(handles)
 % Load the user preferences from the .JLabelrc.mat file.
 
+% AL 20150524: Looks like a JLabelGUIData method
+
 % rc file name
 if isdeployed,
   handles.guidata.rcfilename = deployedRelative2Global('.JLabelrc.mat');
@@ -5912,7 +5914,7 @@ return
 % -------------------------------------------------------------------------
 function handles = AddBookmark(handles,clip)
 
-fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
+fprintf('Create bookmark for %d:%d\n',clip.t0,clip.t1);
 flystr = sprintf('%d, ',handles.data.flies);
 flystr = flystr(1:end-2);
 SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d...',...
@@ -6320,7 +6322,7 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-CompressionPreferences(handles.figure_JLabel);
+CompressionPreferences(handles.guidata);
 return
 
 
