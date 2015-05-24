@@ -757,12 +757,12 @@ end
     end
     
     function resetLabelButtons(self)
-      deleteHandleNotNan(self.togglebutton_label_behaviors(2:end));
+      deleteValidHandles(self.togglebutton_label_behaviors(2:end));
       self.togglebutton_label_behaviors = self.togglebutton_label_behaviors(1);
-      deleteHandleNotNan(self.togglebutton_unknown_behaviors);
+      deleteValidHandles(self.togglebutton_unknown_behaviors);
       self.togglebutton_unknown_behaviors = [];
       self.togglebutton_unknowns = self.gdata.togglebutton_label_unknown;
-      deleteHandleNotNan(self.togglebutton_label_noneall);
+      deleteValidHandles(self.togglebutton_label_noneall);
       self.togglebutton_label_noneall = [];
     end
     
