@@ -176,11 +176,12 @@ classdef Jab < handle
       % jabMerge(jabfiles,jabout)
       % Merge two or more jab files.
       %
+      % Behaviors with the same name (precisely, case-sensitive, etc) are 
+      % treated as the same classifier. Experiment names/directories should
+      % be in a consistent format.
+      %
       % jabfiles: optional. cellstr of jab filenames
       % jabout: optional. output jab filename
-      %
-      % - Behaviors with the same name (precisely, case-sensitive, etc)
-      % are treated as the same classifier.
       
       if ~exist('jabfiles','var') || isempty(jabfiles)
         [tfsuccess,jabfiles] = Jab.uiGetJabFiles('promptstr','Select jab files to combine');
