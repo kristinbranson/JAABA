@@ -3298,23 +3298,23 @@ if get(hObject,'Value'),
   % set everything else to off
   for j = 1:2*handles.data.nbehaviors,
     if verLessThan('matlab','8.4.0')
-      validhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
+      invalidhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
     else
-      validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
+      invalidhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
     end
     
-    if validhandle
+    if invalidhandle
       continue;
     end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
   end
   h = handles.guidata.togglebutton_unknowns;
   if verLessThan('matlab','8.4.0')
-    validhandle = isnan(h);
+    invalidhandle = isnan(h);
   else
-    validhandle = ~ishghandle(h);
+    invalidhandle = ~ishghandle(h);
   end
-  set(h(h~=hObject & ~validhandle),'Value',0,'Enable','off');
+  set(h(h~=hObject & ~invalidhandle),'Value',0,'Enable','off');
 
   set(handles.guidata.htimeline_label_curr,'XData',handles.label_t0 + [-.5,-.5,.5,.5,-.5],...
     'FaceColor',handles.guidata.labelunknowncolor);
@@ -3376,14 +3376,14 @@ else
   %handles.data.StoreLabels();
   for j = 1:2*handles.data.nbehaviors,
 if verLessThan('matlab','8.4.0')
-validhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
+invalidhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
 else
-validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
+invalidhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
 end
 
-    if validhandle
-continue; 
-end
+    if invalidhandle
+      continue;
+    end
     buttonStr = sprintf('%s',handles.data.labelnames{ceil(j/2)});
     if handles.guidata.GUIAdvancedMode && mod(j,2); 
       buttonStr = sprintf('Important %s',buttonStr); 
@@ -3392,13 +3392,13 @@ end
   end
   h = handles.guidata.togglebutton_unknowns;
 if verLessThan('matlab','8.4.0')
-validhandle = ~isnan(h);
+invalidhandle = isnan(h);
 else
-validhandle = ~ishandle(h);
+invalidhandle = ~ishandle(h);
 end
 
 
-  set(h(h~=hObject & validhandle),'Value',0,'Enable','on');  
+  set(h(h~=hObject & ~invalidhandle),'Value',0,'Enable','on');  
   UpdatePlots(handles,...
     'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
     'refresh_timeline_manual',true,...
