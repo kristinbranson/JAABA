@@ -673,14 +673,7 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(nnz(tf)==1);
       iCls = obj.labelidx.idxBeh2idxTL(tf);
     end
-    
-    
-    % ---------------------------------------------------------------------
-    function result = isValidBehaviorName(behaviorName)
-      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
-        isvarname(behaviorName); 
-      % AL: second condition because labels.timelinetimestamp, see Labels.m
-    end
+
     
     function noneToNoBeh(obj)
       % For single-classfier projects: Convert 'None' to 'No_<behavior>'
@@ -864,6 +857,17 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
      
+  end
+  
+  methods (Static)
+    
+    % ---------------------------------------------------------------------
+    function result = isValidBehaviorName(behaviorName)
+      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
+        isvarname(behaviorName); 
+      % AL: second condition because labels.timelinetimestamp, see Labels.m
+    end
+    
   end
   
   methods % more private
