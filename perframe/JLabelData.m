@@ -8544,8 +8544,8 @@ classdef JLabelData < matlab.mixin.Copyable
         if jumpList(ndx).exp ~= expi || jumpList(ndx).fly ~= flies
           continue;
         end
-        idx = jumpList(ndx).t -T0 + 1 + (-ignore:ignore);
-        idx(idx<0) = [];
+        idx = jumpList(ndx).t - T0 + 1 + (-ignore:ignore);
+        idx(idx<1) = [];
         idx(idx>numel(dist)) = [];
         dist(idx) = inf;
       end
