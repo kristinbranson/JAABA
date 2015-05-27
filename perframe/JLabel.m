@@ -4855,7 +4855,7 @@ else
   set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
   zoom(handles.guidata.axes_timeline_props(propi),'reset');
 
-  if isnan(handles.guidata.timeline_data_ylims(1,prop))
+  if ~isnan(handles.guidata.timeline_data_ylims(1,prop))
     ylim = handles.guidata.timeline_data_ylims(:,prop);
     set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
   end
