@@ -3807,10 +3807,10 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.windowdata(iCls).labelidx_new = [obj.windowdata(iCls).labelidx_new; tmp(1).labelidx_new];
             obj.windowdata(iCls).labelidx_imp = [obj.windowdata(iCls).labelidx_imp; tmp(1).labelidx_imp];
             obj.windowdata(iCls).labelidx_old = [obj.windowdata(iCls).labelidx_old; zeros(nframes,1)];
+            obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
 %             obj.windowdata(iCls).predicted = [obj.windowdata(iCls).predicted; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores = [obj.windowdata(iCls).scores; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores_old = [obj.windowdata(iCls).scores_old; zeros(nframes,1)];
-%             obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
 %             obj.windowdata(iCls).postprocessed = [obj.windowdata(iCls).postprocessed; zeros(nframes,1)];
 %             obj.windowdata(iCls).isvalidprediction = [obj.windowdata(iCls).isvalidprediction; false(nframes,1)];
             %obj.windowdata(iCls).featurenames = [obj.windowdata(iCls).featurenames tmp(1).featurenames];
@@ -7917,7 +7917,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % labels: vector of length nsamp. Values are 1/2 for pos/neg labels, 
       %   resp. Conceptually like obj.windowdata(iCls).labelidx; can 
       %   contain 0 (?).
-      % bouts: see getLabeledBouts()
+      % bouts: see getLabeledBouts(). Used only for generating setidx when
+      %   necessary.
       % setidx: optional, integer grouping vector, length nsamp. Values in 
       %   range 1:k. Partitions windowdata for k-fold crossvalidation. If 
       %   not provided, setidx is generated using cvpartition.
@@ -7970,6 +7971,8 @@ classdef JLabelData < matlab.mixin.Copyable
           for iB = iBoutTest(:)'
             testNdx = testNdx | bouts.ndx(iB,:);
           end
+          assert(all(isnan(setidx(testNdx))),...
+            'Overlapping bouts encountered for classifier %d.',iCls);
           setidx(testNdx) = iFold;
         end
       end
@@ -7977,6 +7980,14 @@ classdef JLabelData < matlab.mixin.Copyable
       validateattributes(setidx,{'numeric'},{'positive' 'integer' 'vector' 'numel' nsamp});
       k = max(setidx);
       assert(isequal(unique(setidx(:)'),1:k));
+      
+      % AL20150528: I may have encountered a situation where the 
+      % crossvalidation results table did not sum up as expected across
+      % rows (with totals corresponding to number of frames labeled etc). 
+      % I am including this temporary debug statement so we may check
+      % against the results table.
+      fprintf(1,'Count of labels (pos/neg/tot): %d/%d/%d\n',...
+        nnz(labels==1),nnz(labels==2),numel(labels));
       
       scores = zeros(1,nsamp);
       bins = findThresholdBins(data,binVals);
@@ -7994,7 +8005,7 @@ classdef JLabelData < matlab.mixin.Copyable
         scores(1,curTestNdx) = tScores;
         etime = toc(tt);
         obj.SetStatus('%d%% cross-validation done.  Time Remaining: %d s ',...
-          round(bno/k*100),round( (k-bno)*etime));
+          round(bno/k*100),round((k-bno)*etime));
         drawnow();
       end
 
