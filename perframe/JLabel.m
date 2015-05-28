@@ -6439,10 +6439,9 @@ if handles.data.nclassifiers>1
   % JLabelData methods are updated (untested), but UI is not updated
 end
 
-[success,msg,crossError,tlabels] = handles.data.CrossValidate();
+[success,msg,crossError] = handles.data.CrossValidate();
 msg = msg{1};
 crossError = crossError{1};
-tlabels = tlabels{1};
 if ~success
   warndlg(msg); 
   return; 
@@ -6471,11 +6470,11 @@ rnames = {sprintf('%s Important ',handles.data.labelnames{1}),...
 dat = {};
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError(1).numbers(row,col));
-    if isnan(crossError(1).frac(row,col))
+    t1 = sprintf('%d ',crossError.numbers(row,col));
+    if isnan(crossError.frac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError(1).frac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError.frac(row,col)*100);
     end
     dat{row,col} = sprintf('%s%s',t1,t2);  %#ok
   end
@@ -6485,13 +6484,13 @@ dat(5,:) = repmat({''},1,3);
 
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError(1).oldNumbers(row,col));
-    if isnan(crossError(1).oldFrac(row,col))
+    t1 = sprintf('%d ',crossError.oldNumbers(row,col));
+    if isnan(crossError.oldFrac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError(1).oldFrac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError.oldFrac(row,col)*100);
     end
-    dat{5+row,col} = sprintf('%s%s',t1,t2);  %#ok  
+    dat{5+row,col} = sprintf('%s%s',t1,t2);
   end
 end
         
@@ -6500,31 +6499,32 @@ t = uitable('Parent',f,'Data',dat([1 3 5 6 8],:),'ColumnName',cnames,...
             'ColumnWidth',{100},...
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok  
 
-handles.guidata.open_peripherals(end+1) = f;          
-if numel(crossError)>1
-  for tndx = 1:numel(crossError)
-    errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);  %#ok
-    errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);  %#ok
-  end
-  totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
-  totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
-
-  errorAll = errorAll/totExamplesAll;
-  errorImp = errorImp/totExamplesImp;
-
-  f = figure('Name','Cross Validation Error with time');
-  % ax = plot([errorAll errorImp]);
-  % legend(ax,{'All', 'Important'});
-  % set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
-  % title(gca,'Cross Validation Error with time');
-  ax = axes('parent',f,'box','on');
-  line('parent',ax, ...
-       'ydata',[errorAll errorImp]);
-  legend(ax,{'All', 'Important'});
-  set(ax,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
-  title(ax,'Cross Validation Error with time');
-  handles.guidata.open_peripherals(end+1) = f;          
-end
+handles.guidata.open_peripherals(end+1) = f;
+assert(isscalar(crossError));
+% if numel(crossError)>1
+%   for tndx = 1:numel(crossError)
+%     errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);  %#ok
+%     errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);  %#ok
+%   end
+%   totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
+%   totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
+% 
+%   errorAll = errorAll/totExamplesAll;
+%   errorImp = errorImp/totExamplesImp;
+% 
+%   f = figure('Name','Cross Validation Error with time');
+%   % ax = plot([errorAll errorImp]);
+%   % legend(ax,{'All', 'Important'});
+%   % set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+%   % title(gca,'Cross Validation Error with time');
+%   ax = axes('parent',f,'box','on');
+%   line('parent',ax, ...
+%        'ydata',[errorAll errorImp]);
+%   legend(ax,{'All', 'Important'});
+%   set(ax,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+%   title(ax,'Cross Validation Error with time');
+%   handles.guidata.open_peripherals(end+1) = f;          
+% end
 return
 
 

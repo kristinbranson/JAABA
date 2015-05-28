@@ -7804,13 +7804,12 @@ classdef JLabelData < matlab.mixin.Copyable
   methods
 
     % ---------------------------------------------------------------------
-    function [success,msg,crossErrorCell,tlabels] = CrossValidate(obj,varargin)
+    function [success,msg,crossErrorCell] = CrossValidate(obj,varargin)
     % Cross validate on bouts.
     %
     % success: nclassifier-by-1 logical
     % msg: nclassifier-by-1 cellstr
     % crossErrorCell: nclassifier-by-1 cell
-    % tlabels: nclassifier-by-1 cell
       
     %MERGESTUPDATED
     
@@ -7818,7 +7817,6 @@ classdef JLabelData < matlab.mixin.Copyable
       success = false(nCls,1);
       msg = repmat({''},nCls,1);
       crossErrorCell = cell(nCls,1);
-      tlabels = cell(nCls,1);
       
       obj.StoreLabelsAndPreLoadWindowData();      
       
@@ -7834,12 +7832,6 @@ classdef JLabelData < matlab.mixin.Copyable
         wd = obj.windowdata(iCls);
         islabeled = wd.labelidx_new~=0 & wd.labelidx_imp;
         if ~any(islabeled)
-%           ce = struct;
-%           ce.numbers = zeros(4,3);
-%           ce.frac = zeros(4,3);
-%           ce.oldNumbers = zeros(4,3);
-%           ce.oldFrac = zeros(4,3);
-%           crossErrorCell{iCls} = ce;
           msg{iCls} = 'No Labeled Data';
           continue;
         end
@@ -7868,25 +7860,13 @@ classdef JLabelData < matlab.mixin.Copyable
         iLblNeg = iLbl(2);
         labels012 = Labels.labelVec2label012(labels,iLblPos,iLblNeg);
                 
-        [success(iCls),msg{iCls},crossScores,tlabels{iCls}] = ...
-          obj.crossValidateBout(iCls,labels012,bouts,true,setidx);        
+        [success(iCls),msg{iCls},crossScores] = ...
+          obj.crossValidateBout(iCls,labels012,bouts,setidx);        
         if ~success(iCls)
-%           crossError.numbers = zeros(4,3);
-%           crossError.frac = zeros(4,3);
-%           crossError.oldNumbers = zeros(4,3);
-%           crossError.oldFrac = zeros(4,3);
-%           tlabels = {};
           continue;          
         end
-        
-        %{
-%       crossScores=...
-%         crossValidate( obj.windowdata.X(islabeled,:), ...
-%         obj.windowdata.labelidx_cur(islabeled,:),obj,...
-%         obj.windowdata.binVals,...
-%         obj.windowdata.bins(:,islabeled),obj.classifier_params);
-        %}
-        
+                
+        assert(isrow(crossScores));
         obj.windowdata(iCls).scores_validated = zeros(numel(islabeled),1);
         obj.windowdata(iCls).scores_validated(islabeled) = crossScores(1,:);
         
@@ -7901,12 +7881,9 @@ classdef JLabelData < matlab.mixin.Copyable
         modLabels = 2*labelsLabeled12 - labelsImpLabeled;
         
         %crossError=zeros(1,size(crossScores,1));
-        nSomething = size(crossScores,1);
-        crossError = struct('numbers',cell(1,nSomething),...
-          'frac',cell(1,nSomething));
-        for tndx = 1:nSomething
-          crossError(tndx) = obj.createConfMat(iCls,crossScores(tndx,:),modLabels);
-        end
+        %nSomething = size(crossScores,1);
+        %crossError = struct('numbers',[],'frac',[]);
+        crossError = obj.createConfMat(iCls,crossScores,modLabels);
         
         waslabeled = false(numel(islabeled),1);
         waslabeled(1:numel(wd.labelidx_old)) = wd.labelidx_old~=0 & wd.labelidx_imp;
@@ -7920,8 +7897,8 @@ classdef JLabelData < matlab.mixin.Copyable
         
         oldLabels = 2*labelsCur12 - labelsImp;
         oldError = obj.createConfMat(iCls,oldScores,oldLabels);
-        crossError(1).oldNumbers = oldError.numbers;
-        crossError(1).oldFrac = oldError.frac;
+        crossError.oldNumbers = oldError.numbers;
+        crossError.oldFrac = oldError.frac;
         
         crossErrorCell{iCls} = crossError;
       end
@@ -7931,8 +7908,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------    
-    function [success,msg,scores,tlabels] = ...
-        crossValidateBout(obj,iCls,labels,bouts,timed,setidx)
+    function [success,msg,scores] = ...
+        crossValidateBout(obj,iCls,labels,bouts,setidx)
       %
       % Let windowdata have length nsamp, ie nsamp = numel(obj.windowdata(iCls).t)
       %
@@ -7941,13 +7918,12 @@ classdef JLabelData < matlab.mixin.Copyable
       %   resp. Conceptually like obj.windowdata(iCls).labelidx; can 
       %   contain 0 (?).
       % bouts: see getLabeledBouts()
-      % timed: scalar logical. Currently ignored/set to false
-      % setidx: integer grouping vector, length nsamp. Values in range 1:k. 
-      %   Partitions windowdata for k-fold crossvalidation.
+      % setidx: optional, integer grouping vector, length nsamp. Values in 
+      %   range 1:k. Partitions windowdata for k-fold crossvalidation. If 
+      %   not provided, setidx is generated using cvpartition.
       %
       % scores: vector of classification scores. Length nsamp, except 
       %  indices for labels==0 removed.
-      % tlabels: Currently unused (for timed)
       
       %MERGESTUPDATED
       
@@ -7963,182 +7939,63 @@ classdef JLabelData < matlab.mixin.Copyable
 
       modLabels = sign((labels==1)-0.5); % labels==0?
 
-      if exist('timed','var') && timed
-        fprintf('WARNING: setting timed = false in crossValidateBout, even though the input is true. FIX THIS!\n');
-      end
-      timed = false;
-
-      if exist('setidx','var') && ~isempty(setidx)
-        validateattributes(setidx,{'numeric'},{'integer' 'vector' 'numel' nsamp});
-      else
-        setidx = [];
-      end
-      issetidx = ~isempty(setidx);
-      
-      if issetidx
-        k = max(setidx);
-      else
-        k = params.CVfolds;
-      end
-
-      % choose sets to hold out together
-      if ~issetidx
+      if ~exist('setidx','var') || isempty(setidx)
         assert(all(bouts.label==1 | bouts.label==2));
         posBouts = bouts.label==1;
         negBouts = ~posBouts;
-
+        nFolds = params.CVfolds;
+        
         numPosBouts = nnz(posBouts);
-        numNegBouts = nnz(negBouts);
-
-        if numPosBouts<k || numNegBouts<k
+        numNegBouts = nnz(negBouts);        
+        if numPosBouts<nFolds || numNegBouts<nFolds
           scores = zeros(1,nsamp);
-          scores(labels==0) = []; 
-          tlabels = {};
-          success = false;
-
-          if numPosBouts<k
+          scores(labels==0) = [];
+          success = false;          
+          if numPosBouts<nFolds
             msg = 'Too few bouts of behavior to do cross-validation';
           end
-          if numNegBouts <k
-            msg = 'Too few bouts of not behavior to do cross-validation';
-          end
-
+          if numNegBouts<nFolds
+            msg = 'Too few bouts of not-behavior to do cross-validation';
+          end          
           return;
         end
-
-        posBlocks = linspace(0,numPosBouts+1,k+1);
-        negBlocks = linspace(0,numNegBouts+1,k+1);
-        posCum = cumsum(posBouts);
-        negCum = cumsum(negBouts);
-        % Randomly permute the bouts.
-        % ALXXX NEEDS REVIEW
-        % Looks like a bug based on subsequent usage
-        posCum = posCum(randperm(numel(posCum)));
-        negCum = negCum(randperm(numel(negCum)));
-      end
-
-      tlabels = {};
-      if timed
-        assert(false,'Currently unreachable codepath.');
-%         tpoints(1) = max(bouts.timestamp);  %#ok
-%         tlabels{1} = datestr(tpoints(1));
-%         tpoints(end+1) = addtodate(tpoints(1),-5,'minute');
-%         tlabels{end+1} = '-5m';
-%         tpoints(end+1) = addtodate(tpoints(1),-10,'minute');
-%         tlabels{end+1} = '-10m';
-%         tpoints(end+1) = addtodate(tpoints(1),-15,'minute');
-%         tlabels{end+1} = '-15m';
-%         tpoints(end+1) = addtodate(tpoints(1),-20,'minute');
-%         tlabels{end+1} = '-20m';
-%         tpoints(end+1) = addtodate(tpoints(1),-25,'minute');
-%         tlabels{end+1} = '-25m';
-%         tpoints(end+1) = addtodate(tpoints(1),-30,'minute');
-%         tlabels{end+1} = '-30m';
-%         tpoints(end+1) = addtodate(tpoints(1),-45,'minute');
-%         tlabels{end+1} = '-45m';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'hour');
-%         tlabels{end+1} = '-1h';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'hour');
-%         tlabels{end+1} = '-2h';
-%         tpoints(end+1) = addtodate(tpoints(1),-3,'hour');
-%         tlabels{end+1} = '-3h';
-%         tpoints(end+1) = addtodate(tpoints(1),-4,'hour');
-%         tlabels{end+1} = '-4h';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'day');
-%         tlabels{end+1} = '-1d';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'day');
-%         tlabels{end+1} = '-2d';
-%         tpoints(end+1) = addtodate(tpoints(1),-3,'day');
-%         tlabels{end+1} = '-3d';
-%         tpoints(end+1) = addtodate(tpoints(1),-7,'day');
-%         tlabels{end+1} = '-1w';
-%         tpoints(end+1) = addtodate(tpoints(1),-7*2,'day');
-%         tlabels{end+1} = '-2w';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'month');
-%         tlabels{end+1} = '-1mo';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'month');
-%         tlabels{end+1} = '-2mo';
-%         tpoints(end+1) = addtodate(tpoints(1),-6,'month');
-%         tlabels{end+1} = '-6mo';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'year');
-%         tlabels{end+1} = '-1y';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'year');
-%         tlabels{end+1} = '-2y';
-%         tpoints(end+1) = addtodate(tpoints(1),-10,'year');
-%         tlabels{end+1} = '-10y';
-% 
-%         tooOld = tpoints< min(bouts.timestamp) ;
-%         tpoints(tooOld) = [];
-%         tlabels(tooOld) = [];
-      else
-        tpoints = now;
-      end
-
-      scores = zeros(numel(tpoints),nsamp);
-      bins = findThresholdBins(data,binVals);
-
-      for bno = 1:k
-        % generate curTestNdx, indicator vector for test set
-        if ~issetidx
-          % AL 20141216: Looks like intent is, give me bno'th block of 
-          % positive bouts, suitably randomized; and similarly for negative
-          % bouts. However, seems unlikely that random permutation of 
-          % pos/negCum above has the desired effect. Eg consider 
-          % negBouts = [1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 ... many zeros]. 
-          % In this case negCum is dominated by the value 4 and after
-          % randomization the likely effect is that whichever block
-          % contains 4 will contain all bouts.
-          curPosTest = posCum >= posBlocks(bno) & posCum < posBlocks(bno+1) & posBouts;
-          curNegTest = negCum >= negBlocks(bno) & negCum < negBlocks(bno+1) & negBouts;
-          curTestNdx = false(1,nsamp);
-          assert(isrow(curPosTest));
-          assert(isrow(curNegTest));
-          for posNdx = find(curPosTest)
-            curTestNdx = curTestNdx | bouts.ndx(posNdx,:);
-          end          
-          for negNdx = find(curNegTest)
-            curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
-          end          
-        else          
-          curTestNdx = setidx==bno;          
-        end
-
-        for tndx = 1:numel(tpoints)
-          % find curTrainNdx, indicator vector for train set
-          if ~issetidx
-            curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
-            curNegTrain = find(~curNegTest & negBouts & bouts.timestamp<=tpoints(tndx));
-            curTrainNdx = false(1,nsamp);
-            assert(isrow(curPosTrain));
-            assert(isrow(curNegTrain));
-            for posNdx = curPosTrain
-              curTrainNdx = curTrainNdx | bouts.ndx(posNdx,:);
-            end
-            for negNdx = curNegTrain
-              curTrainNdx = curTrainNdx | bouts.ndx(negNdx,:);
-            end            
-          else            
-            curTrainNdx = bno~=setidx;            
+        
+        cvpart = cvpartition(posBouts,'kfold',nFolds);
+        
+        setidx = nan(1,nsamp);
+        for iFold = 1:nFolds
+          iBoutTest = test(cvpart,iFold); % should contain both pos and neg bouts
+          iBoutTest = find(iBoutTest);
+          testNdx = false(1,nsamp);
+          for iB = iBoutTest(:)'
+            testNdx = testNdx | bouts.ndx(iB,:);
           end
-          
-          assert(~any(curTestNdx & curTrainNdx),'Training/testing sets are not disjoint.');
-
-          curTrainLabels = modLabels(curTrainNdx);
-
-          wt = getWeights(curTrainLabels);  
-          tt = tic;
-          curbins = curTrainNdx;
-          [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
-            params.iter,wt,binVals,bins(:,curbins),params);
-          tScores = myBoostClassify(data(curTestNdx,:),curModel);
-          scores(tndx,curTestNdx) = tScores;
-          etime = toc(tt);
-          done = ((bno-1)*numel(tpoints) + tndx);
-          obj.SetStatus('%d%% cross-validation done.  Time Remaining: %d s ',...
-            round( done/(numel(tpoints)*k)*100), ...
-            round( ((numel(tpoints)*k)-done)*etime));
-          drawnow();
+          setidx(testNdx) = iFold;
         end
+      end
+      
+      validateattributes(setidx,{'numeric'},{'positive' 'integer' 'vector' 'numel' nsamp});
+      k = max(setidx);
+      assert(isequal(unique(setidx(:)'),1:k));
+      
+      scores = zeros(1,nsamp);
+      bins = findThresholdBins(data,binVals);
+      for bno = 1:k
+        curTestNdx = setidx==bno;
+        curTrainNdx = setidx~=bno;
+        
+        curTrainLabels = modLabels(curTrainNdx);
+        wt = getWeights(curTrainLabels);
+        tt = tic;
+        curbins = curTrainNdx;
+        [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
+          params.iter,wt,binVals,bins(:,curbins),params);
+        tScores = myBoostClassify(data(curTestNdx,:),curModel);
+        scores(1,curTestNdx) = tScores;
+        etime = toc(tt);
+        obj.SetStatus('%d%% cross-validation done.  Time Remaining: %d s ',...
+          round(bno/k*100),round( (k-bno)*etime));
+        drawnow();
       end
 
       scores(:,labels==0) = [];
