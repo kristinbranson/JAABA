@@ -372,6 +372,8 @@ classdef Labels
       % may represent either real behaviors or no-behaviors.
       % WARNING: timelinetimestamps are unmodified. See
       % Lables.renameBehavior for a safer rename method.
+      assert(ischar(behOld));
+      assert(ischar(behNew));
 
       for iExp = 1:numel(labels)
         for iFly = 1:numel(labels(iExp).flies)
@@ -438,72 +440,103 @@ classdef Labels
       end
     end
     
-    function labelsComb = compileLabels(combExpDirNames,labelsCell,expDirNamesCell)
+    function labelsComb = compileLabels(combExpDirNames,labels,expDirNames,labelnames)
       % Compile/combine multiple label struct arrays.
       % 
       % combExpDirNames: cellstr, desired/target master list of experiments
-      % labelsCell: cell array containing labels struct arrays. Typically
-      % each element of labelsCell represents labels for a certain
-      % behavior.
-      % expDirNames: cell array containing cellstrs of expdirnames for
-      % labelCell. expDirNames{i} are the expdirnames for labelsCell{i}. 
+      % labels: struct array of Labels. 
+      % expDirNames: cellstr of expdirnames for labels.
+      % labelnames: cellstr of desired/expected "total set" of 
+      %   labelnames (in standard order, <beh> <nobeh>). Used to init
+      %   timelinetimestamps etc.
       % 
-      % labelsCell and expDirNamesCell must have the same number of
-      % elements; labelsCell{i} and expDirNames{i} must have the same 
-      % number of elements.
-      %
       % labelsComb: struct array of labels structures labeled by
-      % combExpDirNames that contains all bouts in labelsCell.
+      % combExpDirNames that contains all bouts in labels.
+      %
+      % This method works by iterating over labels and applying its bouts
+      % consecutively onto an initially "blank slate".
+      % IMPORTANT: The bouts in the resulting labels struct may overlap.
       
       assert(iscellstr(combExpDirNames));
-      assert(iscell(labelsCell));
-      assert(iscell(expDirNamesCell));
-      assert(numel(labelsCell)==numel(expDirNamesCell));
+      Labels.verifyLabels(labels);
+      
+      assert(iscellstr(expDirNames) && numel(expDirNames)==numel(labels));
+      [tf,loc] = ismember(expDirNames,combExpDirNames);
+      assert(all(tf),'Master list of experiments does not cover all labeled experiments.');
       
       % Initialize combLabels
       NCombExps = numel(combExpDirNames);
       labelsComb = Labels.labels(NCombExps);
       
       % Loop over input labels and add bouts to combLabels
-      N = numel(labelsCell);
-      realbehnames = cell(N,1); % realbehnames{i} holds realbehnames for labelsCell{i}
-      for i = 1:N
-        lbls = labelsCell{i};
-        edirs = expDirNamesCell{i};
-        assert(numel(lbls)==numel(edirs));
+      Nlbl = numel(labels);
+      realBehsSeen = cell(0,1);
+      for i = 1:Nlbl
+        lbls = labels(i);
+        iExpComb = loc(i);
         
-        [tf,loc] = ismember(edirs,combExpDirNames);
-        assert(all(tf),'Master list of experiments does not cover all labeled experiments.');
-        for iExp = 1:numel(lbls)
-          iExpComb = loc(iExp);
-          for iFly = 1:numel(lbls(iExp).flies)
-            fly = lbls(iExp).flies(iFly);
-            off = lbls(iExp).off(iFly);
-            Nbout = numel(lbls(iExp).t0s{iFly});
-            for iBout = 1:Nbout
-              labelsComb = Labels.addBout(labelsComb,iExpComb,fly,...
-                lbls(iExp).t0s{iFly}(iBout),...
-                lbls(iExp).t1s{iFly}(iBout),...
-                lbls(iExp).names{iFly}{iBout},...
-                off,...
-                lbls(iExp).timestamp{iFly}(iBout));
-            end            
-            
-            if iFly==1
-              timelineTS = lbls(iExp).timelinetimestamp{iFly};
-              realbehnames{i} = fieldnames(timelineTS);
-              % fieldnames for .timelinetimestamp should be same for all
-              % exps/flies of lbls
-            end
+        for iFly = 1:numel(lbls.flies)
+          fly = lbls.flies(iFly);
+          off = lbls.off(iFly);
+          Nbout = numel(lbls.t0s{iFly});
+          for iBout = 1:Nbout
+            labelsComb = Labels.addBout(labelsComb,iExpComb,fly,...
+              lbls.t0s{iFly}(iBout),...
+              lbls.t1s{iFly}(iBout),...
+              lbls.names{iFly}{iBout},...
+              off,...
+              lbls.timestamp{iFly}(iBout));
           end
+          
+          timelineTS = lbls.timelinetimestamp{iFly};
+          realBehsSeen = union(realBehsSeen,fieldnames(timelineTS));
+          % fieldnames for .timelinetimestamp is probably the same for 
+          % all flies in lbls but to be safe etc
         end
       end
       
-      realbehnames = cat(1,realbehnames{:});
-      assert(numel(realbehnames)==numel(unique(realbehnames)),...
-        'Labels to be merged contain duplicate behavior names.');
+      clsNames = Labels.verifyBehaviorNames(labelnames);
+      assert(all(ismember(realBehsSeen,clsNames)),...
+        'Behavior names encountered that are not included in supplied ''labelnames''.');      
+      labelsComb = Labels.initTimelineTimestamps(labelsComb,clsNames);      
+      labelsComb = Labels.removeOverlappingBoutsRaw(labelsComb,labelnames);
+    end
+    
+    function labels = removeOverlappingBoutsRaw(labels,labelnames)
+      % Remove overlapping bouts by transforming
+      % labels->labelsShort->labelIdx->labelsShort->labels, ie write bouts
+      % to timelines, and then back.
+      %
+      % labelnames: cellstr of labelnames in standard ordering (<behs> then
+      % <nobehs>). This is just for implementation convenience and is
+      % theoretically unnecessary.
+      %
+      % IMPORTANT: 
+      % * .imp_t0s, .imp_t1s may not be set correctly for multiclassifier labels.
+      % * timelinetimestamp is not substantively updated.
       
-      labelsComb = Labels.initTimelineTimestamps(labelsComb,realbehnames);
+      Nlbl = numel(labels);
+      for i = 1:Nlbl
+        nFly = numel(labels(i).flies);
+        for iFly = 1:nFly
+          % get labelsShort for this fly
+          fly = labels(i).flies(iFly);
+          lblShort = Labels.labelsShort();
+          [lblShort,tffly] = Labels.labelsShortInit(lblShort,labels(i),fly);     
+          assert(tffly);
+          
+          % create/init a "blank" labelIdx for this fly
+          off = labels(i).off(iFly);
+          T0 = 1-off;
+          T1 = max([lblShort.t0s(:); lblShort.t1s(:); ... 
+                    lblShort.imp_t0s(:); lblShort.imp_t1s(:); T0]) + 1; % make T1 as large as necessary to hold all bouts
+          lblIdx = Labels.labelIdx(labelnames,T0,T1);
+
+          lblIdx = Labels.labelIdxInit(lblIdx,lblShort);
+          lblShort = Labels.labelsShortFromLabelIdx(lblIdx);
+          labels(i) = Labels.assignFlyLabelsRaw(labels(i),lblShort,fly);
+        end
+      end
     end
     
     function m = labelMatrix(labels,T0,T1,behNames)
@@ -534,8 +567,7 @@ classdef Labels
       
       for iExp = 1:nExp
         L = labels(iExp);
-        for iFly = 1:numel(L.flies)
-          
+        for iFly = 1:numel(L.flies)          
           tts = L.timelinetimestamp{iFly};
           fns = fieldnames(tts);
           tf = ismember(behNames,fns);
@@ -579,12 +611,117 @@ classdef Labels
       end
     end
     
+    function bouts = boutList(labels,expNames)
+      % Return a struct array where each element represents a distinct bout
+      % in labels.
+      
+      assert(numel(labels)==numel(expNames));
+     
+      bouts = struct('id',cell(0,1),'t0',[],'t1',[],'name',[],'exp',[],'fly',[],'flyoff',[],'timestamp',[]);      
+      for iExp = 1:numel(labels)
+        exp = expNames{iExp};
+        lblsExp = labels(iExp);
+        for iFly = 1:numel(lblsExp.flies)
+          fly = lblsExp.flies(iFly);
+          flyoff = lblsExp.off(iFly);          
+          for iBout = 1:numel(lblsExp.t0s{iFly})
+            t0 = lblsExp.t0s{iFly}(iBout);
+            t1 = lblsExp.t1s{iFly}(iBout);
+            nm = lblsExp.names{iFly}{iBout};
+            
+            id = sprintf('%s|%d|%s|%d|%d',exp,fly,nm,t0,t1);
+
+            bouts(end+1,1).id = id; %#ok<AGROW>
+            bouts(end).exp = exp; 
+            bouts(end).fly = fly;
+            bouts(end).flyoff = flyoff;
+            bouts(end).t0 = t0;
+            bouts(end).t1 = t1;
+            bouts(end).name = nm;
+            bouts(end).timestamp = lblsExp.timestamp{iFly}(iBout);
+          end
+        end
+      end
+    end
+    
+    function labels = assignFlyLabelsRaw(labels,labelsShort,fly)
+      % Assign bouts for single target (labelsShort) into labels
+      %
+      % labels: scalar labels struct
+      % labelShort: labelsShort for a single target
+      % fly: target ID (value, not target index)
+      %
+      % IMPORTANT: labels.timelinetimestamp is expanded as necessary to
+      % include target if it is new, but is NOT SUBSTANTIVELY UPDATED
+      
+      assert(isscalar(labels));
+      assert(isscalar(fly)&&isnumeric(fly));
+      
+      if isempty(labels.flies)
+        % AL: special-case branch may be unnecessary; labels.flies should 
+        % be col vec even when empty
+        tfFlyExists = false; 
+      else
+        [tfFlyExists,j] = ismember(fly,labels.flies,'rows');
+      end
+      if ~tfFlyExists
+        j = size(labels.flies,1)+1;
+      end
+
+      labels.t0s{j} = labelsShort.t0s;
+      labels.t1s{j} = labelsShort.t1s;
+      labels.names{j} = labelsShort.names;
+      labels.flies(j,:) = fly;
+      labels.off(j) = labelsShort.off;
+      labels.timestamp{j} = labelsShort.timestamp;
+      NtimelineTS = numel(labels.timelinetimestamp);
+      if NtimelineTS<j
+        labels.timelinetimestamp(NtimelineTS+1:j) = {struct()};
+      end
+      labels.imp_t0s{j} = labelsShort.imp_t0s;
+      labels.imp_t1s{j} = labelsShort.imp_t1s;
+    end
+    
     function labelsShort = labelsShort()
       % labelsShort constructor
       labelsShort = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],...
         'off',0,'imp_t0s',[],'imp_t1s',[]);      
     end
+    
+    function labelsShort = labelsShortFromLabelIdx(labelidx)
+      % Construct a labelsShort from a labelidx
+
+      labelsShort = Labels.labelsShort();
+      labelsShort.off = labelidx.off;
       
+      for iTL = 1:labelidx.nTL
+        iBehs = labelidx.TL2idxBeh{iTL};
+        assert(isrow(iBehs));
+        for iB = iBehs
+          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==iB);
+          if ~isempty(i0s)
+            n = numel(i0s);
+            labelsShort.t0s(end+1:end+n) = i0s - labelidx.off;
+            labelsShort.t1s(end+1:end+n) = i1s - labelidx.off;
+            labelsShort.names(end+1:end+n) = repmat(labelidx.labelnames(iB),[1,n]);
+            labelsShort.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
+            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
+          end
+        end
+      end
+      % write importance
+      if labelidx.nTL==1
+        [i0s,i1s] = get_interval_ends(labelidx.imp);
+        if ~isempty(i0s)
+          labelsShort.imp_t0s = i0s - labelidx.off;
+          labelsShort.imp_t1s = i1s - labelidx.off;
+        end
+      else
+        % ALXXX EXTENDED
+        % Multiclassifier importance for GT
+      end
+    end
+
     function [labelsShort,tffly] = labelsShortInit(labelsShort,labels,fly)
       % Init labelShort from SCALAR labels and fly specification
       %
@@ -611,7 +748,7 @@ classdef Labels
         labelsShort.timestamp = labels.timestamp{ifly};
       end
     end
-      
+          
   end
   
   methods (Static,Access=private)
