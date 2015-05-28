@@ -5746,8 +5746,8 @@ classdef JLabelData < matlab.mixin.Copyable
             
             % Find blocks that overlap with the current interval and merge
             % them into one block.
-            overlapping_blocks1 = find(curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0); %
-            overlapping_blocks2 = find(curbs_t1-t0 >= 0 & curbs_t0-t1 <= 0); % ALXXX MINIMAL: intend curbs_t1 in both terms?
+            overlapping_blocks1 = find(curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0);
+            overlapping_blocks2 = find(curbs_t1-t0 >= 0 & curbs_t1-t1 <= 0);
             overlapping_blocks = unique([overlapping_blocks1(:);overlapping_blocks2(:)]);
             if ~isempty(overlapping_blocks),
               t0 = min(t0,min(curbs_t0(overlapping_blocks)));
