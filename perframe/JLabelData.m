@@ -673,14 +673,7 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(nnz(tf)==1);
       iCls = obj.labelidx.idxBeh2idxTL(tf);
     end
-    
-    
-    % ---------------------------------------------------------------------
-    function result = isValidBehaviorName(behaviorName)
-      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
-        isvarname(behaviorName); 
-      % AL: second condition because labels.timelinetimestamp, see Labels.m
-    end
+
     
     function noneToNoBeh(obj)
       % For single-classfier projects: Convert 'None' to 'No_<behavior>'
@@ -864,6 +857,17 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
      
+  end
+  
+  methods (Static)
+    
+    % ---------------------------------------------------------------------
+    function result = isValidBehaviorName(behaviorName)
+      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
+        isvarname(behaviorName); 
+      % AL: second condition because labels.timelinetimestamp, see Labels.m
+    end
+    
   end
   
   methods % more private
@@ -1280,53 +1284,15 @@ classdef JLabelData < matlab.mixin.Copyable
         error('JLabelData:expDirDoesNotExist', '%s', ...
               expDirName);
       end
-      
-%       % Is there an output directory?
-%       isoutexpdir = false;
-      
-      % Did the caller provide extra information about the tracks
-      %istrxinfo = false;
-
+ 
       [~,expName] = myfileparts(expDirName);
       
-%       % expnames and rootoutputdir must match (do we still need this?)
-%       if isoutexpdir,
-%         [rootoutputdir,outname] = myfileparts(outexpdir);
-%         if ~strcmp(expname,outname),
-%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-%           return;
-%         end
-%       elseif ~ischar(obj.rootoutputdir),
-%         outexpdir = expdir;
-%         rootoutputdir = 0;
-%       else
-%         rootoutputdir = obj.rootoutputdir;        
-%       end
-      
-%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
-%         outexpdir = fullfile(rootoutputdir,expname);
-%       end
-      %outexpdir=expDirName;
-
-%       % create missing outexpdirs
-%       if ~exist(outexpdir,'dir'),
-%         [success1,msg1] = mkdir(rootoutputdir,expname);
-%         if ~success1,
-%           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
-%           return;
-%         end
-%       end
-
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(expDirName,clipsdir);  %#ok
 
       % okay, checks succeeded, start storing stuff
-      %obj.nexps = obj.nexps + 1;
       obj.expdirs{end+1} = expDirName;
-      %obj.expnames{end+1} = expName;
-      %obj.rootoutputdir = rootoutputdir;
-      %obj.outexpdirs{end+1} = outexpdir;
 
       % If we call remove, it's to roll-back a failed experiment add, so we
       % don't want to set needsave in this case.
@@ -1422,15 +1388,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %           end
 %       end
       
-      % Set the fields describing the tracks, either using info provided by
-      % the caller, or by reading from the trx file.
-%       if istrxinfo,
-%         obj.nflies_per_exp(end+1) = nFlies;
-%         obj.sex_per_exp{end+1} = sex;
-%         obj.frac_sex_per_exp{end+1} = fracSex;
-%         obj.firstframes_per_exp{end+1} = firstFrames;
-%         obj.endframes_per_exp{end+1} = endFrames;
-%       else
       % Read from the trx file
       obj.SetStatus('Getting basic trx info for %s...',expName);
       trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
@@ -1454,7 +1411,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.frac_sex_per_exp{end+1} = fracSex;
       obj.firstframes_per_exp{end+1} = firstFrames;
       obj.endframes_per_exp{end+1} = endFrames;
-%       end
       
       % Initialize the labels for the current labeling mode
       iExp = obj.nexps;
@@ -1764,10 +1720,6 @@ classdef JLabelData < matlab.mixin.Copyable
           res = obj.moviefilename;
         case 'trx',
           res = obj.trxfilename;
-%         case 'label',
-%           res = obj.labelfilename;
-%         case 'gt_label',
-%             res = obj.gt_labelfilename;            
         case {'perframedir','perframe'},
           res = obj.perframedir;
         case {'clipsdir','clips'},
@@ -4687,7 +4639,6 @@ classdef JLabelData < matlab.mixin.Copyable
       nExps = length(self.expdirs);
       for expi = 1:nExps
         self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
-        %self.labelfilename = 0;
         self.UpdateStatusTable(statusTableString);   
       end
     end
@@ -4793,74 +4744,25 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % MERGESTUPDATED
       
-      % Write label info to newlabels structure
-      % TODO: don't know why writing to intermediate variable rather than obj.labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
+      assert(labelidx.off==labelidx_off);
       assert(isequal(labelidx.labelnames,obj.labelnames));
-      assert(labelidx.nbeh==obj.nbehaviors);
-      for iTL = 1:labelidx.nTL
-        
-        % Write bouts
-        % ALTODO: Optimization: don't loop over all behaviors/labels, just those relevant
-        % to this timeline
-        for j = 1:obj.nbehaviors,
-          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);          
-          if ~isempty(i0s)
-            n = numel(i0s);
-            newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-            newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
-            newlabels.names(end+1:end+n) = repmat(labelidx.labelnames(j),[1,n]);
-            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
-            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
-          end
-        end
-      end
-      % write importance
-      if labelidx.nTL==1
-        [i0s,i1s] = get_interval_ends(labelidx.imp);
-        if ~isempty(i0s)
-          newlabels.imp_t0s = i0s - labelidx_off;
-          newlabels.imp_t1s = i1s - labelidx_off;
-        end
-      else
-        % ALXXX EXTENDED
-        % Multiclassifier importance for GT
-      end
-      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+      assert(labelidx.nbeh==obj.nbehaviors);      
       
-      if isempty(obj.labels(expi).flies),
-        ism = false;
-      else
-        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
-      end
-      if ~ism,
-        j = size(obj.labels(expi).flies,1)+1;
-      end
+      labelsShort = Labels.labelsShortFromLabelIdx(labelidx);
+      obj.labels(expi) = Labels.assignFlyLabelsRaw(obj.labels(expi),labelsShort,flies);
 
-      obj.labels(expi).t0s{j} = newlabels.t0s;
-      obj.labels(expi).t1s{j} = newlabels.t1s;
-      obj.labels(expi).names{j} = newlabels.names;
-      obj.labels(expi).flies(j,:) = flies;
-      obj.labels(expi).off(j) = labelidx_off; % ALTODO: Don't understand, if we have adjusted by labelidx_off above, why are we recording this?
-      obj.labels(expi).timestamp{j} = newlabels.timestamp;
-      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
-      NtimelineTS = numel(obj.labels(expi).timelinetimestamp);
-      if NtimelineTS<j
-        obj.labels(expi).timelinetimestamp(NtimelineTS+1:j) = {struct()};
-      end
+      % Update labels.timelinetimestamp
+      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+      [tf,ifly] = ismember(flies,obj.labels(expi).flies,'rows');
+      assert(tf);
       for iTL = 1:labelidx.nTL
         classifiername = obj.labelnames{iTL};
-        if ~isfield(obj.labels(expi).timelinetimestamp{j},classifiername)
-          obj.labels(expi).timelinetimestamp{j}.(classifiername) = 0;
+        if ~isfield(obj.labels(expi).timelinetimestamp{ifly},classifiername)
+          obj.labels(expi).timelinetimestamp{ifly}.(classifiername) = 0;
         end
-        obj.labels(expi).timelinetimestamp{j}.(classifiername) = ...
-          max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
-      end          
-
-%       %AL: isn't obj.labels(expi).flies always unique?
-%       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-%       obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s); % AL: seems wrong, doesn't account for other flies
+        obj.labels(expi).timelinetimestamp{ifly}.(classifiername) = ...
+          max(obj.labels(expi).timelinetimestamp{ifly}.(classifiername),maxtimestamps(iTL));
+      end
     end
 
     
@@ -8642,8 +8544,8 @@ classdef JLabelData < matlab.mixin.Copyable
         if jumpList(ndx).exp ~= expi || jumpList(ndx).fly ~= flies
           continue;
         end
-        idx = jumpList(ndx).t -T0 + 1 + (-ignore:ignore);
-        idx(idx<0) = [];
+        idx = jumpList(ndx).t - T0 + 1 + (-ignore:ignore);
+        idx(idx<1) = [];
         idx(idx>numel(dist)) = [];
         dist(idx) = inf;
       end
@@ -9721,7 +9623,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % TODO: debug this
     % override stuff set in the config file: 
     %
-    % moviefilename, trxfilename, labelfilename, perframedir, clipsdir: names of
+    % moviefilename, trxfilename, perframedir, clipsdir: names of
     % files within experiment directories: 
     % featureparamsfilename: file containing feature parameters
     % rootoutputdir: in case we don't want to write to the experiment
