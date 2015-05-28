@@ -30,12 +30,12 @@ classdef WindowData
         'predicted',[], ... % NUA
         'predicted_probs',[], ... % NUA
         'isvalidprediction',[], ... % NUA
-        'distNdx',[], ... % NUA?
+        'distNdx',[], ...
         'scores',[], ... % NUA
         'scoreNorm',[], ... 
         'binVals',[], ... 
         'scores_old',[], ... % NUA
-        'scores_validated',[], ... % NUA?
+        'scores_validated',[], ...
         'postprocessed',[]); % NUA?
     end
     
@@ -115,15 +115,15 @@ classdef WindowData
         wd(i).labelidx_new(tfRm,:) = [];
         wd(i).labelidx_imp(tfRm,:) = [];
         wd(i).labelidx_old(tfRm,:) = [];
+        wd(i).distNdx = [];
         wd(i).binVals = [];
-
-%         wd(i).distNdx = [];
+        wd(i).scores_validated(tfRm,:) = [];
+        
 %         wd(i).isvalidprediction(idxcurr(1:numel(wd(i).isvalidprediction))) = [];
 %         wd(i).predicted(idxcurr(1:numel(wd(i).predicted))) = [];
 %         wd(i).predicted_probs(idxcurr(1:numel(wd(i).predicted_probs))) = [];
 %         wd(i).scores(idxcurr(1:numel(wd(i).scores))) = [];
 %         wd(i).scores_old(idxcurr(1:numel(wd(i).scores_old))) = [];
-%         wd(i).scores_validated(idxcurr(1:numel(wd(i).scores_validated)),:) = [];
 %         wd(i).postprocessed(idxcurr(1:numel(wd(i).postprocessed)),:) = [];
       end
     end
