@@ -48,7 +48,7 @@ if handles.guidata.useVideoWriter,
   end
   open(aviobj);
 else
-  if isempty(handles.guidata.avifileTempDataFile),
+  if ~isfield(handles.guidata,'avifileTempDataFile') || isempty(handles.guidata.avifileTempDataFile),
     aviobj = avifile(aviname,'fps',handles.guidata.outavi_fps,'quality',100,'compression',handles.guidata.outavi_compression);
   else
     aviobj = myavifile(aviname,'fps',handles.guidata.outavi_fps,'quality',100,'compression',handles.guidata.outavi_compression,...
