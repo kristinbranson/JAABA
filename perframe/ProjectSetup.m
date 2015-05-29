@@ -718,7 +718,6 @@ end
 if ismember('Advanced Parameters',sellist),
   adv_params_specific = {'behaviors.labelcolors'
     'behaviors.unknowncolor' 
-    'labelGraphicParams'
     'trxGraphicParams'
     'extra'};
   
