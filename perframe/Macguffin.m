@@ -9,7 +9,6 @@ classdef Macguffin < handle
     behaviors
     file
     trxGraphicParams
-    labelGraphicParams
     scoreFeatures
     sublexiconPFNames
     windowFeaturesParams
@@ -41,8 +40,6 @@ classdef Macguffin < handle
       self.behaviors.labelcolors = [JLabelGUIData.COLOR_BEH_DEFAULT JLabelGUIData.COLOR_NOBEH_DEFAULT];
       self.behaviors.unknowncolor = [0,0,0];
       self.trxGraphicParams=trxGraphicParamsFromAnimalType(animalType);
-      self.labelGraphicParams.colormap = 'line';
-      self.labelGraphicParams.linewidth = 3;
       self.file.scorefilename = '';
       self.file.trxfilename = '';
       self.file.moviefilename = '';
@@ -109,7 +106,6 @@ classdef Macguffin < handle
       self.file.clipsdir=jld.clipsdir;                  
       self.file.perframedir=jld.perframedir;
       self.file.stfeatures=jld.stfeatures;
-      self.labelGraphicParams=jld.labelGraphicParams;
       self.trxGraphicParams=jld.trxGraphicParams;
       if isnonempty(jld.landmark_params) ,
         self.extra.perframe.landmarkParams=jld.landmark_params;
@@ -228,11 +224,6 @@ classdef Macguffin < handle
         trxGraphicParamsRaw=trxGraphicParamsFromAnimalType(animalType);
       end
       self.trxGraphicParams=cookTrxGraphicParams(trxGraphicParamsRaw);
-      if isfield(projectParams,'labels')
-        self.labelGraphicParams=projectParams.labels;
-      else
-        self.labelGraphicParams=projectParams.plot.labels;
-      end
       self.featureLexiconName=featureLexiconName;
       self.featureLexicon=featureLexicon;
       self.sublexiconPFNames=sublexiconPFNames;

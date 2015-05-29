@@ -416,7 +416,6 @@ classdef JLabelData < matlab.mixin.Copyable
     % you could argue that these are view-related, and so shouldn't be in
     % here, but they get saved to the everything file, so we'll include
     % them here.
-    labelGraphicParams
     trxGraphicParams
     labelcolors
     unknowncolor
@@ -7354,7 +7353,6 @@ classdef JLabelData < matlab.mixin.Copyable
         % Set the target species
         obj.targettype=everythingParams.behaviors.type;
                 
-        obj.labelGraphicParams=everythingParams.labelGraphicParams;
         obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
         obj.labelcolors=everythingParams.behaviors.labelcolors;
         obj.unknowncolor=everythingParams.behaviors.unknowncolor;
@@ -7504,7 +7502,6 @@ classdef JLabelData < matlab.mixin.Copyable
       basicParams.file.trxfilename=obj.trxfilename;
       basicParams.file.scorefilename=obj.scorefilename;
       %basicParams.scoresinput=obj.scoreFeatures;
-      basicParams.labelGraphicParams=obj.labelGraphicParams;
       basicParams.trxGraphicParams=obj.trxGraphicParams;
     end
     
@@ -7800,7 +7797,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %       basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
 %       basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
 %       basicParams.file=everythingParams.file;
-%       basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
 %       basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
 %       basicParams.landmarkParams=everythingParams.landmarkParams;
 %     end    
@@ -9853,7 +9849,6 @@ classdef JLabelData < matlab.mixin.Copyable
       self.version = '';
       self.otherModeLabelsEtc = struct('expDirNames',{cell(1,0)}, ...
                                        'labels',{struct([])});
-      self.labelGraphicParams=[];
       self.trxGraphicParams=[];
       self.labelcolors = [];
       self.unknowncolor = [0 0 0];
