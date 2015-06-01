@@ -2197,6 +2197,7 @@ for i = 1:nBehaviors,
         pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*i-info.in_border_y*(i-1),...
              info.button_width/3,info.button_height];  
         buttonLabel=behaviorNameCapitalized{i};
+        buttonLabel = buttonLabel(1:min(end,4));
       else
         iRealButton = i-nRealBeh;
         pos = [info.out_border_x+info.button_width/3,new_panel_height-info.out_border_y-info.button_height*iRealButton-info.in_border_y*(iRealButton-1),...
