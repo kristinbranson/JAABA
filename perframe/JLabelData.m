@@ -591,9 +591,11 @@ classdef JLabelData < matlab.mixin.Copyable
 %       end
       obj.needsave = true;
       
-      for iCls = 1:obj.nclassifiers
-        if obj.HasLoadedScores(iCls)
-            obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
+      if numel(oldScoreNorm)==obj.nclassifiers
+        for iCls = 1:obj.nclassifiers
+          if obj.HasLoadedScores(iCls) 
+              obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
+          end
         end
       end
     end
@@ -2458,7 +2460,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       expIndicesToRemove=find(markedForRemoval);
       expdirs_removed = self.expdirs(expIndicesToRemove);
-      self.RemoveExpDirs(expIndicesToRemove);  %#ok
+      self.RemoveExpDirs(expIndicesToRemove);  
     end  % method
 
         
@@ -6155,12 +6157,17 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function tf = HasLoadedScores(obj,iCls)
-      % tf: true if there are loaded scores for all exps/flies
+      % tf: true if there is at least one exp, and there are loaded scores for all exps/flies
       
       %MERGESTUPDATED
       
       assert(isscalar(iCls) && any(iCls==1:obj.nclassifiers));
       
+      if obj.nexps==0
+        tf = false;
+        return;
+      end
+        
       tf = true;
       for expi = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(expi)
@@ -6824,39 +6831,51 @@ classdef JLabelData < matlab.mixin.Copyable
     function openJabFile(self, ...
                          fileNameAbs, ...
                          groundTruthingMode, ...
-                         originalExpDirNames, ...
-                         substituteExpDirNames) 
+                         varargin)
+      % openJabFile(self,fileNameAbs,gtMode,p1,v1,...)
+      %
+      % Optional PVs:
+      %   * macguffin. Macguffin object, jab contents corresponding to
+      %   fileNameAbs. This option exists because the caller may want to
+      %   modify the project before opening. If this argument is provided,
+      %   self.needsave is set to true.
+      %   * originalExpDirNames. see below.
+      %   * substituteExpDirNames. etc
+      % 
+      % original/substituteExpDirNames should be cell arrays of the same 
+      % length, each element a string giving an absolute path to an 
+      % experiment directory.  Each element of originalExpDirNames should
+      % be an experiment directory in the .jab file, and the corresponding
+      % element of substituteExpDirNames gives an experiment dir name to be
+      % used in place of the original one. This is to enable the user to
+      % manually locate exp dir names that are missing. Elements of
+      % substituteExpDirNames may be empty (eg '') to indicate that the
+      % experiment is not to be opened/included in the project. Whether
+      % these experiment dir names are treated as normal exp dir names or
+      % ground-truthing exp dir names depends on groundTruthingMode.      
                        
       %MERGESTUPDATED
       
-      % originalExpDirNames and substituteExpDirNames are optional.
-      % If given, they should be cell arrays of the same length, each
-      % element a string giving an absolute path to an experiment
-      % directory.  Each element of originalExpDirNames should be an
-      % experiment directory in the .jab file, and the corresponding
-      % element of substitureExpDirNames gives an experiment dir name to be
-      % used in place of the original one.  This is to enable the user to
-      % manually locate exp dir names that are missing.  Whether these
-      % experiment dir names are treated as normal exp dir names or
-      % ground-truthing exp dir names depends on groundTruthingMode.
+      [macguffin,...
+       originalExpDirs,...
+       substituteExpDirs] = myparse(varargin,...
+       'macguffin',[],...
+       'originalExpDirs',cell(0,1),...
+       'substituteExpDirs',cell(0,1));
                        
-      % process the args
-      if ~exist('originalExpDirNames','var')
-        originalExpDirNames = cell(0,1);
-      end
-      if ~exist('substituteExpDirNames','var')
-        substituteExpDirNames = cell(0,1);
-      end
-      assert(numel(originalExpDirNames)==numel(substituteExpDirNames));
-      
-      self.gtMode = groundTruthingMode;
-
-      % Open the file
-      macguffin = loadAnonymous(fileNameAbs);
-      if isstruct(macguffin)
-        macguffin = Macguffin(macguffin);
+      assert(numel(originalExpDirs)==numel(substituteExpDirs));
+      macgufProvided = ~isempty(macguffin);
+      if macgufProvided
+        assert(isa(macguffin,'Macguffin'));
+      else
+        macguffin = loadAnonymous(fileNameAbs);
+        if isstruct(macguffin)
+          macguffin = Macguffin(macguffin);
+        end
       end
       macguffin.modernize(true);
+      
+      self.gtMode = groundTruthingMode;
       
       % Do the substiutions, if any
       substitutionsMade = false;
@@ -6871,19 +6890,16 @@ classdef JLabelData < matlab.mixin.Copyable
       newLabels = Labels.labels(0);
       for i = 1:length(expDirNames)
         expDirName = expDirNames{i};
-        j = whichstr(expDirName,originalExpDirNames);
+        j = whichstr(expDirName,originalExpDirs);
         if isempty(j)
           newExpDirNames{end+1} = expDirNames{i};  %#ok
           newLabels(end+1) = labels(i);  %#ok
         else
-          newExpDirName = substituteExpDirNames{j};
-          if ~isempty(newExpDirName)
-            newExpDirNames{end+1} = substituteExpDirNames{j};  %#ok
+          if ~isempty(substituteExpDirs{j})
+            newExpDirNames{end+1} = substituteExpDirs{j};  %#ok
             newLabels(end+1) = labels(i);  %#ok
           else
-            % AL 20140908 
             % Empty new name for this experiment; experiment will not be added
-            % Is this the intent or should this be asserted false?
           end
           substitutionsMade = true;
         end
@@ -6903,7 +6919,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.thereIsAnOpenFile = true;
       self.everythingFileNameAbs = fileNameAbs;
       self.userHasSpecifiedEverythingFileName = true;
-      self.needsave = substitutionsMade; % Only need save if substitutions were made
+      self.needsave = macgufProvided  || substitutionsMade;
       self.defaultpath = fileparts(fileNameAbs);
      
       % initialize the status table describing what required files exist
@@ -6973,7 +6989,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function openJabFileNoExps(self, ...
         fileNameAbs, ...
-        groundTruthingMode)            
+        groundTruthingMode)
       
       self.gtMode = groundTruthingMode;
       
@@ -7009,41 +7025,16 @@ classdef JLabelData < matlab.mixin.Copyable
 
 
     % ---------------------------------------------------------------------
-    function newJabFile(obj,macguf,varargin)
+    function newJabFile(obj,macguf)
       % Only called by ProjectSetup/new project creation. 
       % IMPORTANT: macguf has type Macguffin, but it is not a properly
       % initialized Macguffin object. It is semi-initialized object 
       % originating from ProjectSetup for the purposes of initialization, 
       % hence the various massaging here.
-      
-      if mod(numel(varargin),2) ~= 0,
-        error('JLabelData:oddNumberOfOptionalArgsToNewJabFile',  ...
-              'Optional inputs to JLabelData.newJabFile() should be p-v pairs.');
-      end
-
-      keys = varargin(1:2:end);
-      values = varargin(2:2:end);     
-      
-      % If caller set the default path, set that now
-      oldDefaultPath = obj.defaultpath;
-      i = find(strcmpi(keys,'defaultpath'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetDefaultPath(values{i});
-        if ~success,
-          error('JLabelData:unableToSetDefaultPath',msg);
-        end
-      end
-      
+            
       obj.gtMode = false;
                      
-      % Set the file data from the Macguffin object
-      try
-        obj.setMacguffin(macguf);
-      catch excp
-        % roll things back
-        obj.defaultpath = oldDefaultPath;
-        rethrow(excp);
-      end
+      obj.setMacguffin(macguf);
       
       % Make up filename
       try
@@ -7442,12 +7433,13 @@ classdef JLabelData < matlab.mixin.Copyable
   %       obj.InitPostprocessparams();
 
         % initialize everything else
+        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+        % AL 201506 order important; setWindowFeaturesParams provides initialization of eg .predictblocks which
+        % is necessary should setAllLabels->SetExpDirs require a rollback
         if loadexps,
           obj.setAllLabels(everythingParams);
-        end
-        
+        end        
         obj.setScoreFeatures(everythingParams.scoreFeatures);
-        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
         obj.setClassifierStuff(everythingParams.classifierStuff);
         
       catch excp
