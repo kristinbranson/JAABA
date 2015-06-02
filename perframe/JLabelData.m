@@ -6400,6 +6400,8 @@ classdef JLabelData < matlab.mixin.Copyable
             
       % MERGESTUPDATED
       
+      assert(isscalar(flyNum));
+      
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
       
       stats = struct();
@@ -6429,7 +6431,11 @@ classdef JLabelData < matlab.mixin.Copyable
       curts = zeros(1,0); % all labeled frame indices for this fly (may contain repeats)
       curlabels = zeros(1,0); % label vector for curts; values are LABEL indices (in 1:2*nclassifier)
       lblsExp = obj.labels(expi);
-      [tf,iFly] = ismember(flyNum,lblsExp.flies,'rows');
+      lblsExpFlies = lblsExp.flies;
+      if isequal(lblsExpFlies,[])
+        lblsExpFlies = lblsExpFlies(:);
+      end
+      [tf,iFly] = ismember(flyNum,lblsExpFlies,'rows');
       if tf
         nBouts = numel(lblsExp.t0s{iFly});
         for iBout = 1:nBouts
