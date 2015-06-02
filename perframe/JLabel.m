@@ -7746,10 +7746,8 @@ fileNameAbs=fullfile(pathname,filename);
 openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
 
 if handles.data.nexps == 0,
-
   drawnow;
-  JModifyFiles('figureJLabel',handles.figure_JLabel);
-  
+  JModifyFiles('figureJLabel',handles.figure_JLabel);  
 end
 
 % Set the jump type to be ground truth suggestions for gtmode
@@ -7762,9 +7760,12 @@ return
 
 
 % -------------------------------------------------------------------------
-function openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
+function openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode,macguffin)
 
-% get handles
+if exist('macguffin','var')==0
+  macguffin = [];
+end
+
 handles=guidata(figureJLabel);
 
 % get just the relative file name
@@ -7793,8 +7794,9 @@ while ~successfullyOpened && keepTrying ,
   try
     handles.data.openJabFile(fileNameAbs, ...
                              groundTruthingMode, ...
-                             originalExpDirs, ...
-                             substituteExpDirs);
+                             'macguffin',macguffin,...
+                             'originalExpDirs',originalExpDirs,...
+                             'substituteExpDirs',substituteExpDirs);
     successfullyOpened=true;
   catch excp
     %ClearStatus(handles);
@@ -7879,16 +7881,12 @@ end
 % If we get here then the JLabelData object has successfully opened the
 % .jab file
 
-% First set the project parameters, which will initialize the JLabelData
-%basicParams=basicParamsFromMacguffin(everythingParams);
-%initBasicParams(figureJLabel,basicParams,groundTruthingMode);
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
 % are loaded.
-data=handles.data;  % ref
-%data.SetGTMode(groundTruthingMode);
+data=handles.data;
 
 % Set the GUI to match the labeling mode
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
@@ -8215,16 +8213,22 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'basicParamsStruct',macG,...
   'handleobj',hobj));
 
-if isempty(hobj.data)
+macguf = hobj.data;
+if isempty(macguf)
   return;
 end
 
-newFileSetupDone(figureJLabel,hobj.data);
+%newFileSetupDone(figureJLabel,hobj.data);
+openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode,macguf);
 
 % no experiments? ask to add
 if handles.data.nexps==0
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
+end
+
+if handles.data.IsGTMode
+  handles.guidata.NJObj.SetCurrentType('Ground Truth Suggestions');
 end
 
 return
