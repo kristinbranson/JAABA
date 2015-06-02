@@ -148,6 +148,7 @@ onoff = fif(handles.new,'on','off');
 set(handles.featureconfigpopup,'enable',onoff);
 set(handles.pushbutton_copy,'visible',onoff);
 set(handles.editName,'enable',onoff);
+set(handles.edittrxfilename,'enable',onoff);
 set(handles.pushbutton_perframe,'visible',onoff);
 
 % Set the current score-as-feature file
@@ -352,7 +353,8 @@ fields2remove = {'featureLexicon','windowFeaturesParams','scoreFeatures', ...
                  'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
                  'windowFeaturesParams'};
 if ~handles.new
-  editModeRemove = {'featureLexiconName' 'behaviors.names' 'behaviors.type' 'behaviors.nbeh' 'extra.perframe'};
+  editModeRemove = {'featureLexiconName' 'behaviors.names' 'behaviors.type' ...
+    'behaviors.nbeh' 'file.trxfilename' 'extra.perframe'};
   fields2remove = [fields2remove editModeRemove];
 end
 basicParamsStruct = structrmfield(basicParamsStruct,fields2remove);
