@@ -1028,7 +1028,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Delete from allperframefns
       pfName = scoreFeature.scorefilename;
       tf = strcmp(pfName,obj.allperframefns);
-      assert(isequal(tf,toBeDeleted));
+      assert(isequal(nnz(tf),numel(toBeDeleted)));
       notPfName = @(string)(~isequal(string,pfName));
       obj.allperframefns = cellFilter(notPfName,obj.allperframefns);      
     end
