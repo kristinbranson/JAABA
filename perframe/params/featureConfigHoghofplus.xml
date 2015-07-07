@@ -61,12 +61,12 @@
 
   <hoghof   
     sanitycheck="0"   
-    min_window_radius="1"    
+    min_window_radius="5"    
     max_window_radius="10"    
     nwindow_radii="3"    
     window_offsets="0,-1,1"    
     trans_types="none"  >   
-    <mean min_window_radius="0"/>   
+    <mean min_window_radius="5"/>   
   </hoghof>   
      
   </defaults>   
