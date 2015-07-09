@@ -684,8 +684,10 @@ classdef Macguffin < handle
           % Standardize empty scoreFeatures shape
           obj.scoreFeatures = Macguffin.ScoreFeatures;
         end
-        
-        [obj.labels,tfmodlbl] = Labels.modernizeLabels(obj.labels,Labels.verifyBehaviorNames(obj.behaviors.names));
+
+        realbehs = Labels.verifyBehaviorNames(obj.behaviors.names);
+        [obj.labels,tfmodlbl] = Labels.modernizeLabels(obj.labels,realbehs);
+        [obj.gtLabels,tfmodGTlbl] = Labels.modernizeLabels(obj.gtLabels,realbehs);
         tfmodcls = obj.classifierStuff.modernize();
         % tfmodtags = isequal(obj.expDirTags,[]);
         % if tfmodtags
@@ -702,7 +704,7 @@ classdef Macguffin < handle
         assert(isequal(nCls,numel(obj.file.scorefilename),...
                        numel(obj.windowFeaturesParams)));
         
-        tfmod = tfmodlbl || tfmodcls; % || tfmodtags;
+        tfmod = tfmodlbl || tfmodGTlbl || tfmodcls; % || tfmodtags;
         if dowarn && tfmod
           warningNoTrace('Macguffin:modernized','Jab contents modernized. Opening and resaving jabfiles in JAABA will update them and eliminate this warning.');
         end
