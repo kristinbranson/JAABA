@@ -198,19 +198,23 @@ classdef Labels
       % 20140825: added .timelinetimestamp in order to optimize
       % multiclassifier training
 
+      if isempty(labels) && ~isequal(labels,Labels.labels(0))
+        % AL 20150709: some legacy .gtLabels do not have standard/expected 
+        % fields        
+        labels = Labels.labels(0);
+        tfModified = true;
+        return;
+      end
+      
       tfModified = false;
       
       Nexp = numel(labels);
       
       if ~isfield(labels,'timelinetimestamp')
-        if isempty(labels)
-          % trick to add field to empty structure
-          [labels(:).timelinetimestamp] = deal([]);
-        else
-          for iExp = 1:Nexp
-            Nfly = numel(labels(iExp).flies);
-            labels(iExp).timelinetimestamp = cell(1,Nfly);
-          end        
+        assert(~isempty(labels));
+        for iExp = 1:Nexp
+          Nfly = numel(labels(iExp).flies);
+          labels(iExp).timelinetimestamp = cell(1,Nfly);
         end
         tmp = Labels.labels(0); % Just to get fieldnames in current/proper order
         labels = orderfields(labels,tmp);

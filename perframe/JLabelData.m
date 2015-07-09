@@ -1464,12 +1464,11 @@ classdef JLabelData < matlab.mixin.Copyable
       if obj.IsGTMode
         origExpDirNames = Q.x.gtExpDirNames;
         origLabels = Q.x.gtLabels;
-        % modernize labels?
       else
         origExpDirNames = Q.x.expDirNames;
         origLabels = Q.x.labels;
-        origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
       end
+      origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
       assert(numel(origExpDirNames)==numel(origLabels));
       
       for ndx = 1:numel(origExpDirNames)
