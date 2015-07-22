@@ -1868,7 +1868,9 @@ if doforce || handles.guidata.ts(i) ~= t,
   
   % TODO: update timeline zoom
   for h = handles.guidata.axes_timeline_labels,
-    zoom(h,'reset');
+    if verLessThan('matlab','8.4.0'),
+      zoom(h,'reset');
+    end
   end
   
 %   % out of bounds for labeling? then turn off labeling
@@ -3813,7 +3815,11 @@ set(handles.text_status,'ForegroundColor',color,'String',s);
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
 end
-drawnow('update');  % want immediate update
+if verLessThan('matlab','8.4.0')
+  drawnow('update');  % want immediate update
+else
+  drawnow('limitrate');
+end
 return
 
 
@@ -3825,7 +3831,11 @@ set(handles.text_status, ...
 set(handles.figure_JLabel,'Pointer','arrow');
 h = findall(0,'Type','figure','Name','JAABA Status');
 if ~isempty(h), delete(h(ishandle(h))); end
-drawnow('update');  % want immediate update
+if verLessThan('matlab','8.4.0')
+  drawnow('update');  % want immediate update
+else
+  drawnow('limitrate');
+end
 return 
 
 
@@ -7251,6 +7261,7 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok
+handles.guidata.open_peripheral(end+1) = f;          
 return
 
 
