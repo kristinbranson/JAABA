@@ -2,7 +2,7 @@ function [res,info] = mydir(dirname,varargin)
 
 iscond = nargin > 1;
 if iscond,
-  [name,daterange,isdir] = myparse(varargin,'name','','daterange',[],'isdir',[]);
+  [name,daterange,isdir,recursive,maxdepth] = myparse(varargin,'name','','daterange',[],'isdir',[],'recursive',false,'maxdepth',inf);
 end
 
 [p,f] = myfileparts(dirname);
@@ -54,3 +54,21 @@ for i = 1:numel(s),
   info = structappend(info,infocurr);
 end
 
+if iscond && recursive && maxdepth > 0,
+  i = find(strcmp(varargin,'maxdepth'));
+  if ~isempty(i),
+    varargin{i+1} = maxdepth-1;
+  end
+  for i = 1:numel(s),
+    if ismember(s(i).name,{'.','..'}),
+      continue;
+    end
+    if s(i).isdir,
+      [rescurr,infocurr] = mydir(fullfile(p,s(i).name),varargin{:});
+      if ~isempty(rescurr),
+        res = [res,rescurr]; %#ok<AGROW>
+        info = structappend(info,infocurr);
+      end
+    end
+  end
+end
