@@ -68,10 +68,6 @@ function ProjectSetup_OpeningFcn(hObject, ~, handles, varargin)
 % then we are creating a new project.
 % * handleobj: A HandleObj. 
 
-% AL 20141222. This file seems bigger than it should be given what it
-% represents: a vanilla editable view into a struct, with a few custom 
-% methods.
-
 handles.output = hObject;
 
 [figureJLabel, ...
@@ -90,18 +86,15 @@ handles.new = isempty(basicParamsStruct);
 handles.figureJLabel = figureJLabel;
 handles.basicParamsStruct = basicParamsStruct;
 
-% Change a few things so they still work well on Mac
 adjustColorsIfMac(hObject);
 
 % Need to derive the basic and advanced sizes (part of the model) from
 % the current figure dimensions
 handles = setBasicAndAdvancedSizesToMatchFigure(handles);
 
-% Set to basic mode, update the figure
 handles.mode = 'basic';
 handles = updateFigurePosition(handles);
 
-% Center the window on the JLabel figure
 centerOnParentFigure(hObject,figureJLabel);
 
 % Initialize the list of possible feature lexicon names
@@ -150,22 +143,18 @@ end
 % Update the configuration table in the GUI
 updateConfigTable(handles);
 
-% Set the window title
-if handles.new,
-  set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
-  set(handles.pushbutton_copy,'visible','on');
-  set(handles.featureconfigpopup,'enable','on');
-else
-  set(hObject,'name',fif(handles.new,'Edit...','Basic Settings...'));
-  set(handles.pushbutton_copy,'visible','off')
-  set(handles.featureconfigpopup,'enable','off');
-end
+set(hObject,'name',fif(handles.new,'New...','Edit...'));
+onoff = fif(handles.new,'on','off');
+set(handles.featureconfigpopup,'enable',onoff);
+set(handles.pushbutton_copy,'visible',onoff);
+set(handles.editName,'enable',onoff);
+set(handles.edittrxfilename,'enable',onoff);
+set(handles.pushbutton_perframe,'visible',onoff);
 
 % Set the current score-as-feature file
 fileNameList = {handles.basicParamsStruct.scoreFeatures(:).classifierfile};
 handles.indexOfScoreFeaturesFile = fif(isempty(fileNameList),[],1);
   
-% Update handles structure
 guidata(hObject, handles);
 
 % Update all the text fields in the figure
@@ -363,11 +352,12 @@ fields2remove = {'featureLexicon','windowFeaturesParams','scoreFeatures', ...
                  'sublexiconPFNames','labels','gtLabels','expDirNames', ...
                  'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
                  'windowFeaturesParams'};
-for ndx = 1:numel(fields2remove)
-  if isfield(basicParamsStruct,fields2remove{ndx}),
-    basicParamsStruct = rmfield(basicParamsStruct,fields2remove{ndx});
-  end  
+if ~handles.new
+  editModeRemove = {'featureLexiconName' 'behaviors.names' 'behaviors.type' ...
+    'behaviors.nbeh' 'file.trxfilename' 'extra.perframe'};
+  fields2remove = [fields2remove editModeRemove];
 end
+basicParamsStruct = structrmfield(basicParamsStruct,fields2remove);
 data = GetParamsAsTable(basicParamsStruct);
 set(handles.config_table,'Data',data);
 return
@@ -458,7 +448,8 @@ end
 % Add no-behavior names
 behaviorsStruct.names = Labels.behnames2labelnames(behaviorsStruct.names);
 
-if numel(behaviorsStruct.labelcolors)~=3*numel(behaviorsStruct.names)
+nlabels = numel(behaviorsStruct.names);
+if numel(behaviorsStruct.labelcolors)~=3*nlabels
   if dowarn
     warning('ProjectSetup:behaviorParams',...
       'Specified label colors not consistent with number of behaviors. Updating.');
@@ -718,7 +709,6 @@ end
 if ismember('Advanced Parameters',sellist),
   adv_params_specific = {'behaviors.labelcolors'
     'behaviors.unknowncolor' 
-    'labelGraphicParams'
     'trxGraphicParams'
     'extra'};
   
