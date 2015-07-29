@@ -185,7 +185,19 @@ classdef ChangeScoreFeaturesDialog < handle
       % Add the name of the score file (without the .mat extension)
       if isfield(everythingParams.file,'scorefilename')
         scoreFileName = everythingParams.file.scorefilename;  % the "local" file name, with extension.  E.g. "scores_Chasev7.mat"
-        [~,scoreFileBaseName] = fileparts(scoreFileName);
+        
+        if iscell(scoreFileName)
+          scoreFileBaseName = cell(1,numel(scoreFileName));
+          for ix = 1:numel(scoreFileName)
+            [~,tt] = fileparts(scoreFileName{ix});
+            scoreFileBaseName{ix} = tt;
+          end
+        elseif ischar(scoreFileName)
+          [~,scoreFileBaseName] = fileparts(scoreFileName);
+        else
+          warndlg('Score file name is in unknown format. Not adding the jab file');
+          return;
+        end
       else
         try
           behaviorName=everythingParams.getMainBehaviorName();
@@ -201,9 +213,17 @@ classdef ChangeScoreFeaturesDialog < handle
           end
         end  % try/catch
       end
-      self.fileNameList{end+1}=fileNameAbs;
-      self.timeStampList(end+1)=timeStamp;
-      self.scoreFileBaseNameList{end+1}=scoreFileBaseName;
+      if ~iscell(scoreFileBaseName)
+        self.fileNameList{end+1}=fileNameAbs;
+        self.timeStampList(end+1)=timeStamp;
+        self.scoreFileBaseNameList{end+1}=scoreFileBaseName;
+      else
+        for ix = 1:numel(scoreFileName)
+          self.fileNameList{end+1}=fileNameAbs;
+          self.timeStampList(end+1)=timeStamp;
+          self.scoreFileBaseNameList{end+1}=scoreFileBaseName{ix};
+        end
+      end
       self.iCurrent = length(self.fileNameList);
       self.updateView();
     end

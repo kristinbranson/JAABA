@@ -203,7 +203,7 @@ else
     headerinfo.type = 'avi';
     headerinfo.nr = headerinfo.Height;
     headerinfo.nc = headerinfo.Width;
-    headerinfo.nframes = headerinfo.NumberOfFrames;
+    headerinfo.nframes = nframes;
     readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
     catch ME_videoreader,
       

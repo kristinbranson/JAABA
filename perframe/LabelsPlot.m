@@ -129,10 +129,10 @@ classdef LabelsPlot
           labels_plot.predx(2,idxPos,iBehPos,ifly) = x(idxPos1);
           labels_plot.predx(1,idxNeg,iBehNeg,ifly) = x(idxNeg);
           labels_plot.predx(2,idxNeg,iBehNeg,ifly) = x(idxNeg1);
-          labels_plot.predy(1,idxPos,iBehPos,ifly) = x(idxPos);
-          labels_plot.predy(2,idxPos,iBehPos,ifly) = x(idxPos1);
-          labels_plot.predy(1,idxNeg,iBehNeg,ifly) = x(idxNeg);
-          labels_plot.predy(2,idxNeg,iBehNeg,ifly) = x(idxNeg1);          
+          labels_plot.predy(1,idxPos,iBehPos,ifly) = y(idxPos);
+          labels_plot.predy(2,idxPos,iBehPos,ifly) = y(idxPos1);
+          labels_plot.predy(1,idxNeg,iBehNeg,ifly) = y(idxNeg);
+          labels_plot.predy(2,idxNeg,iBehNeg,ifly) = y(idxNeg1);          
         end
       end
     end

@@ -416,7 +416,6 @@ classdef JLabelData < matlab.mixin.Copyable
     % you could argue that these are view-related, and so shouldn't be in
     % here, but they get saved to the everything file, so we'll include
     % them here.
-    labelGraphicParams
     trxGraphicParams
     labelcolors
     unknowncolor
@@ -592,9 +591,11 @@ classdef JLabelData < matlab.mixin.Copyable
 %       end
       obj.needsave = true;
       
-      for iCls = 1:obj.nclassifiers
-        if obj.HasLoadedScores(iCls)
-            obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
+      if numel(oldScoreNorm)==obj.nclassifiers
+        for iCls = 1:obj.nclassifiers
+          if obj.HasLoadedScores(iCls) 
+              obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
+          end
         end
       end
     end
@@ -673,14 +674,7 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(nnz(tf)==1);
       iCls = obj.labelidx.idxBeh2idxTL(tf);
     end
-    
-    
-    % ---------------------------------------------------------------------
-    function result = isValidBehaviorName(behaviorName)
-      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
-        isvarname(behaviorName); 
-      % AL: second condition because labels.timelinetimestamp, see Labels.m
-    end
+
     
     function noneToNoBeh(obj)
       % For single-classfier projects: Convert 'None' to 'No_<behavior>'
@@ -866,6 +860,17 @@ classdef JLabelData < matlab.mixin.Copyable
      
   end
   
+  methods (Static)
+    
+    % ---------------------------------------------------------------------
+    function result = isValidBehaviorName(behaviorName)
+      result = ~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once')) && ...
+        isvarname(behaviorName); 
+      % AL: second condition because labels.timelinetimestamp, see Labels.m
+    end
+    
+  end
+  
   methods % more private
     
     % ---------------------------------------------------------------------    
@@ -1023,7 +1028,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Delete from allperframefns
       pfName = scoreFeature.scorefilename;
       tf = strcmp(pfName,obj.allperframefns);
-      assert(isequal(tf,toBeDeleted));
+      assert(isequal(nnz(tf),nnz(toBeDeleted)));
       notPfName = @(string)(~isequal(string,pfName));
       obj.allperframefns = cellFilter(notPfName,obj.allperframefns);      
     end
@@ -1459,12 +1464,11 @@ classdef JLabelData < matlab.mixin.Copyable
       if obj.IsGTMode
         origExpDirNames = Q.x.gtExpDirNames;
         origLabels = Q.x.gtLabels;
-        % modernize labels?
       else
         origExpDirNames = Q.x.expDirNames;
         origLabels = Q.x.labels;
-        origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
       end
+      origLabels = Labels.modernizeLabels(origLabels,Q.x.behaviors.names);
       assert(numel(origExpDirNames)==numel(origLabels));
       
       for ndx = 1:numel(origExpDirNames)
@@ -2455,7 +2459,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       expIndicesToRemove=find(markedForRemoval);
       expdirs_removed = self.expdirs(expIndicesToRemove);
-      self.RemoveExpDirs(expIndicesToRemove);  %#ok
+      self.RemoveExpDirs(expIndicesToRemove);  
     end  % method
 
         
@@ -3803,10 +3807,10 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.windowdata(iCls).labelidx_new = [obj.windowdata(iCls).labelidx_new; tmp(1).labelidx_new];
             obj.windowdata(iCls).labelidx_imp = [obj.windowdata(iCls).labelidx_imp; tmp(1).labelidx_imp];
             obj.windowdata(iCls).labelidx_old = [obj.windowdata(iCls).labelidx_old; zeros(nframes,1)];
+            obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
 %             obj.windowdata(iCls).predicted = [obj.windowdata(iCls).predicted; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores = [obj.windowdata(iCls).scores; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores_old = [obj.windowdata(iCls).scores_old; zeros(nframes,1)];
-%             obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
 %             obj.windowdata(iCls).postprocessed = [obj.windowdata(iCls).postprocessed; zeros(nframes,1)];
 %             obj.windowdata(iCls).isvalidprediction = [obj.windowdata(iCls).isvalidprediction; false(nframes,1)];
             %obj.windowdata(iCls).featurenames = [obj.windowdata(iCls).featurenames tmp(1).featurenames];
@@ -4740,74 +4744,25 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % MERGESTUPDATED
       
-      % Write label info to newlabels structure
-      % TODO: don't know why writing to intermediate variable rather than obj.labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
+      assert(labelidx.off==labelidx_off);
       assert(isequal(labelidx.labelnames,obj.labelnames));
-      assert(labelidx.nbeh==obj.nbehaviors);
-      for iTL = 1:labelidx.nTL
-        
-        % Write bouts
-        % ALTODO: Optimization: don't loop over all behaviors/labels, just those relevant
-        % to this timeline
-        for j = 1:obj.nbehaviors,
-          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);          
-          if ~isempty(i0s)
-            n = numel(i0s);
-            newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-            newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
-            newlabels.names(end+1:end+n) = repmat(labelidx.labelnames(j),[1,n]);
-            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
-            assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
-          end
-        end
-      end
-      % write importance
-      if labelidx.nTL==1
-        [i0s,i1s] = get_interval_ends(labelidx.imp);
-        if ~isempty(i0s)
-          newlabels.imp_t0s = i0s - labelidx_off;
-          newlabels.imp_t1s = i1s - labelidx_off;
-        end
-      else
-        % ALXXX EXTENDED
-        % Multiclassifier importance for GT
-      end
-      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+      assert(labelidx.nbeh==obj.nbehaviors);      
       
-      if isempty(obj.labels(expi).flies),
-        ism = false;
-      else
-        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
-      end
-      if ~ism,
-        j = size(obj.labels(expi).flies,1)+1;
-      end
+      labelsShort = Labels.labelsShortFromLabelIdx(labelidx);
+      obj.labels(expi) = Labels.assignFlyLabelsRaw(obj.labels(expi),labelsShort,flies);
 
-      obj.labels(expi).t0s{j} = newlabels.t0s;
-      obj.labels(expi).t1s{j} = newlabels.t1s;
-      obj.labels(expi).names{j} = newlabels.names;
-      obj.labels(expi).flies(j,:) = flies;
-      obj.labels(expi).off(j) = labelidx_off; % ALTODO: Don't understand, if we have adjusted by labelidx_off above, why are we recording this?
-      obj.labels(expi).timestamp{j} = newlabels.timestamp;
-      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
-      NtimelineTS = numel(obj.labels(expi).timelinetimestamp);
-      if NtimelineTS<j
-        obj.labels(expi).timelinetimestamp(NtimelineTS+1:j) = {struct()};
-      end
+      % Update labels.timelinetimestamp
+      maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
+      [tf,ifly] = ismember(flies,obj.labels(expi).flies,'rows');
+      assert(tf);
       for iTL = 1:labelidx.nTL
         classifiername = obj.labelnames{iTL};
-        if ~isfield(obj.labels(expi).timelinetimestamp{j},classifiername)
-          obj.labels(expi).timelinetimestamp{j}.(classifiername) = 0;
+        if ~isfield(obj.labels(expi).timelinetimestamp{ifly},classifiername)
+          obj.labels(expi).timelinetimestamp{ifly}.(classifiername) = 0;
         end
-        obj.labels(expi).timelinetimestamp{j}.(classifiername) = ...
-          max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
-      end          
-
-%       %AL: isn't obj.labels(expi).flies always unique?
-%       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-%       obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s); % AL: seems wrong, doesn't account for other flies
+        obj.labels(expi).timelinetimestamp{ifly}.(classifiername) = ...
+          max(obj.labels(expi).timelinetimestamp{ifly}.(classifiername),maxtimestamps(iTL));
+      end
     end
 
     
@@ -5680,11 +5635,10 @@ classdef JLabelData < matlab.mixin.Copyable
       
     
     % ---------------------------------------------------------------------
-    function didpredict = PredictFast(obj,expi,flies,t0,t1,clsIdx)
+    function didpredict = PredictFast(obj,expi,flies,t0,t1,iCls)
     % Predict fast by computing only the required window features.
     %
-    % clsIdx: vector of classifier indices to predict. If not specified,
-    % clsIdx is equal to 1:obj.nclassifiers.
+    % iCls: scalar index for classifier to predict.
     %
     % Effect: update obj.predictdata{expi}{flies}(:) for t0:t1
     % Side Effects: update predictblocks, fastPredict
@@ -5694,9 +5648,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % MERGESTUPDATED
           
       nCls = obj.nclassifiers;
-      if ~exist('clsIdx','var')
-        clsIdx = 1:nCls;
-      end
+      assert(isscalar(iCls) && any(iCls==1:nCls));
       
       didpredict = false; 
       
@@ -5705,30 +5657,19 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       % Determine which behaviors/classifiers need predicting;
-      pdArr = obj.predictdata{expi}{flies};
-      for i = numel(clsIdx):-1:1
-        pd = pdArr(clsIdx(i));
-        idxcurr_t = pd.t>=t0 & pd.t<=t1;
-        if all(pd.cur_valid(idxcurr_t))
-          clsIdx(i) = [];
-        end
-      end   
-      if isempty(clsIdx)
-        return; 
+      pd = obj.predictdata{expi}{flies}(iCls);
+      idxcurr_t = pd.t>=t0 & pd.t<=t1;
+      if all(pd.cur_valid(idxcurr_t))
+        return;
       end
       
       didpredict = true;
       
       % Try WindowDatapredictFast
-      for i = numel(clsIdx):-1:1
-        finished = obj.WindowDataPredictFast(expi,flies,clsIdx(i),t0,t1);
-        % ALTODO: optimization, WindowDataPredictFast might have
-        % successfully predicted a lot of t0:t1
-        if finished
-          clsIdx(i) = [];
-        end
-      end
-      if isempty(clsIdx)
+      finished = obj.WindowDataPredictFast(expi,flies,iCls,t0,t1);
+      % ALTODO: optimization, WindowDataPredictFast might have
+      % successfully predicted a lot of t0:t1
+      if finished
         return;
       end
       
@@ -5736,197 +5677,220 @@ classdef JLabelData < matlab.mixin.Copyable
       if any(arrayfun(@(x)isempty(x.classifier),obj.fastPredict)) % isempty(obj.fastPredict(1).classifier)
         obj.FindFastPredictParams();
       end
-      
+            
       perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
       perframefile = obj.GetPerframeFiles(expi);
-      for iCls = clsIdx(:)'
-        % There is at least one frame in t0:t1 that does not have a
-        % current prediction. We
-        % are going to predict on all frames in [t0,t1] even though some may
-        % already have current predictions.
-        %
-        % ALTODO: Optimization, be smarter about not repredicting everything.
-        
-        % Initialize missingts, ts which need new prediction
-        
-        obj.SetStatus('Predicting for classifier %s...',obj.labelnames{iCls});
-        
-        pd = pdArr(iCls);
-        missingts = pd.t(pd.t>=t0 & pd.t<=t1);
-        nmissingts = inf;        
-        
-        while true
-                    
-          % - Choose a frame missing window data
-          % - Try to use an existing predict block if available
-
-          t = missingts(1);
-          curblockndx = obj.predictblocks(iCls).expi==expi & obj.predictblocks(iCls).flies==flies;
-          curbs_t0 = obj.predictblocks(iCls).t0(curblockndx);
-          curbs_t1 = obj.predictblocks(iCls).t1(curblockndx);
-          
-          if ~isempty(curbs_t0) && any((t-curbs_t0)>=0 & (t-curbs_t1)<=0) && ...
-              t1-t0 > 2*obj.predictwindowdatachunk_radius-2,
-            % AL: For second condition, don't we really want
-            % curbs_t1-curbs_t0 > 2*radius-2 etc?
-            tempndx = find( (t-curbs_t0)>=0 & (t-curbs_t1)<=0 );
-            t0 = curbs_t0(tempndx(1));
-            t1 = curbs_t1(tempndx(1));
-          else
-            t = median(missingts);
-            if ~ismember(t,missingts),
-              t = missingts(argmin(abs(t-missingts)));
-            end
-            
-            % bound at start and end frame of these flies
-            T0 = max(obj.GetTrxFirstFrame(expi,flies));
-            T1 = min(obj.GetTrxEndFrame(expi,flies));
-            
-            t1 = min(t+obj.predictwindowdatachunk_radius,T1);
-            % go backward 2*r to find the start of the chunk
-            t0 = max(t1-2*obj.predictwindowdatachunk_radius,T0);
-            % go forward 2*r again to find the end of the chunk
-            t1 = min(t0+2*obj.predictwindowdatachunk_radius,T1);
-            
-            
-            % Find blocks that overlap with the current interval and merge
-            % them into one block.
-            overlapping_blocks1 = find(curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0); %
-            overlapping_blocks2 = find(curbs_t1-t0 >= 0 & curbs_t0-t1 <= 0); % ALXXX MINIMAL: intend curbs_t1 in both terms?
-            overlapping_blocks = unique([overlapping_blocks1(:);overlapping_blocks2(:)]);
-            if ~isempty(overlapping_blocks),
-              t0 = min(t0,min(curbs_t0(overlapping_blocks)));
-              t1 = max(t1,max(curbs_t1(overlapping_blocks)));
-              todelete = find(curblockndx);
-              todelete = todelete(overlapping_blocks);
-              obj.predictblocks(iCls).t0(todelete) = [];
-              obj.predictblocks(iCls).t1(todelete) = [];
-              obj.predictblocks(iCls).flies(todelete) = [];
-              obj.predictblocks(iCls).expi(todelete) = [];
-            end
-            %             overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
-            %             if ~isempty(overlap_start),
-            %               t0 = max(curbs_t1(overlap_start))+1;
-            %             end
-            %
-            %             overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
-            %             if ~isempty(overlap_end),
-            %               t1 = max(curbs_t0(overlap_end))-1;
-            %             end
-            
-            if t0 <= t1,
-              obj.predictblocks(iCls).t0(end+1) = t0;
-              obj.predictblocks(iCls).t1(end+1) = t1;
-              obj.predictblocks(iCls).expi(end+1) = expi;
-              obj.predictblocks(iCls).flies(end+1) = flies;
-            else
-              warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);
-            end
-          end
-          
-          % - Range of prediction [t0,t1] has been updated
-          % - obj.predictblocks(iCls) has been updated as necessary to 
-          % include a block spanning precisely [t0,t1] (possibly merging blocks etc)
-          
-          i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
-          i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;          
-          
-          X = [];
-          
-          %%% Compute window features
-          perframedata_cur = obj.perframedata;
-          allperframefns = obj.allperframefns;
-          windowfeaturescellparams = obj.fastPredict(iCls).windowfeaturescellparams;
-          pffs = obj.fastPredict(iCls).pffs;
-          feature_names_list = cell(1,numel(pffs));
-          x_curr_all = cell(1,numel(pffs));
-          
-          try
-            parfor j = 1:numel(pffs),
-              
-              fn = pffs{j};
-              
-              ndx = find(strcmp(fn,allperframefns));
-              if perframeInMemory,
-                perframedata = perframedata_cur{ndx};  %#ok
-              else
-                perframedata = load(perframefile{ndx});  %#ok
-                perframedata = perframedata.data{flies(1)};  %#ok
-              end
-              
-              i11 = min(i1,numel(perframedata));
-              [x_curr,cur_f] = ...
-                ComputeWindowFeatures(perframedata,...
-                windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
-              
-              if i11 < i1,
-                x_curr(:,end+1:end+i1-i11) = nan;
-              end
-              
-              x_curr_all{j} = single(x_curr);
-              feature_names_list{j} = cur_f;
-            end  % parfor
-            
-          catch ME,
-            
-            uiwait(warndlg(sprintf('Could not predict:%s',ME.message)));
-            
-          end
-          
-          % Passing on to next stage: x_curr_all, feature_names_list
-          
-          % Form feature matrix X          
-          for j = 1:numel(pffs),
-            fn = pffs{j};
-            x_curr = x_curr_all{j}; % will be empty if err occurred
-            % add the window data for this per-frame feature to X
-            nold = size(X,1);
-            nnew = size(x_curr,2);
-            if nold > nnew,
-              warning(['Number of examples for per-frame feature %s does not '...
-                'match number of examples for previous features'],fn);
-              x_curr(:,end+1:end+nold-nnew) = nan;
-            elseif nnew > nold && ~isempty(X),
-              warning(['Number of examples for per-frame feature %s does not '...
-                'match number of examples for previous features'],fn);
-              X(end+1:end+nnew-nold,:) = nan;
-            end
-            X = [X,x_curr']; %#ok<AGROW>
-          end
-          
-          if ~obj.fastPredict(iCls).wfidx_valid,
-            feature_names = {};
-            for ndx = 1:numel(feature_names_list)
-              fn = pffs{ndx};
-              feature_names = [feature_names,cellfun(@(s) [{fn},s],...
-                feature_names_list{ndx},'UniformOutput',false)]; %#ok<AGROW>
-            end
-            obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(obj.fastPredict(iCls),feature_names);
-            assert(obj.fastPredict(iCls).wfidx_valid);
-          end
-          
-          scores = myBoostClassify(X(:,obj.fastPredict(iCls).wfidx),obj.fastPredict(iCls).classifier);
-          
-          curndx = obj.predictdata{expi}{flies}(iCls).t>=t0 & ...
-                   obj.predictdata{expi}{flies}(iCls).t<=t1;
-          obj.predictdata{expi}{flies}(iCls).cur(curndx) = scores;
-          obj.predictdata{expi}{flies}(iCls).timestamp(curndx) = obj.classifierTS(iCls);
-          obj.predictdata{expi}{flies}(iCls).cur_valid(curndx) = true;
-          
-          missingts(missingts >= t0 & missingts <= t1) = [];
-          
-          if isempty(missingts),
-            break;
-          end
-          
-          nmissingtsnew = numel(missingts);
-          if nmissingtsnew >= nmissingts,
-            errordlg('Sanity check: Number of frames missing window features did not decrease. Breaking out of loop.');
-            break;
-          end
-          nmissingts = nmissingtsnew;
-        end
+      % There is at least one frame in t0:t1 that does not have a current 
+      % prediction. We are going to predict on all frames in [t0,t1] even 
+      % though some may already have current predictions.
+      %
+      % ALTODO: Optimization, be smarter about not repredicting everything.
+      
+      % Initialize missingts, ts which need new prediction
+      
+      obj.SetStatus('Predicting for classifier %s...',obj.labelnames{iCls});
+      
+      pd = obj.predictdata{expi}{flies}(iCls);
+      missingts = pd.t(pd.t>=t0 & pd.t<=t1);
+      nmissingts = inf;
+      
+      DEBUG = false;
+      if DEBUG
+        fprintf(1,'Exp/fly/cls %d/%d/%d. [t0 t1] = [%.3f %.3f]\n',expi,flies,iCls,t0,t1);
       end
+      
+      while true
+        % - missingts is running state for this loop; each iteration 
+        % predicts a subset of missingts and thereby reduces it
+        % - Choose a frame missing window data
+        % - Try to use an existing predict block if available
+        
+        t = missingts(1);
+        curblockndx = obj.predictblocks(iCls).expi==expi & obj.predictblocks(iCls).flies==flies;
+        curbs_t0 = obj.predictblocks(iCls).t0(curblockndx);
+        curbs_t1 = obj.predictblocks(iCls).t1(curblockndx);
+        
+        if DEBUG
+          fprintf(1,'New iter. t=%d. curbs_t0/curbs_t1: %s/%s\n',t,mat2str(curbs_t0(:)'),mat2str(curbs_t1(:)'));
+          disp(obj.predictblocks(iCls));
+        end
+        
+        tfExistingBlock = (t-curbs_t0)>=0 & (t-curbs_t1)<=0 & ...
+          (curbs_t1-curbs_t0)>2*obj.predictwindowdatachunk_radius-2;
+        if ~isempty(curbs_t0) && any(tfExistingBlock)
+          tempndx = find(tfExistingBlock);
+          t0 = curbs_t0(tempndx(1));
+          t1 = curbs_t1(tempndx(1));
+          
+          if DEBUG
+            fprintf(1,'Using existing block, t0/t1: %.3f/%.3f\n',t0,t1);
+          end
+        else
+          t = median(missingts);
+          if ~ismember(t,missingts),
+            t = missingts(argmin(abs(t-missingts)));
+          end
+          
+          % bound at start and end frame of these flies
+          T0 = max(obj.GetTrxFirstFrame(expi,flies));
+          T1 = min(obj.GetTrxEndFrame(expi,flies));
+          
+          t1 = min(t+obj.predictwindowdatachunk_radius,T1);
+          % go backward 2*r to find the start of the chunk
+          t0 = max(t1-2*obj.predictwindowdatachunk_radius,T0);
+          % go forward 2*r again to find the end of the chunk
+          t1 = min(t0+2*obj.predictwindowdatachunk_radius,T1);
+          
+          
+          % Find blocks that overlap with the current interval and merge
+          % them into one block.
+          overlapping_blocks1 = find(curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0);
+          overlapping_blocks2 = find(curbs_t1-t0 >= 0 & curbs_t1-t1 <= 0);
+          overlapping_blocks = unique([overlapping_blocks1(:);overlapping_blocks2(:)]);
+          if ~isempty(overlapping_blocks),
+            t0 = min(t0,min(curbs_t0(overlapping_blocks)));
+            t1 = max(t1,max(curbs_t1(overlapping_blocks)));
+            todelete = find(curblockndx);
+            todelete = todelete(overlapping_blocks);
+            obj.predictblocks(iCls).t0(todelete) = [];
+            obj.predictblocks(iCls).t1(todelete) = [];
+            obj.predictblocks(iCls).flies(todelete) = [];
+            obj.predictblocks(iCls).expi(todelete) = [];
+            
+            % AL 20150529: The expansion of t0/t1 above can lead to
+            % additional overlapping blocks, ie we could look for
+            % overlapping blocks in a loop. Doesn't look important though.
+            if DEBUG
+              fprintf(1,'Deleting/merging %d blocks\n',numel(todelete));
+            end
+          end
+          %             overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
+          %             if ~isempty(overlap_start),
+          %               t0 = max(curbs_t1(overlap_start))+1;
+          %             end
+          %
+          %             overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
+          %             if ~isempty(overlap_end),
+          %               t1 = max(curbs_t0(overlap_end))-1;
+          %             end
+          
+          if t0 <= t1,
+            obj.predictblocks(iCls).t0(end+1) = t0;
+            obj.predictblocks(iCls).t1(end+1) = t1;
+            obj.predictblocks(iCls).expi(end+1) = expi;
+            obj.predictblocks(iCls).flies(end+1) = flies;
+            
+            if DEBUG
+              fprintf(1,'Adding block: [%d %d]\n',t0,t1);
+            end
+          else
+            warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);
+          end
+        end
+        
+        % - Range of prediction [t0,t1] has been updated
+        % - obj.predictblocks(iCls) has been updated as necessary to
+        % include a block spanning precisely [t0,t1] (possibly merging blocks etc)
+        
+        i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
+        i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
+        
+        X = [];
+        
+        %%% Compute window features
+        perframedata_cur = obj.perframedata;
+        allperframefns = obj.allperframefns;
+        windowfeaturescellparams = obj.fastPredict(iCls).windowfeaturescellparams;
+        pffs = obj.fastPredict(iCls).pffs;
+        feature_names_list = cell(1,numel(pffs));
+        x_curr_all = cell(1,numel(pffs));
+        
+        try
+          parfor j = 1:numel(pffs),
+            
+            fn = pffs{j};
+            
+            ndx = find(strcmp(fn,allperframefns));
+            if perframeInMemory,
+              perframedata = perframedata_cur{ndx};  %#ok
+            else
+              perframedata = load(perframefile{ndx});  %#ok
+              perframedata = perframedata.data{flies(1)};  %#ok
+            end
+            
+            i11 = min(i1,numel(perframedata));
+            [x_curr,cur_f] = ...
+              ComputeWindowFeatures(perframedata,...
+              windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
+            
+            if i11 < i1,
+              x_curr(:,end+1:end+i1-i11) = nan;
+            end
+            
+            x_curr_all{j} = single(x_curr);
+            feature_names_list{j} = cur_f;
+          end  % parfor
+          
+        catch ME,
+          
+          uiwait(warndlg(sprintf('Could not predict:%s',ME.message)));
+          
+        end
+        
+        % Passing on to next stage: x_curr_all, feature_names_list
+        
+        % Form feature matrix X
+        for j = 1:numel(pffs),
+          fn = pffs{j};
+          x_curr = x_curr_all{j}; % will be empty if err occurred
+          % add the window data for this per-frame feature to X
+          nold = size(X,1);
+          nnew = size(x_curr,2);
+          if nold > nnew,
+            warning(['Number of examples for per-frame feature %s does not '...
+              'match number of examples for previous features'],fn);
+            x_curr(:,end+1:end+nold-nnew) = nan;
+          elseif nnew > nold && ~isempty(X),
+            warning(['Number of examples for per-frame feature %s does not '...
+              'match number of examples for previous features'],fn);
+            X(end+1:end+nnew-nold,:) = nan;
+          end
+          X = [X,x_curr']; %#ok<AGROW>
+        end
+        
+        if ~obj.fastPredict(iCls).wfidx_valid,
+          feature_names = {};
+          for ndx = 1:numel(feature_names_list)
+            fn = pffs{ndx};
+            feature_names = [feature_names,cellfun(@(s) [{fn},s],...
+              feature_names_list{ndx},'UniformOutput',false)]; %#ok<AGROW>
+          end
+          obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(obj.fastPredict(iCls),feature_names);
+          assert(obj.fastPredict(iCls).wfidx_valid);
+        end
+        
+        scores = myBoostClassify(X(:,obj.fastPredict(iCls).wfidx),obj.fastPredict(iCls).classifier);
+        
+        curndx = obj.predictdata{expi}{flies}(iCls).t>=t0 & ...
+          obj.predictdata{expi}{flies}(iCls).t<=t1;
+        obj.predictdata{expi}{flies}(iCls).cur(curndx) = scores;
+        obj.predictdata{expi}{flies}(iCls).timestamp(curndx) = obj.classifierTS(iCls);
+        obj.predictdata{expi}{flies}(iCls).cur_valid(curndx) = true;
+        
+        missingts(missingts >= t0 & missingts <= t1) = [];
+        
+        if isempty(missingts),
+          break;
+        end
+        
+        nmissingtsnew = numel(missingts);
+        if nmissingtsnew >= nmissingts,
+          errordlg('Sanity check: Number of frames missing window features did not decrease. Breaking out of loop.');
+          break;
+        end
+        nmissingts = nmissingtsnew;
+      end
+      
       
       obj.ClearStatus();
     end    
@@ -6192,12 +6156,17 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function tf = HasLoadedScores(obj,iCls)
-      % tf: true if there are loaded scores for all exps/flies
+      % tf: true if there is at least one exp, and there are loaded scores for all exps/flies
       
       %MERGESTUPDATED
       
       assert(isscalar(iCls) && any(iCls==1:obj.nclassifiers));
       
+      if obj.nexps==0
+        tf = false;
+        return;
+      end
+        
       tf = true;
       for expi = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(expi)
@@ -6430,6 +6399,8 @@ classdef JLabelData < matlab.mixin.Copyable
             
       % MERGESTUPDATED
       
+      assert(isscalar(flyNum));
+      
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
       
       stats = struct();
@@ -6459,7 +6430,11 @@ classdef JLabelData < matlab.mixin.Copyable
       curts = zeros(1,0); % all labeled frame indices for this fly (may contain repeats)
       curlabels = zeros(1,0); % label vector for curts; values are LABEL indices (in 1:2*nclassifier)
       lblsExp = obj.labels(expi);
-      [tf,iFly] = ismember(flyNum,lblsExp.flies,'rows');
+      lblsExpFlies = lblsExp.flies;
+      if isequal(lblsExpFlies,[])
+        lblsExpFlies = lblsExpFlies(:);
+      end
+      [tf,iFly] = ismember(flyNum,lblsExpFlies,'rows');
       if tf
         nBouts = numel(lblsExp.t0s{iFly});
         for iBout = 1:nBouts
@@ -6861,39 +6836,51 @@ classdef JLabelData < matlab.mixin.Copyable
     function openJabFile(self, ...
                          fileNameAbs, ...
                          groundTruthingMode, ...
-                         originalExpDirNames, ...
-                         substituteExpDirNames) 
+                         varargin)
+      % openJabFile(self,fileNameAbs,gtMode,p1,v1,...)
+      %
+      % Optional PVs:
+      %   * macguffin. Macguffin object, jab contents corresponding to
+      %   fileNameAbs. This option exists because the caller may want to
+      %   modify the project before opening. If this argument is provided,
+      %   self.needsave is set to true.
+      %   * originalExpDirNames. see below.
+      %   * substituteExpDirNames. etc
+      % 
+      % original/substituteExpDirNames should be cell arrays of the same 
+      % length, each element a string giving an absolute path to an 
+      % experiment directory.  Each element of originalExpDirNames should
+      % be an experiment directory in the .jab file, and the corresponding
+      % element of substituteExpDirNames gives an experiment dir name to be
+      % used in place of the original one. This is to enable the user to
+      % manually locate exp dir names that are missing. Elements of
+      % substituteExpDirNames may be empty (eg '') to indicate that the
+      % experiment is not to be opened/included in the project. Whether
+      % these experiment dir names are treated as normal exp dir names or
+      % ground-truthing exp dir names depends on groundTruthingMode.      
                        
       %MERGESTUPDATED
       
-      % originalExpDirNames and substituteExpDirNames are optional.
-      % If given, they should be cell arrays of the same length, each
-      % element a string giving an absolute path to an experiment
-      % directory.  Each element of originalExpDirNames should be an
-      % experiment directory in the .jab file, and the corresponding
-      % element of substitureExpDirNames gives an experiment dir name to be
-      % used in place of the original one.  This is to enable the user to
-      % manually locate exp dir names that are missing.  Whether these
-      % experiment dir names are treated as normal exp dir names or
-      % ground-truthing exp dir names depends on groundTruthingMode.
+      [macguffin,...
+       originalExpDirs,...
+       substituteExpDirs] = myparse(varargin,...
+       'macguffin',[],...
+       'originalExpDirs',cell(0,1),...
+       'substituteExpDirs',cell(0,1));
                        
-      % process the args
-      if ~exist('originalExpDirNames','var')
-        originalExpDirNames = cell(0,1);
-      end
-      if ~exist('substituteExpDirNames','var')
-        substituteExpDirNames = cell(0,1);
-      end
-      assert(numel(originalExpDirNames)==numel(substituteExpDirNames));
-      
-      self.gtMode = groundTruthingMode;
-
-      % Open the file
-      macguffin = loadAnonymous(fileNameAbs);
-      if isstruct(macguffin)
-        macguffin = Macguffin(macguffin);
+      assert(numel(originalExpDirs)==numel(substituteExpDirs));
+      macgufProvided = ~isempty(macguffin);
+      if macgufProvided
+        assert(isa(macguffin,'Macguffin'));
+      else
+        macguffin = loadAnonymous(fileNameAbs);
+        if isstruct(macguffin)
+          macguffin = Macguffin(macguffin);
+        end
       end
       macguffin.modernize(true);
+      
+      self.gtMode = groundTruthingMode;
       
       % Do the substiutions, if any
       substitutionsMade = false;
@@ -6908,19 +6895,16 @@ classdef JLabelData < matlab.mixin.Copyable
       newLabels = Labels.labels(0);
       for i = 1:length(expDirNames)
         expDirName = expDirNames{i};
-        j = whichstr(expDirName,originalExpDirNames);
+        j = whichstr(expDirName,originalExpDirs);
         if isempty(j)
           newExpDirNames{end+1} = expDirNames{i};  %#ok
           newLabels(end+1) = labels(i);  %#ok
         else
-          newExpDirName = substituteExpDirNames{j};
-          if ~isempty(newExpDirName)
-            newExpDirNames{end+1} = substituteExpDirNames{j};  %#ok
+          if ~isempty(substituteExpDirs{j})
+            newExpDirNames{end+1} = substituteExpDirs{j};  %#ok
             newLabels(end+1) = labels(i);  %#ok
           else
-            % AL 20140908 
             % Empty new name for this experiment; experiment will not be added
-            % Is this the intent or should this be asserted false?
           end
           substitutionsMade = true;
         end
@@ -6940,7 +6924,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.thereIsAnOpenFile = true;
       self.everythingFileNameAbs = fileNameAbs;
       self.userHasSpecifiedEverythingFileName = true;
-      self.needsave = substitutionsMade; % Only need save if substitutions were made
+      self.needsave = macgufProvided  || substitutionsMade;
       self.defaultpath = fileparts(fileNameAbs);
      
       % initialize the status table describing what required files exist
@@ -7010,7 +6994,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function openJabFileNoExps(self, ...
         fileNameAbs, ...
-        groundTruthingMode)            
+        groundTruthingMode)
       
       self.gtMode = groundTruthingMode;
       
@@ -7046,41 +7030,16 @@ classdef JLabelData < matlab.mixin.Copyable
 
 
     % ---------------------------------------------------------------------
-    function newJabFile(obj,macguf,varargin)
+    function newJabFile(obj,macguf)
       % Only called by ProjectSetup/new project creation. 
       % IMPORTANT: macguf has type Macguffin, but it is not a properly
       % initialized Macguffin object. It is semi-initialized object 
       % originating from ProjectSetup for the purposes of initialization, 
       % hence the various massaging here.
-      
-      if mod(numel(varargin),2) ~= 0,
-        error('JLabelData:oddNumberOfOptionalArgsToNewJabFile',  ...
-              'Optional inputs to JLabelData.newJabFile() should be p-v pairs.');
-      end
-
-      keys = varargin(1:2:end);
-      values = varargin(2:2:end);     
-      
-      % If caller set the default path, set that now
-      oldDefaultPath = obj.defaultpath;
-      i = find(strcmpi(keys,'defaultpath'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetDefaultPath(values{i});
-        if ~success,
-          error('JLabelData:unableToSetDefaultPath',msg);
-        end
-      end
-      
+            
       obj.gtMode = false;
                      
-      % Set the file data from the Macguffin object
-      try
-        obj.setMacguffin(macguf);
-      catch excp
-        % roll things back
-        obj.defaultpath = oldDefaultPath;
-        rethrow(excp);
-      end
+      obj.setMacguffin(macguf);
       
       % Make up filename
       try
@@ -7390,7 +7349,6 @@ classdef JLabelData < matlab.mixin.Copyable
         % Set the target species
         obj.targettype=everythingParams.behaviors.type;
                 
-        obj.labelGraphicParams=everythingParams.labelGraphicParams;
         obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
         obj.labelcolors=everythingParams.behaviors.labelcolors;
         obj.unknowncolor=everythingParams.behaviors.unknowncolor;
@@ -7480,12 +7438,13 @@ classdef JLabelData < matlab.mixin.Copyable
   %       obj.InitPostprocessparams();
 
         % initialize everything else
+        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+        % AL 201506 order important; setWindowFeaturesParams provides initialization of eg .predictblocks which
+        % is necessary should setAllLabels->SetExpDirs require a rollback
         if loadexps,
           obj.setAllLabels(everythingParams);
-        end
-        
+        end        
         obj.setScoreFeatures(everythingParams.scoreFeatures);
-        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
         obj.setClassifierStuff(everythingParams.classifierStuff);
         
       catch excp
@@ -7540,7 +7499,6 @@ classdef JLabelData < matlab.mixin.Copyable
       basicParams.file.trxfilename=obj.trxfilename;
       basicParams.file.scorefilename=obj.scorefilename;
       %basicParams.scoresinput=obj.scoreFeatures;
-      basicParams.labelGraphicParams=obj.labelGraphicParams;
       basicParams.trxGraphicParams=obj.trxGraphicParams;
     end
     
@@ -7836,7 +7794,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %       basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
 %       basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
 %       basicParams.file=everythingParams.file;
-%       basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
 %       basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
 %       basicParams.landmarkParams=everythingParams.landmarkParams;
 %     end    
@@ -7849,13 +7806,12 @@ classdef JLabelData < matlab.mixin.Copyable
   methods
 
     % ---------------------------------------------------------------------
-    function [success,msg,crossErrorCell,tlabels] = CrossValidate(obj,varargin)
+    function [success,msg,crossErrorCell] = CrossValidate(obj,varargin)
     % Cross validate on bouts.
     %
     % success: nclassifier-by-1 logical
     % msg: nclassifier-by-1 cellstr
     % crossErrorCell: nclassifier-by-1 cell
-    % tlabels: nclassifier-by-1 cell
       
     %MERGESTUPDATED
     
@@ -7863,7 +7819,6 @@ classdef JLabelData < matlab.mixin.Copyable
       success = false(nCls,1);
       msg = repmat({''},nCls,1);
       crossErrorCell = cell(nCls,1);
-      tlabels = cell(nCls,1);
       
       obj.StoreLabelsAndPreLoadWindowData();      
       
@@ -7879,12 +7834,6 @@ classdef JLabelData < matlab.mixin.Copyable
         wd = obj.windowdata(iCls);
         islabeled = wd.labelidx_new~=0 & wd.labelidx_imp;
         if ~any(islabeled)
-%           ce = struct;
-%           ce.numbers = zeros(4,3);
-%           ce.frac = zeros(4,3);
-%           ce.oldNumbers = zeros(4,3);
-%           ce.oldFrac = zeros(4,3);
-%           crossErrorCell{iCls} = ce;
           msg{iCls} = 'No Labeled Data';
           continue;
         end
@@ -7913,25 +7862,13 @@ classdef JLabelData < matlab.mixin.Copyable
         iLblNeg = iLbl(2);
         labels012 = Labels.labelVec2label012(labels,iLblPos,iLblNeg);
                 
-        [success(iCls),msg{iCls},crossScores,tlabels{iCls}] = ...
-          obj.crossValidateBout(iCls,labels012,bouts,true,setidx);        
+        [success(iCls),msg{iCls},crossScores] = ...
+          obj.crossValidateBout(iCls,labels012,bouts,setidx);        
         if ~success(iCls)
-%           crossError.numbers = zeros(4,3);
-%           crossError.frac = zeros(4,3);
-%           crossError.oldNumbers = zeros(4,3);
-%           crossError.oldFrac = zeros(4,3);
-%           tlabels = {};
           continue;          
         end
-        
-        %{
-%       crossScores=...
-%         crossValidate( obj.windowdata.X(islabeled,:), ...
-%         obj.windowdata.labelidx_cur(islabeled,:),obj,...
-%         obj.windowdata.binVals,...
-%         obj.windowdata.bins(:,islabeled),obj.classifier_params);
-        %}
-        
+                
+        assert(isrow(crossScores));
         obj.windowdata(iCls).scores_validated = zeros(numel(islabeled),1);
         obj.windowdata(iCls).scores_validated(islabeled) = crossScores(1,:);
         
@@ -7946,12 +7883,9 @@ classdef JLabelData < matlab.mixin.Copyable
         modLabels = 2*labelsLabeled12 - labelsImpLabeled;
         
         %crossError=zeros(1,size(crossScores,1));
-        nSomething = size(crossScores,1);
-        crossError = struct('numbers',cell(1,nSomething),...
-          'frac',cell(1,nSomething));
-        for tndx = 1:nSomething
-          crossError(tndx) = obj.createConfMat(iCls,crossScores(tndx,:),modLabels);
-        end
+        %nSomething = size(crossScores,1);
+        %crossError = struct('numbers',[],'frac',[]);
+        crossError = obj.createConfMat(iCls,crossScores,modLabels);
         
         waslabeled = false(numel(islabeled),1);
         waslabeled(1:numel(wd.labelidx_old)) = wd.labelidx_old~=0 & wd.labelidx_imp;
@@ -7965,8 +7899,8 @@ classdef JLabelData < matlab.mixin.Copyable
         
         oldLabels = 2*labelsCur12 - labelsImp;
         oldError = obj.createConfMat(iCls,oldScores,oldLabels);
-        crossError(1).oldNumbers = oldError.numbers;
-        crossError(1).oldFrac = oldError.frac;
+        crossError.oldNumbers = oldError.numbers;
+        crossError.oldFrac = oldError.frac;
         
         crossErrorCell{iCls} = crossError;
       end
@@ -7976,8 +7910,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------    
-    function [success,msg,scores,tlabels] = ...
-        crossValidateBout(obj,iCls,labels,bouts,timed,setidx)
+    function [success,msg,scores] = ...
+        crossValidateBout(obj,iCls,labels,bouts,setidx)
       %
       % Let windowdata have length nsamp, ie nsamp = numel(obj.windowdata(iCls).t)
       %
@@ -7985,14 +7919,14 @@ classdef JLabelData < matlab.mixin.Copyable
       % labels: vector of length nsamp. Values are 1/2 for pos/neg labels, 
       %   resp. Conceptually like obj.windowdata(iCls).labelidx; can 
       %   contain 0 (?).
-      % bouts: see getLabeledBouts()
-      % timed: scalar logical. Currently ignored/set to false
-      % setidx: integer grouping vector, length nsamp. Values in range 1:k. 
-      %   Partitions windowdata for k-fold crossvalidation.
+      % bouts: see getLabeledBouts(). Used only for generating setidx when
+      %   necessary.
+      % setidx: optional, integer grouping vector, length nsamp. Values in 
+      %   range 1:k. Partitions windowdata for k-fold crossvalidation. If 
+      %   not provided, setidx is generated using cvpartition.
       %
       % scores: vector of classification scores. Length nsamp, except 
       %  indices for labels==0 removed.
-      % tlabels: Currently unused (for timed)
       
       %MERGESTUPDATED
       
@@ -8008,182 +7942,73 @@ classdef JLabelData < matlab.mixin.Copyable
 
       modLabels = sign((labels==1)-0.5); % labels==0?
 
-      if exist('timed','var') && timed
-        fprintf('WARNING: setting timed = false in crossValidateBout, even though the input is true. FIX THIS!\n');
-      end
-      timed = false;
-
-      if exist('setidx','var') && ~isempty(setidx)
-        validateattributes(setidx,{'numeric'},{'integer' 'vector' 'numel' nsamp});
-      else
-        setidx = [];
-      end
-      issetidx = ~isempty(setidx);
-      
-      if issetidx
-        k = max(setidx);
-      else
-        k = params.CVfolds;
-      end
-
-      % choose sets to hold out together
-      if ~issetidx
+      if ~exist('setidx','var') || isempty(setidx)
         assert(all(bouts.label==1 | bouts.label==2));
         posBouts = bouts.label==1;
         negBouts = ~posBouts;
-
+        nFolds = params.CVfolds;
+        
         numPosBouts = nnz(posBouts);
-        numNegBouts = nnz(negBouts);
-
-        if numPosBouts<k || numNegBouts<k
+        numNegBouts = nnz(negBouts);        
+        if numPosBouts<nFolds || numNegBouts<nFolds
           scores = zeros(1,nsamp);
-          scores(labels==0) = []; 
-          tlabels = {};
-          success = false;
-
-          if numPosBouts<k
+          scores(labels==0) = [];
+          success = false;          
+          if numPosBouts<nFolds
             msg = 'Too few bouts of behavior to do cross-validation';
           end
-          if numNegBouts <k
-            msg = 'Too few bouts of not behavior to do cross-validation';
-          end
-
+          if numNegBouts<nFolds
+            msg = 'Too few bouts of not-behavior to do cross-validation';
+          end          
           return;
         end
-
-        posBlocks = linspace(0,numPosBouts+1,k+1);
-        negBlocks = linspace(0,numNegBouts+1,k+1);
-        posCum = cumsum(posBouts);
-        negCum = cumsum(negBouts);
-        % Randomly permute the bouts.
-        % ALXXX NEEDS REVIEW
-        % Looks like a bug based on subsequent usage
-        posCum = posCum(randperm(numel(posCum)));
-        negCum = negCum(randperm(numel(negCum)));
-      end
-
-      tlabels = {};
-      if timed
-        assert(false,'Currently unreachable codepath.');
-%         tpoints(1) = max(bouts.timestamp);  %#ok
-%         tlabels{1} = datestr(tpoints(1));
-%         tpoints(end+1) = addtodate(tpoints(1),-5,'minute');
-%         tlabels{end+1} = '-5m';
-%         tpoints(end+1) = addtodate(tpoints(1),-10,'minute');
-%         tlabels{end+1} = '-10m';
-%         tpoints(end+1) = addtodate(tpoints(1),-15,'minute');
-%         tlabels{end+1} = '-15m';
-%         tpoints(end+1) = addtodate(tpoints(1),-20,'minute');
-%         tlabels{end+1} = '-20m';
-%         tpoints(end+1) = addtodate(tpoints(1),-25,'minute');
-%         tlabels{end+1} = '-25m';
-%         tpoints(end+1) = addtodate(tpoints(1),-30,'minute');
-%         tlabels{end+1} = '-30m';
-%         tpoints(end+1) = addtodate(tpoints(1),-45,'minute');
-%         tlabels{end+1} = '-45m';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'hour');
-%         tlabels{end+1} = '-1h';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'hour');
-%         tlabels{end+1} = '-2h';
-%         tpoints(end+1) = addtodate(tpoints(1),-3,'hour');
-%         tlabels{end+1} = '-3h';
-%         tpoints(end+1) = addtodate(tpoints(1),-4,'hour');
-%         tlabels{end+1} = '-4h';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'day');
-%         tlabels{end+1} = '-1d';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'day');
-%         tlabels{end+1} = '-2d';
-%         tpoints(end+1) = addtodate(tpoints(1),-3,'day');
-%         tlabels{end+1} = '-3d';
-%         tpoints(end+1) = addtodate(tpoints(1),-7,'day');
-%         tlabels{end+1} = '-1w';
-%         tpoints(end+1) = addtodate(tpoints(1),-7*2,'day');
-%         tlabels{end+1} = '-2w';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'month');
-%         tlabels{end+1} = '-1mo';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'month');
-%         tlabels{end+1} = '-2mo';
-%         tpoints(end+1) = addtodate(tpoints(1),-6,'month');
-%         tlabels{end+1} = '-6mo';
-%         tpoints(end+1) = addtodate(tpoints(1),-1,'year');
-%         tlabels{end+1} = '-1y';
-%         tpoints(end+1) = addtodate(tpoints(1),-2,'year');
-%         tlabels{end+1} = '-2y';
-%         tpoints(end+1) = addtodate(tpoints(1),-10,'year');
-%         tlabels{end+1} = '-10y';
-% 
-%         tooOld = tpoints< min(bouts.timestamp) ;
-%         tpoints(tooOld) = [];
-%         tlabels(tooOld) = [];
-      else
-        tpoints = now;
-      end
-
-      scores = zeros(numel(tpoints),nsamp);
-      bins = findThresholdBins(data,binVals);
-
-      for bno = 1:k
-        % generate curTestNdx, indicator vector for test set
-        if ~issetidx
-          % AL 20141216: Looks like intent is, give me bno'th block of 
-          % positive bouts, suitably randomized; and similarly for negative
-          % bouts. However, seems unlikely that random permutation of 
-          % pos/negCum above has the desired effect. Eg consider 
-          % negBouts = [1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 ... many zeros]. 
-          % In this case negCum is dominated by the value 4 and after
-          % randomization the likely effect is that whichever block
-          % contains 4 will contain all bouts.
-          curPosTest = posCum >= posBlocks(bno) & posCum < posBlocks(bno+1) & posBouts;
-          curNegTest = negCum >= negBlocks(bno) & negCum < negBlocks(bno+1) & negBouts;
-          curTestNdx = false(1,nsamp);
-          assert(isrow(curPosTest));
-          assert(isrow(curNegTest));
-          for posNdx = find(curPosTest)
-            curTestNdx = curTestNdx | bouts.ndx(posNdx,:);
-          end          
-          for negNdx = find(curNegTest)
-            curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
-          end          
-        else          
-          curTestNdx = setidx==bno;          
-        end
-
-        for tndx = 1:numel(tpoints)
-          % find curTrainNdx, indicator vector for train set
-          if ~issetidx
-            curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
-            curNegTrain = find(~curNegTest & negBouts & bouts.timestamp<=tpoints(tndx));
-            curTrainNdx = false(1,nsamp);
-            assert(isrow(curPosTrain));
-            assert(isrow(curNegTrain));
-            for posNdx = curPosTrain
-              curTrainNdx = curTrainNdx | bouts.ndx(posNdx,:);
-            end
-            for negNdx = curNegTrain
-              curTrainNdx = curTrainNdx | bouts.ndx(negNdx,:);
-            end            
-          else            
-            curTrainNdx = bno~=setidx;            
+        
+        cvpart = cvpartition(posBouts,'kfold',nFolds);
+        
+        setidx = nan(1,nsamp);
+        for iFold = 1:nFolds
+          iBoutTest = test(cvpart,iFold); % should contain both pos and neg bouts
+          iBoutTest = find(iBoutTest);
+          testNdx = false(1,nsamp);
+          for iB = iBoutTest(:)'
+            testNdx = testNdx | bouts.ndx(iB,:);
           end
-          
-          assert(~any(curTestNdx & curTrainNdx),'Training/testing sets are not disjoint.');
-
-          curTrainLabels = modLabels(curTrainNdx);
-
-          wt = getWeights(curTrainLabels);  
-          tt = tic;
-          curbins = curTrainNdx;
-          [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
-            params.iter,wt,binVals,bins(:,curbins),params);
-          tScores = myBoostClassify(data(curTestNdx,:),curModel);
-          scores(tndx,curTestNdx) = tScores;
-          etime = toc(tt);
-          done = ((bno-1)*numel(tpoints) + tndx);
-          obj.SetStatus('%d%% cross-validation done.  Time Remaining: %d s ',...
-            round( done/(numel(tpoints)*k)*100), ...
-            round( ((numel(tpoints)*k)-done)*etime));
-          drawnow();
+          assert(all(isnan(setidx(testNdx))),...
+            'Overlapping bouts encountered for classifier %d.',iCls);
+          setidx(testNdx) = iFold;
         end
+      end
+      
+      validateattributes(setidx,{'numeric'},{'positive' 'integer' 'vector' 'numel' nsamp});
+      k = max(setidx);
+      assert(isequal(unique(setidx(:)'),1:k));
+      
+      % AL20150528: I may have encountered a situation where the 
+      % crossvalidation results table did not sum up as expected across
+      % rows (with totals corresponding to number of frames labeled etc). 
+      % I am including this temporary debug statement so we may check
+      % against the results table.
+      fprintf(1,'Count of labels (pos/neg/tot): %d/%d/%d\n',...
+        nnz(labels==1),nnz(labels==2),numel(labels));
+      
+      scores = zeros(1,nsamp);
+      bins = findThresholdBins(data,binVals);
+      for bno = 1:k
+        curTestNdx = setidx==bno;
+        curTrainNdx = setidx~=bno;
+        
+        curTrainLabels = modLabels(curTrainNdx);
+        wt = getWeights(curTrainLabels);
+        tt = tic;
+        curbins = curTrainNdx;
+        [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
+          params.iter,wt,binVals,bins(:,curbins),params);
+        tScores = myBoostClassify(data(curTestNdx,:),curModel);
+        scores(1,curTestNdx) = tScores;
+        etime = toc(tt);
+        obj.SetStatus('%d%% cross-validation done.  Time Remaining: %d s ',...
+          round(bno/k*100),round((k-bno)*etime));
+        drawnow();
       end
 
       scores(:,labels==0) = [];
@@ -8589,8 +8414,8 @@ classdef JLabelData < matlab.mixin.Copyable
         if jumpList(ndx).exp ~= expi || jumpList(ndx).fly ~= flies
           continue;
         end
-        idx = jumpList(ndx).t -T0 + 1 + (-ignore:ignore);
-        idx(idx<0) = [];
+        idx = jumpList(ndx).t - T0 + 1 + (-ignore:ignore);
+        idx(idx<1) = [];
         idx(idx>numel(dist)) = [];
         dist(idx) = inf;
       end
@@ -10021,7 +9846,6 @@ classdef JLabelData < matlab.mixin.Copyable
       self.version = '';
       self.otherModeLabelsEtc = struct('expDirNames',{cell(1,0)}, ...
                                        'labels',{struct([])});
-      self.labelGraphicParams=[];
       self.trxGraphicParams=[];
       self.labelcolors = [];
       self.unknowncolor = [0 0 0];
