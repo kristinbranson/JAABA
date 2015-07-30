@@ -71,8 +71,22 @@ fracneg = Zneg/Z;
 
 if dosample,
   
-  posCount = accummatrix(curBins(:,idxpos)',ones(Zpos,1),numBins)'/Z;
-  negCount = accummatrix(curBins(:,~idxpos)',ones(Zneg,1),numBins)'/Z;
+  
+  allCounts = cell(1,2);
+  allidxs{1} = idxpos;
+  allidxs{2} = ~idxpos;
+  Zsall{1} = Zpos;
+  Zsall{2} = Zneg;
+  parfor cndx = 1:2
+    allCounts{cndx} = accummatrix(curBins(:,allidxs{cndx})',ones(Zsall{cndx},1),numBins)'/Z;
+  end
+  posCount = allCounts{1};
+  negCount = allCounts{2};
+  
+%   posCount = accummatrix(curBins(:,idxpos)',ones(Zpos,1),numBins)'/Z;
+%   negCount = accummatrix(curBins(:,~idxpos)',ones(Zneg,1),numBins)'/Z;
+%   assert(isequal(posCount,allCounts{1}));
+%   assert(isequal(negCount,allCounts{2}));
   
 %   posCount = histc(curBins(:,idxpos),edges,2);
 %   posCount = posCount(:,1:end-1) / Z;
