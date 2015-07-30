@@ -18,7 +18,7 @@
 <flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
 <flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
 <flies_hoghofplus file="params/featureConfigHoghofplus_modernNames.xml" animal="fly"/>
-<flies_hoghofstationary file="params/featureConfigHoghofplusStationary_modernNames.xml" animal="fly"/>
+<flies_hoghofstationary file="params/featureConfigHoghofplusStationary_modernNames_hsflow.xml" animal="fly"/>
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
 <adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
 </params>

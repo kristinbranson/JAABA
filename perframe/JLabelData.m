@@ -2147,6 +2147,8 @@ classdef JLabelData < matlab.mixin.Copyable
       filenames = cell(1,numel(obj.allperframefns));
       timestamps = -inf(1,numel(obj.allperframefns));
       
+      is_pc = ispc; % repeatedly calling ispc is slow
+      
       for i = 1:numel(obj.allperframefns),
 
         % loop through directories to look in
@@ -2154,7 +2156,7 @@ classdef JLabelData < matlab.mixin.Copyable
           expdir = expdirs_try{j};
 %           perframedir = fullfile(expdir,fn);  % BJA: slow by 10x
           perframedir = [expdir filesep fn];
-          if ispc && ~exist(perframedir,'dir'),
+          if is_pc && ~exist(perframedir,'dir'),
             [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
             if didfind,
               perframedir = actualperframedir;
@@ -2162,7 +2164,7 @@ classdef JLabelData < matlab.mixin.Copyable
           end
 %           filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);  % BJA: slow by 10x
           filename = [perframedir filesep obj.allperframefns{i} '.mat'];
-          if ispc && ~exist(filename,'file'),
+          if is_pc && ~exist(filename,'file'),
             [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
             if didfind,
               filename = actualfilename;
@@ -2171,8 +2173,10 @@ classdef JLabelData < matlab.mixin.Copyable
           
           if exist(filename,'file'),
             filenames{i} = filename;
-            tmp = dir(filename);
-            timestamps(i) = tmp.datenum;
+            if nargout > 1
+              tmp = dir(filename);
+              timestamps(i) = tmp.datenum;
+            end
           elseif j == 1,
             filenames{i} = filename;
           end
@@ -3705,8 +3709,11 @@ classdef JLabelData < matlab.mixin.Copyable
             assert(isequal(size(labelIdx.vals,1),size(labelIdx.imp,1),obj.nclassifiers));
             labelIdxVals{flyi} = labelIdx.vals(iCls,:);
             labelIdxImp{flyi} = labelIdx.imp(iCls,:);
-            object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
-            
+%             object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
+%           MK: moved this below so that we compute the object only if
+%           there are some ts that are missing. The object creating tends
+%           to be slow.
+
             % Find all labeled frames for this exp/classifier/fly
             if obj.nclassifiers==1
               % Legacy codepath: build up ts from labels_curr. This should
@@ -3735,6 +3742,10 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.windowdata(iCls).labelidx_imp(idxcurr) = labelIdxImp{flyi}(tscurr-t0_labelidx+1);
               missingts{flyi} = setdiff(ts,tscurr);
             end
+            if ~isempty(missingts{flyi})
+              object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
+            end
+
           end
           
           curperframefns = obj.curperframefns{iCls};
@@ -4897,7 +4908,8 @@ classdef JLabelData < matlab.mixin.Copyable
             %reset(stream);
 
             if true % obj.DoFullTraining
-              obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
+              pstr = sprintf('Training %s classifier from %d examples...',obj.labelnames{iCls},nnz(islabeled)); 
+              obj.SetStatus(pstr);
 
               % form label vec that has 1 for 'behavior present'
               labelidxnew = obj.windowdata(iCls).labelidx_new(islabeled);
@@ -4934,7 +4946,7 @@ classdef JLabelData < matlab.mixin.Copyable
                                   labels12,obj,...
                                   obj.windowdata(iCls).binVals,...
                                   bins, ...
-                                  obj.classifier_params{iCls});
+                                  obj.classifier_params{iCls},pstr);
               else
                 [obj.classifier{iCls}] = ...
                   fastBag(obj.windowdata(iCls).X(islabeled,:),...
