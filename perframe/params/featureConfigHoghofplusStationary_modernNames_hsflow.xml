@@ -1,0 +1,1230 @@
+<?xml version="1.0"?>   
+<params>   
+  <defaults>   
+  <normal   
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+
+  <hoghof   
+    sanitycheck="0"   
+    min_window_radius="5"    
+    max_window_radius="10"    
+    nwindow_radii="3"    
+    window_offsets="0,-1,1"    
+    trans_types="none"  >   
+    <mean min_window_radius="5"/>   
+  </hoghof>   
+     
+  </defaults>   
+     
+  <perframe>   
+    <a_mm trans_types="none,abs" type="appearance"/>
+    
+    <absanglefrom1to2_nose2ell  trans_types="none" type="social"/>
+
+    <absdtheta trans_types="relative" type="locomotion"/>
+    
+    <absdv_cor trans_types="relative" type="locomotion"/>
+    
+    <absphidiff_anglesub trans_types="none" type="social"/>
+    
+    <absphidiff_nose2ell trans_types="none" type="social"/>
+    
+    <absthetadiff_anglesub trans_types="none" type="social"/>
+    
+    <absthetadiff_nose2ell trans_types="none" type="social"/>
+    
+    <angle2wall trans_types="flip,abs" type="arena"/>
+    
+    <anglefrom1to2_anglesub trans_types="flip,abs" type="social"/>
+    
+    <anglefrom1to2_nose2ell  trans_types="flip,abs" type="social"/>
+    
+    <angleonclosestfly trans_types="flip,abs" type="social"/>
+    
+    <anglesub trans_types="none" type="social"/>
+    
+    <area trans_types="none,relative" type="appearance"/>
+    
+    <arena_angle trans_types="none" type="position"/>
+    
+    <arena_r trans_types="none" type="arena,position"/>
+    
+    <b_mm trans_types="none,abs" type="appearance"/>
+    
+    <closestfly_anglesub trans_types="none" type="identity"/>
+    
+    <closestfly_center  trans_types="none" type="identity"/>
+    
+    <closestfly_ell2nose  trans_types="none" type="identity"/>
+    
+    <closestfly_nose2ell  trans_types="none" type="identity"/>
+    
+    <corfrac_maj trans_types="none,abs" type="locomotion"/>
+    
+    <corfrac_min trans_types="flip,abs" type="locomotion"/>
+    
+    <dangle2wall trans_types="flip,abs" type="arena"/>
+    
+    <danglesub trans_types="none,abs" type="social"/>
+    
+    <darea trans_types="none,abs,relative" type="appearance"/>
+    
+    <da trans_types="none,abs,relative" type="appearance"/>
+    
+    <db trans_types="none,abs,relative" type="appearance"/>
+
+    <dcenter trans_types="none,relative" type="social"/>
+    
+    <ddcenter trans_types="none,abs" type="social"/>
+    
+    <ddist2wall trans_types="none" type="arena"/>
+    
+    <decc trans_types="none,abs,relative" type="appearance"/>
+    
+    <dell2nose trans_types="none,relative" type="social"/>
+    
+    <dnose2ell_angle_30tomin30 trans_types="none" type="social"/>
+    
+    <dnose2ell_angle_min20to20 trans_types="none" type="social"/>
+    
+    <dnose2ell_angle_min30to30 trans_types="none" type="social"/>
+    
+    <dist2wall trans_types="none,relative" type="arena"/>
+    
+    <dnose2ell trans_types="none,relative" type="social"/>
+    
+    <dnose2tail trans_types="none,relative" type="social"/>
+    
+    <dphi trans_types="none,abs" type="locomotion"/>
+    
+    <dtheta trans_types="flip,abs" type="locomotion"/>
+    
+    <du_cor trans_types="none,abs,relative" type="locomotion"/>
+    
+    <du_ctr trans_types="none,abs,relative" type="locomotion"/>
+    
+    <du_tail trans_types="none,abs,relative" type="locomotion"/>
+    
+    <dv_cor trans_types="flip,abs" type="locomotion"/>
+    
+    <dv_ctr trans_types="flip,abs" type="locomotion"/>
+    
+    <dv_tail trans_types="flip,abs" type="locomotion"/>
+    
+    <ecc trans_types="none,abs" type="appearance"/>
+    
+    <flipdv_cor trans_types="relative" type="locomotion"/>
+    
+    <magveldiff_anglesub trans_types="none,relative" type="social"/>
+    
+    <magveldiff_nose2ell trans_types="none,relative" type="social"/>
+    
+    <nflies_close trans_types="none" type="social"/>
+
+    <phi trans_types="none" type="position"/>
+    
+    <phisideways trans_types="none" type="locomotion"/>
+    
+    <velmag trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_ctr trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_nose trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_tail trans_types="none,relative" type="locomotion"/>
+    
+    <veltoward_anglesub trans_types="none,relative" type="social"/>
+    
+    <veltoward_nose2ell trans_types="none,relative" type="social"/>
+    
+    <yaw trans_types="flip,abs" type="locomotion"/>
+    
+    <absyaw trans_types="none" type="compatbility"/>
+
+<hf_01_01_1 trans_types="none" type="hog"/>
+<hf_01_01_2 trans_types="none" type="hog"/>
+<hf_01_01_3 trans_types="none" type="hog"/>
+<hf_01_01_4 trans_types="none" type="hog"/>
+<hf_01_01_5 trans_types="none" type="hog"/>
+<hf_01_01_6 trans_types="none" type="hog"/>
+<hf_01_01_7 trans_types="none" type="hog"/>
+<hf_01_01_8 trans_types="none" type="hog"/>
+<hf_01_02_1 trans_types="none" type="hog"/>
+<hf_01_02_2 trans_types="none" type="hog"/>
+<hf_01_02_3 trans_types="none" type="hog"/>
+<hf_01_02_4 trans_types="none" type="hog"/>
+<hf_01_02_5 trans_types="none" type="hog"/>
+<hf_01_02_6 trans_types="none" type="hog"/>
+<hf_01_02_7 trans_types="none" type="hog"/>
+<hf_01_02_8 trans_types="none" type="hog"/>
+<hf_01_03_1 trans_types="none" type="hog"/>
+<hf_01_03_2 trans_types="none" type="hog"/>
+<hf_01_03_3 trans_types="none" type="hog"/>
+<hf_01_03_4 trans_types="none" type="hog"/>
+<hf_01_03_5 trans_types="none" type="hog"/>
+<hf_01_03_6 trans_types="none" type="hog"/>
+<hf_01_03_7 trans_types="none" type="hog"/>
+<hf_01_03_8 trans_types="none" type="hog"/>
+<hf_01_04_1 trans_types="none" type="hog"/>
+<hf_01_04_2 trans_types="none" type="hog"/>
+<hf_01_04_3 trans_types="none" type="hog"/>
+<hf_01_04_4 trans_types="none" type="hog"/>
+<hf_01_04_5 trans_types="none" type="hog"/>
+<hf_01_04_6 trans_types="none" type="hog"/>
+<hf_01_04_7 trans_types="none" type="hog"/>
+<hf_01_04_8 trans_types="none" type="hog"/>
+<hf_01_05_1 trans_types="none" type="hog"/>
+<hf_01_05_2 trans_types="none" type="hog"/>
+<hf_01_05_3 trans_types="none" type="hog"/>
+<hf_01_05_4 trans_types="none" type="hog"/>
+<hf_01_05_5 trans_types="none" type="hog"/>
+<hf_01_05_6 trans_types="none" type="hog"/>
+<hf_01_05_7 trans_types="none" type="hog"/>
+<hf_01_05_8 trans_types="none" type="hog"/>
+<hf_01_06_1 trans_types="none" type="hog"/>
+<hf_01_06_2 trans_types="none" type="hog"/>
+<hf_01_06_3 trans_types="none" type="hog"/>
+<hf_01_06_4 trans_types="none" type="hog"/>
+<hf_01_06_5 trans_types="none" type="hog"/>
+<hf_01_06_6 trans_types="none" type="hog"/>
+<hf_01_06_7 trans_types="none" type="hog"/>
+<hf_01_06_8 trans_types="none" type="hog"/>
+<hf_01_07_1 trans_types="none" type="hog"/>
+<hf_01_07_2 trans_types="none" type="hog"/>
+<hf_01_07_3 trans_types="none" type="hog"/>
+<hf_01_07_4 trans_types="none" type="hog"/>
+<hf_01_07_5 trans_types="none" type="hog"/>
+<hf_01_07_6 trans_types="none" type="hog"/>
+<hf_01_07_7 trans_types="none" type="hog"/>
+<hf_01_07_8 trans_types="none" type="hog"/>
+<hf_01_08_1 trans_types="none" type="hog"/>
+<hf_01_08_2 trans_types="none" type="hog"/>
+<hf_01_08_3 trans_types="none" type="hog"/>
+<hf_01_08_4 trans_types="none" type="hog"/>
+<hf_01_08_5 trans_types="none" type="hog"/>
+<hf_01_08_6 trans_types="none" type="hog"/>
+<hf_01_08_7 trans_types="none" type="hog"/>
+<hf_01_08_8 trans_types="none" type="hog"/>
+<hf_02_01_1 trans_types="none" type="hog"/>
+<hf_02_01_2 trans_types="none" type="hog"/>
+<hf_02_01_3 trans_types="none" type="hog"/>
+<hf_02_01_4 trans_types="none" type="hog"/>
+<hf_02_01_5 trans_types="none" type="hog"/>
+<hf_02_01_6 trans_types="none" type="hog"/>
+<hf_02_01_7 trans_types="none" type="hog"/>
+<hf_02_01_8 trans_types="none" type="hog"/>
+<hf_02_02_1 trans_types="none" type="hog"/>
+<hf_02_02_2 trans_types="none" type="hog"/>
+<hf_02_02_3 trans_types="none" type="hog"/>
+<hf_02_02_4 trans_types="none" type="hog"/>
+<hf_02_02_5 trans_types="none" type="hog"/>
+<hf_02_02_6 trans_types="none" type="hog"/>
+<hf_02_02_7 trans_types="none" type="hog"/>
+<hf_02_02_8 trans_types="none" type="hog"/>
+<hf_02_03_1 trans_types="none" type="hog"/>
+<hf_02_03_2 trans_types="none" type="hog"/>
+<hf_02_03_3 trans_types="none" type="hog"/>
+<hf_02_03_4 trans_types="none" type="hog"/>
+<hf_02_03_5 trans_types="none" type="hog"/>
+<hf_02_03_6 trans_types="none" type="hog"/>
+<hf_02_03_7 trans_types="none" type="hog"/>
+<hf_02_03_8 trans_types="none" type="hog"/>
+<hf_02_04_1 trans_types="none" type="hog"/>
+<hf_02_04_2 trans_types="none" type="hog"/>
+<hf_02_04_3 trans_types="none" type="hog"/>
+<hf_02_04_4 trans_types="none" type="hog"/>
+<hf_02_04_5 trans_types="none" type="hog"/>
+<hf_02_04_6 trans_types="none" type="hog"/>
+<hf_02_04_7 trans_types="none" type="hog"/>
+<hf_02_04_8 trans_types="none" type="hog"/>
+<hf_02_05_1 trans_types="none" type="hog"/>
+<hf_02_05_2 trans_types="none" type="hog"/>
+<hf_02_05_3 trans_types="none" type="hog"/>
+<hf_02_05_4 trans_types="none" type="hog"/>
+<hf_02_05_5 trans_types="none" type="hog"/>
+<hf_02_05_6 trans_types="none" type="hog"/>
+<hf_02_05_7 trans_types="none" type="hog"/>
+<hf_02_05_8 trans_types="none" type="hog"/>
+<hf_02_06_1 trans_types="none" type="hog"/>
+<hf_02_06_2 trans_types="none" type="hog"/>
+<hf_02_06_3 trans_types="none" type="hog"/>
+<hf_02_06_4 trans_types="none" type="hog"/>
+<hf_02_06_5 trans_types="none" type="hog"/>
+<hf_02_06_6 trans_types="none" type="hog"/>
+<hf_02_06_7 trans_types="none" type="hog"/>
+<hf_02_06_8 trans_types="none" type="hog"/>
+<hf_02_07_1 trans_types="none" type="hog"/>
+<hf_02_07_2 trans_types="none" type="hog"/>
+<hf_02_07_3 trans_types="none" type="hog"/>
+<hf_02_07_4 trans_types="none" type="hog"/>
+<hf_02_07_5 trans_types="none" type="hog"/>
+<hf_02_07_6 trans_types="none" type="hog"/>
+<hf_02_07_7 trans_types="none" type="hog"/>
+<hf_02_07_8 trans_types="none" type="hog"/>
+<hf_02_08_1 trans_types="none" type="hog"/>
+<hf_02_08_2 trans_types="none" type="hog"/>
+<hf_02_08_3 trans_types="none" type="hog"/>
+<hf_02_08_4 trans_types="none" type="hog"/>
+<hf_02_08_5 trans_types="none" type="hog"/>
+<hf_02_08_6 trans_types="none" type="hog"/>
+<hf_02_08_7 trans_types="none" type="hog"/>
+<hf_02_08_8 trans_types="none" type="hog"/>
+<hf_03_01_1 trans_types="none" type="hog"/>
+<hf_03_01_2 trans_types="none" type="hog"/>
+<hf_03_01_3 trans_types="none" type="hog"/>
+<hf_03_01_4 trans_types="none" type="hog"/>
+<hf_03_01_5 trans_types="none" type="hog"/>
+<hf_03_01_6 trans_types="none" type="hog"/>
+<hf_03_01_7 trans_types="none" type="hog"/>
+<hf_03_01_8 trans_types="none" type="hog"/>
+<hf_03_02_1 trans_types="none" type="hog"/>
+<hf_03_02_2 trans_types="none" type="hog"/>
+<hf_03_02_3 trans_types="none" type="hog"/>
+<hf_03_02_4 trans_types="none" type="hog"/>
+<hf_03_02_5 trans_types="none" type="hog"/>
+<hf_03_02_6 trans_types="none" type="hog"/>
+<hf_03_02_7 trans_types="none" type="hog"/>
+<hf_03_02_8 trans_types="none" type="hog"/>
+<hf_03_03_1 trans_types="none" type="hog"/>
+<hf_03_03_2 trans_types="none" type="hog"/>
+<hf_03_03_3 trans_types="none" type="hog"/>
+<hf_03_03_4 trans_types="none" type="hog"/>
+<hf_03_03_5 trans_types="none" type="hog"/>
+<hf_03_03_6 trans_types="none" type="hog"/>
+<hf_03_03_7 trans_types="none" type="hog"/>
+<hf_03_03_8 trans_types="none" type="hog"/>
+<hf_03_04_1 trans_types="none" type="hog"/>
+<hf_03_04_2 trans_types="none" type="hog"/>
+<hf_03_04_3 trans_types="none" type="hog"/>
+<hf_03_04_4 trans_types="none" type="hog"/>
+<hf_03_04_5 trans_types="none" type="hog"/>
+<hf_03_04_6 trans_types="none" type="hog"/>
+<hf_03_04_7 trans_types="none" type="hog"/>
+<hf_03_04_8 trans_types="none" type="hog"/>
+<hf_03_05_1 trans_types="none" type="hog"/>
+<hf_03_05_2 trans_types="none" type="hog"/>
+<hf_03_05_3 trans_types="none" type="hog"/>
+<hf_03_05_4 trans_types="none" type="hog"/>
+<hf_03_05_5 trans_types="none" type="hog"/>
+<hf_03_05_6 trans_types="none" type="hog"/>
+<hf_03_05_7 trans_types="none" type="hog"/>
+<hf_03_05_8 trans_types="none" type="hog"/>
+<hf_03_06_1 trans_types="none" type="hog"/>
+<hf_03_06_2 trans_types="none" type="hog"/>
+<hf_03_06_3 trans_types="none" type="hog"/>
+<hf_03_06_4 trans_types="none" type="hog"/>
+<hf_03_06_5 trans_types="none" type="hog"/>
+<hf_03_06_6 trans_types="none" type="hog"/>
+<hf_03_06_7 trans_types="none" type="hog"/>
+<hf_03_06_8 trans_types="none" type="hog"/>
+<hf_03_07_1 trans_types="none" type="hog"/>
+<hf_03_07_2 trans_types="none" type="hog"/>
+<hf_03_07_3 trans_types="none" type="hog"/>
+<hf_03_07_4 trans_types="none" type="hog"/>
+<hf_03_07_5 trans_types="none" type="hog"/>
+<hf_03_07_6 trans_types="none" type="hog"/>
+<hf_03_07_7 trans_types="none" type="hog"/>
+<hf_03_07_8 trans_types="none" type="hog"/>
+<hf_03_08_1 trans_types="none" type="hog"/>
+<hf_03_08_2 trans_types="none" type="hog"/>
+<hf_03_08_3 trans_types="none" type="hog"/>
+<hf_03_08_4 trans_types="none" type="hog"/>
+<hf_03_08_5 trans_types="none" type="hog"/>
+<hf_03_08_6 trans_types="none" type="hog"/>
+<hf_03_08_7 trans_types="none" type="hog"/>
+<hf_03_08_8 trans_types="none" type="hog"/>
+<hf_04_01_1 trans_types="none" type="hog"/>
+<hf_04_01_2 trans_types="none" type="hog"/>
+<hf_04_01_3 trans_types="none" type="hog"/>
+<hf_04_01_4 trans_types="none" type="hog"/>
+<hf_04_01_5 trans_types="none" type="hog"/>
+<hf_04_01_6 trans_types="none" type="hog"/>
+<hf_04_01_7 trans_types="none" type="hog"/>
+<hf_04_01_8 trans_types="none" type="hog"/>
+<hf_04_02_1 trans_types="none" type="hog"/>
+<hf_04_02_2 trans_types="none" type="hog"/>
+<hf_04_02_3 trans_types="none" type="hog"/>
+<hf_04_02_4 trans_types="none" type="hog"/>
+<hf_04_02_5 trans_types="none" type="hog"/>
+<hf_04_02_6 trans_types="none" type="hog"/>
+<hf_04_02_7 trans_types="none" type="hog"/>
+<hf_04_02_8 trans_types="none" type="hog"/>
+<hf_04_03_1 trans_types="none" type="hog"/>
+<hf_04_03_2 trans_types="none" type="hog"/>
+<hf_04_03_3 trans_types="none" type="hog"/>
+<hf_04_03_4 trans_types="none" type="hog"/>
+<hf_04_03_5 trans_types="none" type="hog"/>
+<hf_04_03_6 trans_types="none" type="hog"/>
+<hf_04_03_7 trans_types="none" type="hog"/>
+<hf_04_03_8 trans_types="none" type="hog"/>
+<hf_04_04_1 trans_types="none" type="hog"/>
+<hf_04_04_2 trans_types="none" type="hog"/>
+<hf_04_04_3 trans_types="none" type="hog"/>
+<hf_04_04_4 trans_types="none" type="hog"/>
+<hf_04_04_5 trans_types="none" type="hog"/>
+<hf_04_04_6 trans_types="none" type="hog"/>
+<hf_04_04_7 trans_types="none" type="hog"/>
+<hf_04_04_8 trans_types="none" type="hog"/>
+<hf_04_05_1 trans_types="none" type="hog"/>
+<hf_04_05_2 trans_types="none" type="hog"/>
+<hf_04_05_3 trans_types="none" type="hog"/>
+<hf_04_05_4 trans_types="none" type="hog"/>
+<hf_04_05_5 trans_types="none" type="hog"/>
+<hf_04_05_6 trans_types="none" type="hog"/>
+<hf_04_05_7 trans_types="none" type="hog"/>
+<hf_04_05_8 trans_types="none" type="hog"/>
+<hf_04_06_1 trans_types="none" type="hog"/>
+<hf_04_06_2 trans_types="none" type="hog"/>
+<hf_04_06_3 trans_types="none" type="hog"/>
+<hf_04_06_4 trans_types="none" type="hog"/>
+<hf_04_06_5 trans_types="none" type="hog"/>
+<hf_04_06_6 trans_types="none" type="hog"/>
+<hf_04_06_7 trans_types="none" type="hog"/>
+<hf_04_06_8 trans_types="none" type="hog"/>
+<hf_04_07_1 trans_types="none" type="hog"/>
+<hf_04_07_2 trans_types="none" type="hog"/>
+<hf_04_07_3 trans_types="none" type="hog"/>
+<hf_04_07_4 trans_types="none" type="hog"/>
+<hf_04_07_5 trans_types="none" type="hog"/>
+<hf_04_07_6 trans_types="none" type="hog"/>
+<hf_04_07_7 trans_types="none" type="hog"/>
+<hf_04_07_8 trans_types="none" type="hog"/>
+<hf_04_08_1 trans_types="none" type="hog"/>
+<hf_04_08_2 trans_types="none" type="hog"/>
+<hf_04_08_3 trans_types="none" type="hog"/>
+<hf_04_08_4 trans_types="none" type="hog"/>
+<hf_04_08_5 trans_types="none" type="hog"/>
+<hf_04_08_6 trans_types="none" type="hog"/>
+<hf_04_08_7 trans_types="none" type="hog"/>
+<hf_04_08_8 trans_types="none" type="hog"/>
+<hf_05_01_1 trans_types="none" type="hog"/>
+<hf_05_01_2 trans_types="none" type="hog"/>
+<hf_05_01_3 trans_types="none" type="hog"/>
+<hf_05_01_4 trans_types="none" type="hog"/>
+<hf_05_01_5 trans_types="none" type="hog"/>
+<hf_05_01_6 trans_types="none" type="hog"/>
+<hf_05_01_7 trans_types="none" type="hog"/>
+<hf_05_01_8 trans_types="none" type="hog"/>
+<hf_05_02_1 trans_types="none" type="hog"/>
+<hf_05_02_2 trans_types="none" type="hog"/>
+<hf_05_02_3 trans_types="none" type="hog"/>
+<hf_05_02_4 trans_types="none" type="hog"/>
+<hf_05_02_5 trans_types="none" type="hog"/>
+<hf_05_02_6 trans_types="none" type="hog"/>
+<hf_05_02_7 trans_types="none" type="hog"/>
+<hf_05_02_8 trans_types="none" type="hog"/>
+<hf_05_03_1 trans_types="none" type="hog"/>
+<hf_05_03_2 trans_types="none" type="hog"/>
+<hf_05_03_3 trans_types="none" type="hog"/>
+<hf_05_03_4 trans_types="none" type="hog"/>
+<hf_05_03_5 trans_types="none" type="hog"/>
+<hf_05_03_6 trans_types="none" type="hog"/>
+<hf_05_03_7 trans_types="none" type="hog"/>
+<hf_05_03_8 trans_types="none" type="hog"/>
+<hf_05_04_1 trans_types="none" type="hog"/>
+<hf_05_04_2 trans_types="none" type="hog"/>
+<hf_05_04_3 trans_types="none" type="hog"/>
+<hf_05_04_4 trans_types="none" type="hog"/>
+<hf_05_04_5 trans_types="none" type="hog"/>
+<hf_05_04_6 trans_types="none" type="hog"/>
+<hf_05_04_7 trans_types="none" type="hog"/>
+<hf_05_04_8 trans_types="none" type="hog"/>
+<hf_05_05_1 trans_types="none" type="hog"/>
+<hf_05_05_2 trans_types="none" type="hog"/>
+<hf_05_05_3 trans_types="none" type="hog"/>
+<hf_05_05_4 trans_types="none" type="hog"/>
+<hf_05_05_5 trans_types="none" type="hog"/>
+<hf_05_05_6 trans_types="none" type="hog"/>
+<hf_05_05_7 trans_types="none" type="hog"/>
+<hf_05_05_8 trans_types="none" type="hog"/>
+<hf_05_06_1 trans_types="none" type="hog"/>
+<hf_05_06_2 trans_types="none" type="hog"/>
+<hf_05_06_3 trans_types="none" type="hog"/>
+<hf_05_06_4 trans_types="none" type="hog"/>
+<hf_05_06_5 trans_types="none" type="hog"/>
+<hf_05_06_6 trans_types="none" type="hog"/>
+<hf_05_06_7 trans_types="none" type="hog"/>
+<hf_05_06_8 trans_types="none" type="hog"/>
+<hf_05_07_1 trans_types="none" type="hog"/>
+<hf_05_07_2 trans_types="none" type="hog"/>
+<hf_05_07_3 trans_types="none" type="hog"/>
+<hf_05_07_4 trans_types="none" type="hog"/>
+<hf_05_07_5 trans_types="none" type="hog"/>
+<hf_05_07_6 trans_types="none" type="hog"/>
+<hf_05_07_7 trans_types="none" type="hog"/>
+<hf_05_07_8 trans_types="none" type="hog"/>
+<hf_05_08_1 trans_types="none" type="hog"/>
+<hf_05_08_2 trans_types="none" type="hog"/>
+<hf_05_08_3 trans_types="none" type="hog"/>
+<hf_05_08_4 trans_types="none" type="hog"/>
+<hf_05_08_5 trans_types="none" type="hog"/>
+<hf_05_08_6 trans_types="none" type="hog"/>
+<hf_05_08_7 trans_types="none" type="hog"/>
+<hf_05_08_8 trans_types="none" type="hog"/>
+<hf_06_01_1 trans_types="none" type="hog"/>
+<hf_06_01_2 trans_types="none" type="hog"/>
+<hf_06_01_3 trans_types="none" type="hog"/>
+<hf_06_01_4 trans_types="none" type="hog"/>
+<hf_06_01_5 trans_types="none" type="hog"/>
+<hf_06_01_6 trans_types="none" type="hog"/>
+<hf_06_01_7 trans_types="none" type="hog"/>
+<hf_06_01_8 trans_types="none" type="hog"/>
+<hf_06_02_1 trans_types="none" type="hog"/>
+<hf_06_02_2 trans_types="none" type="hog"/>
+<hf_06_02_3 trans_types="none" type="hog"/>
+<hf_06_02_4 trans_types="none" type="hog"/>
+<hf_06_02_5 trans_types="none" type="hog"/>
+<hf_06_02_6 trans_types="none" type="hog"/>
+<hf_06_02_7 trans_types="none" type="hog"/>
+<hf_06_02_8 trans_types="none" type="hog"/>
+<hf_06_03_1 trans_types="none" type="hog"/>
+<hf_06_03_2 trans_types="none" type="hog"/>
+<hf_06_03_3 trans_types="none" type="hog"/>
+<hf_06_03_4 trans_types="none" type="hog"/>
+<hf_06_03_5 trans_types="none" type="hog"/>
+<hf_06_03_6 trans_types="none" type="hog"/>
+<hf_06_03_7 trans_types="none" type="hog"/>
+<hf_06_03_8 trans_types="none" type="hog"/>
+<hf_06_04_1 trans_types="none" type="hog"/>
+<hf_06_04_2 trans_types="none" type="hog"/>
+<hf_06_04_3 trans_types="none" type="hog"/>
+<hf_06_04_4 trans_types="none" type="hog"/>
+<hf_06_04_5 trans_types="none" type="hog"/>
+<hf_06_04_6 trans_types="none" type="hog"/>
+<hf_06_04_7 trans_types="none" type="hog"/>
+<hf_06_04_8 trans_types="none" type="hog"/>
+<hf_06_05_1 trans_types="none" type="hog"/>
+<hf_06_05_2 trans_types="none" type="hog"/>
+<hf_06_05_3 trans_types="none" type="hog"/>
+<hf_06_05_4 trans_types="none" type="hog"/>
+<hf_06_05_5 trans_types="none" type="hog"/>
+<hf_06_05_6 trans_types="none" type="hog"/>
+<hf_06_05_7 trans_types="none" type="hog"/>
+<hf_06_05_8 trans_types="none" type="hog"/>
+<hf_06_06_1 trans_types="none" type="hog"/>
+<hf_06_06_2 trans_types="none" type="hog"/>
+<hf_06_06_3 trans_types="none" type="hog"/>
+<hf_06_06_4 trans_types="none" type="hog"/>
+<hf_06_06_5 trans_types="none" type="hog"/>
+<hf_06_06_6 trans_types="none" type="hog"/>
+<hf_06_06_7 trans_types="none" type="hog"/>
+<hf_06_06_8 trans_types="none" type="hog"/>
+<hf_06_07_1 trans_types="none" type="hog"/>
+<hf_06_07_2 trans_types="none" type="hog"/>
+<hf_06_07_3 trans_types="none" type="hog"/>
+<hf_06_07_4 trans_types="none" type="hog"/>
+<hf_06_07_5 trans_types="none" type="hog"/>
+<hf_06_07_6 trans_types="none" type="hog"/>
+<hf_06_07_7 trans_types="none" type="hog"/>
+<hf_06_07_8 trans_types="none" type="hog"/>
+<hf_06_08_1 trans_types="none" type="hog"/>
+<hf_06_08_2 trans_types="none" type="hog"/>
+<hf_06_08_3 trans_types="none" type="hog"/>
+<hf_06_08_4 trans_types="none" type="hog"/>
+<hf_06_08_5 trans_types="none" type="hog"/>
+<hf_06_08_6 trans_types="none" type="hog"/>
+<hf_06_08_7 trans_types="none" type="hog"/>
+<hf_06_08_8 trans_types="none" type="hog"/>
+<hf_07_01_1 trans_types="none" type="hog"/>
+<hf_07_01_2 trans_types="none" type="hog"/>
+<hf_07_01_3 trans_types="none" type="hog"/>
+<hf_07_01_4 trans_types="none" type="hog"/>
+<hf_07_01_5 trans_types="none" type="hog"/>
+<hf_07_01_6 trans_types="none" type="hog"/>
+<hf_07_01_7 trans_types="none" type="hog"/>
+<hf_07_01_8 trans_types="none" type="hog"/>
+<hf_07_02_1 trans_types="none" type="hog"/>
+<hf_07_02_2 trans_types="none" type="hog"/>
+<hf_07_02_3 trans_types="none" type="hog"/>
+<hf_07_02_4 trans_types="none" type="hog"/>
+<hf_07_02_5 trans_types="none" type="hog"/>
+<hf_07_02_6 trans_types="none" type="hog"/>
+<hf_07_02_7 trans_types="none" type="hog"/>
+<hf_07_02_8 trans_types="none" type="hog"/>
+<hf_07_03_1 trans_types="none" type="hog"/>
+<hf_07_03_2 trans_types="none" type="hog"/>
+<hf_07_03_3 trans_types="none" type="hog"/>
+<hf_07_03_4 trans_types="none" type="hog"/>
+<hf_07_03_5 trans_types="none" type="hog"/>
+<hf_07_03_6 trans_types="none" type="hog"/>
+<hf_07_03_7 trans_types="none" type="hog"/>
+<hf_07_03_8 trans_types="none" type="hog"/>
+<hf_07_04_1 trans_types="none" type="hog"/>
+<hf_07_04_2 trans_types="none" type="hog"/>
+<hf_07_04_3 trans_types="none" type="hog"/>
+<hf_07_04_4 trans_types="none" type="hog"/>
+<hf_07_04_5 trans_types="none" type="hog"/>
+<hf_07_04_6 trans_types="none" type="hog"/>
+<hf_07_04_7 trans_types="none" type="hog"/>
+<hf_07_04_8 trans_types="none" type="hog"/>
+<hf_07_05_1 trans_types="none" type="hog"/>
+<hf_07_05_2 trans_types="none" type="hog"/>
+<hf_07_05_3 trans_types="none" type="hog"/>
+<hf_07_05_4 trans_types="none" type="hog"/>
+<hf_07_05_5 trans_types="none" type="hog"/>
+<hf_07_05_6 trans_types="none" type="hog"/>
+<hf_07_05_7 trans_types="none" type="hog"/>
+<hf_07_05_8 trans_types="none" type="hog"/>
+<hf_07_06_1 trans_types="none" type="hog"/>
+<hf_07_06_2 trans_types="none" type="hog"/>
+<hf_07_06_3 trans_types="none" type="hog"/>
+<hf_07_06_4 trans_types="none" type="hog"/>
+<hf_07_06_5 trans_types="none" type="hog"/>
+<hf_07_06_6 trans_types="none" type="hog"/>
+<hf_07_06_7 trans_types="none" type="hog"/>
+<hf_07_06_8 trans_types="none" type="hog"/>
+<hf_07_07_1 trans_types="none" type="hog"/>
+<hf_07_07_2 trans_types="none" type="hog"/>
+<hf_07_07_3 trans_types="none" type="hog"/>
+<hf_07_07_4 trans_types="none" type="hog"/>
+<hf_07_07_5 trans_types="none" type="hog"/>
+<hf_07_07_6 trans_types="none" type="hog"/>
+<hf_07_07_7 trans_types="none" type="hog"/>
+<hf_07_07_8 trans_types="none" type="hog"/>
+<hf_07_08_1 trans_types="none" type="hog"/>
+<hf_07_08_2 trans_types="none" type="hog"/>
+<hf_07_08_3 trans_types="none" type="hog"/>
+<hf_07_08_4 trans_types="none" type="hog"/>
+<hf_07_08_5 trans_types="none" type="hog"/>
+<hf_07_08_6 trans_types="none" type="hog"/>
+<hf_07_08_7 trans_types="none" type="hog"/>
+<hf_07_08_8 trans_types="none" type="hog"/>
+<hf_08_01_1 trans_types="none" type="hog"/>
+<hf_08_01_2 trans_types="none" type="hog"/>
+<hf_08_01_3 trans_types="none" type="hog"/>
+<hf_08_01_4 trans_types="none" type="hog"/>
+<hf_08_01_5 trans_types="none" type="hog"/>
+<hf_08_01_6 trans_types="none" type="hog"/>
+<hf_08_01_7 trans_types="none" type="hog"/>
+<hf_08_01_8 trans_types="none" type="hog"/>
+<hf_08_02_1 trans_types="none" type="hog"/>
+<hf_08_02_2 trans_types="none" type="hog"/>
+<hf_08_02_3 trans_types="none" type="hog"/>
+<hf_08_02_4 trans_types="none" type="hog"/>
+<hf_08_02_5 trans_types="none" type="hog"/>
+<hf_08_02_6 trans_types="none" type="hog"/>
+<hf_08_02_7 trans_types="none" type="hog"/>
+<hf_08_02_8 trans_types="none" type="hog"/>
+<hf_08_03_1 trans_types="none" type="hog"/>
+<hf_08_03_2 trans_types="none" type="hog"/>
+<hf_08_03_3 trans_types="none" type="hog"/>
+<hf_08_03_4 trans_types="none" type="hog"/>
+<hf_08_03_5 trans_types="none" type="hog"/>
+<hf_08_03_6 trans_types="none" type="hog"/>
+<hf_08_03_7 trans_types="none" type="hog"/>
+<hf_08_03_8 trans_types="none" type="hog"/>
+<hf_08_04_1 trans_types="none" type="hog"/>
+<hf_08_04_2 trans_types="none" type="hog"/>
+<hf_08_04_3 trans_types="none" type="hog"/>
+<hf_08_04_4 trans_types="none" type="hog"/>
+<hf_08_04_5 trans_types="none" type="hog"/>
+<hf_08_04_6 trans_types="none" type="hog"/>
+<hf_08_04_7 trans_types="none" type="hog"/>
+<hf_08_04_8 trans_types="none" type="hog"/>
+<hf_08_05_1 trans_types="none" type="hog"/>
+<hf_08_05_2 trans_types="none" type="hog"/>
+<hf_08_05_3 trans_types="none" type="hog"/>
+<hf_08_05_4 trans_types="none" type="hog"/>
+<hf_08_05_5 trans_types="none" type="hog"/>
+<hf_08_05_6 trans_types="none" type="hog"/>
+<hf_08_05_7 trans_types="none" type="hog"/>
+<hf_08_05_8 trans_types="none" type="hog"/>
+<hf_08_06_1 trans_types="none" type="hog"/>
+<hf_08_06_2 trans_types="none" type="hog"/>
+<hf_08_06_3 trans_types="none" type="hog"/>
+<hf_08_06_4 trans_types="none" type="hog"/>
+<hf_08_06_5 trans_types="none" type="hog"/>
+<hf_08_06_6 trans_types="none" type="hog"/>
+<hf_08_06_7 trans_types="none" type="hog"/>
+<hf_08_06_8 trans_types="none" type="hog"/>
+<hf_08_07_1 trans_types="none" type="hog"/>
+<hf_08_07_2 trans_types="none" type="hog"/>
+<hf_08_07_3 trans_types="none" type="hog"/>
+<hf_08_07_4 trans_types="none" type="hog"/>
+<hf_08_07_5 trans_types="none" type="hog"/>
+<hf_08_07_6 trans_types="none" type="hog"/>
+<hf_08_07_7 trans_types="none" type="hog"/>
+<hf_08_07_8 trans_types="none" type="hog"/>
+<hf_08_08_1 trans_types="none" type="hog"/>
+<hf_08_08_2 trans_types="none" type="hog"/>
+<hf_08_08_3 trans_types="none" type="hog"/>
+<hf_08_08_4 trans_types="none" type="hog"/>
+<hf_08_08_5 trans_types="none" type="hog"/>
+<hf_08_08_6 trans_types="none" type="hog"/>
+<hf_08_08_7 trans_types="none" type="hog"/>
+<hf_08_08_8 trans_types="none" type="hog"/>
+
+<hs_ffs_01_01_1 trans_types="none" type="flow"/>
+<hs_ffs_01_01_2 trans_types="none" type="flow"/>
+<hs_ffs_01_01_3 trans_types="none" type="flow"/>
+<hs_ffs_01_01_4 trans_types="none" type="flow"/>
+<hs_ffs_01_01_5 trans_types="none" type="flow"/>
+<hs_ffs_01_01_6 trans_types="none" type="flow"/>
+<hs_ffs_01_01_7 trans_types="none" type="flow"/>
+<hs_ffs_01_01_8 trans_types="none" type="flow"/>
+<hs_ffs_01_02_1 trans_types="none" type="flow"/>
+<hs_ffs_01_02_2 trans_types="none" type="flow"/>
+<hs_ffs_01_02_3 trans_types="none" type="flow"/>
+<hs_ffs_01_02_4 trans_types="none" type="flow"/>
+<hs_ffs_01_02_5 trans_types="none" type="flow"/>
+<hs_ffs_01_02_6 trans_types="none" type="flow"/>
+<hs_ffs_01_02_7 trans_types="none" type="flow"/>
+<hs_ffs_01_02_8 trans_types="none" type="flow"/>
+<hs_ffs_01_03_1 trans_types="none" type="flow"/>
+<hs_ffs_01_03_2 trans_types="none" type="flow"/>
+<hs_ffs_01_03_3 trans_types="none" type="flow"/>
+<hs_ffs_01_03_4 trans_types="none" type="flow"/>
+<hs_ffs_01_03_5 trans_types="none" type="flow"/>
+<hs_ffs_01_03_6 trans_types="none" type="flow"/>
+<hs_ffs_01_03_7 trans_types="none" type="flow"/>
+<hs_ffs_01_03_8 trans_types="none" type="flow"/>
+<hs_ffs_01_04_1 trans_types="none" type="flow"/>
+<hs_ffs_01_04_2 trans_types="none" type="flow"/>
+<hs_ffs_01_04_3 trans_types="none" type="flow"/>
+<hs_ffs_01_04_4 trans_types="none" type="flow"/>
+<hs_ffs_01_04_5 trans_types="none" type="flow"/>
+<hs_ffs_01_04_6 trans_types="none" type="flow"/>
+<hs_ffs_01_04_7 trans_types="none" type="flow"/>
+<hs_ffs_01_04_8 trans_types="none" type="flow"/>
+<hs_ffs_01_05_1 trans_types="none" type="flow"/>
+<hs_ffs_01_05_2 trans_types="none" type="flow"/>
+<hs_ffs_01_05_3 trans_types="none" type="flow"/>
+<hs_ffs_01_05_4 trans_types="none" type="flow"/>
+<hs_ffs_01_05_5 trans_types="none" type="flow"/>
+<hs_ffs_01_05_6 trans_types="none" type="flow"/>
+<hs_ffs_01_05_7 trans_types="none" type="flow"/>
+<hs_ffs_01_05_8 trans_types="none" type="flow"/>
+<hs_ffs_01_06_1 trans_types="none" type="flow"/>
+<hs_ffs_01_06_2 trans_types="none" type="flow"/>
+<hs_ffs_01_06_3 trans_types="none" type="flow"/>
+<hs_ffs_01_06_4 trans_types="none" type="flow"/>
+<hs_ffs_01_06_5 trans_types="none" type="flow"/>
+<hs_ffs_01_06_6 trans_types="none" type="flow"/>
+<hs_ffs_01_06_7 trans_types="none" type="flow"/>
+<hs_ffs_01_06_8 trans_types="none" type="flow"/>
+<hs_ffs_01_07_1 trans_types="none" type="flow"/>
+<hs_ffs_01_07_2 trans_types="none" type="flow"/>
+<hs_ffs_01_07_3 trans_types="none" type="flow"/>
+<hs_ffs_01_07_4 trans_types="none" type="flow"/>
+<hs_ffs_01_07_5 trans_types="none" type="flow"/>
+<hs_ffs_01_07_6 trans_types="none" type="flow"/>
+<hs_ffs_01_07_7 trans_types="none" type="flow"/>
+<hs_ffs_01_07_8 trans_types="none" type="flow"/>
+<hs_ffs_01_08_1 trans_types="none" type="flow"/>
+<hs_ffs_01_08_2 trans_types="none" type="flow"/>
+<hs_ffs_01_08_3 trans_types="none" type="flow"/>
+<hs_ffs_01_08_4 trans_types="none" type="flow"/>
+<hs_ffs_01_08_5 trans_types="none" type="flow"/>
+<hs_ffs_01_08_6 trans_types="none" type="flow"/>
+<hs_ffs_01_08_7 trans_types="none" type="flow"/>
+<hs_ffs_01_08_8 trans_types="none" type="flow"/>
+<hs_ffs_02_01_1 trans_types="none" type="flow"/>
+<hs_ffs_02_01_2 trans_types="none" type="flow"/>
+<hs_ffs_02_01_3 trans_types="none" type="flow"/>
+<hs_ffs_02_01_4 trans_types="none" type="flow"/>
+<hs_ffs_02_01_5 trans_types="none" type="flow"/>
+<hs_ffs_02_01_6 trans_types="none" type="flow"/>
+<hs_ffs_02_01_7 trans_types="none" type="flow"/>
+<hs_ffs_02_01_8 trans_types="none" type="flow"/>
+<hs_ffs_02_02_1 trans_types="none" type="flow"/>
+<hs_ffs_02_02_2 trans_types="none" type="flow"/>
+<hs_ffs_02_02_3 trans_types="none" type="flow"/>
+<hs_ffs_02_02_4 trans_types="none" type="flow"/>
+<hs_ffs_02_02_5 trans_types="none" type="flow"/>
+<hs_ffs_02_02_6 trans_types="none" type="flow"/>
+<hs_ffs_02_02_7 trans_types="none" type="flow"/>
+<hs_ffs_02_02_8 trans_types="none" type="flow"/>
+<hs_ffs_02_03_1 trans_types="none" type="flow"/>
+<hs_ffs_02_03_2 trans_types="none" type="flow"/>
+<hs_ffs_02_03_3 trans_types="none" type="flow"/>
+<hs_ffs_02_03_4 trans_types="none" type="flow"/>
+<hs_ffs_02_03_5 trans_types="none" type="flow"/>
+<hs_ffs_02_03_6 trans_types="none" type="flow"/>
+<hs_ffs_02_03_7 trans_types="none" type="flow"/>
+<hs_ffs_02_03_8 trans_types="none" type="flow"/>
+<hs_ffs_02_04_1 trans_types="none" type="flow"/>
+<hs_ffs_02_04_2 trans_types="none" type="flow"/>
+<hs_ffs_02_04_3 trans_types="none" type="flow"/>
+<hs_ffs_02_04_4 trans_types="none" type="flow"/>
+<hs_ffs_02_04_5 trans_types="none" type="flow"/>
+<hs_ffs_02_04_6 trans_types="none" type="flow"/>
+<hs_ffs_02_04_7 trans_types="none" type="flow"/>
+<hs_ffs_02_04_8 trans_types="none" type="flow"/>
+<hs_ffs_02_05_1 trans_types="none" type="flow"/>
+<hs_ffs_02_05_2 trans_types="none" type="flow"/>
+<hs_ffs_02_05_3 trans_types="none" type="flow"/>
+<hs_ffs_02_05_4 trans_types="none" type="flow"/>
+<hs_ffs_02_05_5 trans_types="none" type="flow"/>
+<hs_ffs_02_05_6 trans_types="none" type="flow"/>
+<hs_ffs_02_05_7 trans_types="none" type="flow"/>
+<hs_ffs_02_05_8 trans_types="none" type="flow"/>
+<hs_ffs_02_06_1 trans_types="none" type="flow"/>
+<hs_ffs_02_06_2 trans_types="none" type="flow"/>
+<hs_ffs_02_06_3 trans_types="none" type="flow"/>
+<hs_ffs_02_06_4 trans_types="none" type="flow"/>
+<hs_ffs_02_06_5 trans_types="none" type="flow"/>
+<hs_ffs_02_06_6 trans_types="none" type="flow"/>
+<hs_ffs_02_06_7 trans_types="none" type="flow"/>
+<hs_ffs_02_06_8 trans_types="none" type="flow"/>
+<hs_ffs_02_07_1 trans_types="none" type="flow"/>
+<hs_ffs_02_07_2 trans_types="none" type="flow"/>
+<hs_ffs_02_07_3 trans_types="none" type="flow"/>
+<hs_ffs_02_07_4 trans_types="none" type="flow"/>
+<hs_ffs_02_07_5 trans_types="none" type="flow"/>
+<hs_ffs_02_07_6 trans_types="none" type="flow"/>
+<hs_ffs_02_07_7 trans_types="none" type="flow"/>
+<hs_ffs_02_07_8 trans_types="none" type="flow"/>
+<hs_ffs_02_08_1 trans_types="none" type="flow"/>
+<hs_ffs_02_08_2 trans_types="none" type="flow"/>
+<hs_ffs_02_08_3 trans_types="none" type="flow"/>
+<hs_ffs_02_08_4 trans_types="none" type="flow"/>
+<hs_ffs_02_08_5 trans_types="none" type="flow"/>
+<hs_ffs_02_08_6 trans_types="none" type="flow"/>
+<hs_ffs_02_08_7 trans_types="none" type="flow"/>
+<hs_ffs_02_08_8 trans_types="none" type="flow"/>
+<hs_ffs_03_01_1 trans_types="none" type="flow"/>
+<hs_ffs_03_01_2 trans_types="none" type="flow"/>
+<hs_ffs_03_01_3 trans_types="none" type="flow"/>
+<hs_ffs_03_01_4 trans_types="none" type="flow"/>
+<hs_ffs_03_01_5 trans_types="none" type="flow"/>
+<hs_ffs_03_01_6 trans_types="none" type="flow"/>
+<hs_ffs_03_01_7 trans_types="none" type="flow"/>
+<hs_ffs_03_01_8 trans_types="none" type="flow"/>
+<hs_ffs_03_02_1 trans_types="none" type="flow"/>
+<hs_ffs_03_02_2 trans_types="none" type="flow"/>
+<hs_ffs_03_02_3 trans_types="none" type="flow"/>
+<hs_ffs_03_02_4 trans_types="none" type="flow"/>
+<hs_ffs_03_02_5 trans_types="none" type="flow"/>
+<hs_ffs_03_02_6 trans_types="none" type="flow"/>
+<hs_ffs_03_02_7 trans_types="none" type="flow"/>
+<hs_ffs_03_02_8 trans_types="none" type="flow"/>
+<hs_ffs_03_03_1 trans_types="none" type="flow"/>
+<hs_ffs_03_03_2 trans_types="none" type="flow"/>
+<hs_ffs_03_03_3 trans_types="none" type="flow"/>
+<hs_ffs_03_03_4 trans_types="none" type="flow"/>
+<hs_ffs_03_03_5 trans_types="none" type="flow"/>
+<hs_ffs_03_03_6 trans_types="none" type="flow"/>
+<hs_ffs_03_03_7 trans_types="none" type="flow"/>
+<hs_ffs_03_03_8 trans_types="none" type="flow"/>
+<hs_ffs_03_04_1 trans_types="none" type="flow"/>
+<hs_ffs_03_04_2 trans_types="none" type="flow"/>
+<hs_ffs_03_04_3 trans_types="none" type="flow"/>
+<hs_ffs_03_04_4 trans_types="none" type="flow"/>
+<hs_ffs_03_04_5 trans_types="none" type="flow"/>
+<hs_ffs_03_04_6 trans_types="none" type="flow"/>
+<hs_ffs_03_04_7 trans_types="none" type="flow"/>
+<hs_ffs_03_04_8 trans_types="none" type="flow"/>
+<hs_ffs_03_05_1 trans_types="none" type="flow"/>
+<hs_ffs_03_05_2 trans_types="none" type="flow"/>
+<hs_ffs_03_05_3 trans_types="none" type="flow"/>
+<hs_ffs_03_05_4 trans_types="none" type="flow"/>
+<hs_ffs_03_05_5 trans_types="none" type="flow"/>
+<hs_ffs_03_05_6 trans_types="none" type="flow"/>
+<hs_ffs_03_05_7 trans_types="none" type="flow"/>
+<hs_ffs_03_05_8 trans_types="none" type="flow"/>
+<hs_ffs_03_06_1 trans_types="none" type="flow"/>
+<hs_ffs_03_06_2 trans_types="none" type="flow"/>
+<hs_ffs_03_06_3 trans_types="none" type="flow"/>
+<hs_ffs_03_06_4 trans_types="none" type="flow"/>
+<hs_ffs_03_06_5 trans_types="none" type="flow"/>
+<hs_ffs_03_06_6 trans_types="none" type="flow"/>
+<hs_ffs_03_06_7 trans_types="none" type="flow"/>
+<hs_ffs_03_06_8 trans_types="none" type="flow"/>
+<hs_ffs_03_07_1 trans_types="none" type="flow"/>
+<hs_ffs_03_07_2 trans_types="none" type="flow"/>
+<hs_ffs_03_07_3 trans_types="none" type="flow"/>
+<hs_ffs_03_07_4 trans_types="none" type="flow"/>
+<hs_ffs_03_07_5 trans_types="none" type="flow"/>
+<hs_ffs_03_07_6 trans_types="none" type="flow"/>
+<hs_ffs_03_07_7 trans_types="none" type="flow"/>
+<hs_ffs_03_07_8 trans_types="none" type="flow"/>
+<hs_ffs_03_08_1 trans_types="none" type="flow"/>
+<hs_ffs_03_08_2 trans_types="none" type="flow"/>
+<hs_ffs_03_08_3 trans_types="none" type="flow"/>
+<hs_ffs_03_08_4 trans_types="none" type="flow"/>
+<hs_ffs_03_08_5 trans_types="none" type="flow"/>
+<hs_ffs_03_08_6 trans_types="none" type="flow"/>
+<hs_ffs_03_08_7 trans_types="none" type="flow"/>
+<hs_ffs_03_08_8 trans_types="none" type="flow"/>
+<hs_ffs_04_01_1 trans_types="none" type="flow"/>
+<hs_ffs_04_01_2 trans_types="none" type="flow"/>
+<hs_ffs_04_01_3 trans_types="none" type="flow"/>
+<hs_ffs_04_01_4 trans_types="none" type="flow"/>
+<hs_ffs_04_01_5 trans_types="none" type="flow"/>
+<hs_ffs_04_01_6 trans_types="none" type="flow"/>
+<hs_ffs_04_01_7 trans_types="none" type="flow"/>
+<hs_ffs_04_01_8 trans_types="none" type="flow"/>
+<hs_ffs_04_02_1 trans_types="none" type="flow"/>
+<hs_ffs_04_02_2 trans_types="none" type="flow"/>
+<hs_ffs_04_02_3 trans_types="none" type="flow"/>
+<hs_ffs_04_02_4 trans_types="none" type="flow"/>
+<hs_ffs_04_02_5 trans_types="none" type="flow"/>
+<hs_ffs_04_02_6 trans_types="none" type="flow"/>
+<hs_ffs_04_02_7 trans_types="none" type="flow"/>
+<hs_ffs_04_02_8 trans_types="none" type="flow"/>
+<hs_ffs_04_03_1 trans_types="none" type="flow"/>
+<hs_ffs_04_03_2 trans_types="none" type="flow"/>
+<hs_ffs_04_03_3 trans_types="none" type="flow"/>
+<hs_ffs_04_03_4 trans_types="none" type="flow"/>
+<hs_ffs_04_03_5 trans_types="none" type="flow"/>
+<hs_ffs_04_03_6 trans_types="none" type="flow"/>
+<hs_ffs_04_03_7 trans_types="none" type="flow"/>
+<hs_ffs_04_03_8 trans_types="none" type="flow"/>
+<hs_ffs_04_04_1 trans_types="none" type="flow"/>
+<hs_ffs_04_04_2 trans_types="none" type="flow"/>
+<hs_ffs_04_04_3 trans_types="none" type="flow"/>
+<hs_ffs_04_04_4 trans_types="none" type="flow"/>
+<hs_ffs_04_04_5 trans_types="none" type="flow"/>
+<hs_ffs_04_04_6 trans_types="none" type="flow"/>
+<hs_ffs_04_04_7 trans_types="none" type="flow"/>
+<hs_ffs_04_04_8 trans_types="none" type="flow"/>
+<hs_ffs_04_05_1 trans_types="none" type="flow"/>
+<hs_ffs_04_05_2 trans_types="none" type="flow"/>
+<hs_ffs_04_05_3 trans_types="none" type="flow"/>
+<hs_ffs_04_05_4 trans_types="none" type="flow"/>
+<hs_ffs_04_05_5 trans_types="none" type="flow"/>
+<hs_ffs_04_05_6 trans_types="none" type="flow"/>
+<hs_ffs_04_05_7 trans_types="none" type="flow"/>
+<hs_ffs_04_05_8 trans_types="none" type="flow"/>
+<hs_ffs_04_06_1 trans_types="none" type="flow"/>
+<hs_ffs_04_06_2 trans_types="none" type="flow"/>
+<hs_ffs_04_06_3 trans_types="none" type="flow"/>
+<hs_ffs_04_06_4 trans_types="none" type="flow"/>
+<hs_ffs_04_06_5 trans_types="none" type="flow"/>
+<hs_ffs_04_06_6 trans_types="none" type="flow"/>
+<hs_ffs_04_06_7 trans_types="none" type="flow"/>
+<hs_ffs_04_06_8 trans_types="none" type="flow"/>
+<hs_ffs_04_07_1 trans_types="none" type="flow"/>
+<hs_ffs_04_07_2 trans_types="none" type="flow"/>
+<hs_ffs_04_07_3 trans_types="none" type="flow"/>
+<hs_ffs_04_07_4 trans_types="none" type="flow"/>
+<hs_ffs_04_07_5 trans_types="none" type="flow"/>
+<hs_ffs_04_07_6 trans_types="none" type="flow"/>
+<hs_ffs_04_07_7 trans_types="none" type="flow"/>
+<hs_ffs_04_07_8 trans_types="none" type="flow"/>
+<hs_ffs_04_08_1 trans_types="none" type="flow"/>
+<hs_ffs_04_08_2 trans_types="none" type="flow"/>
+<hs_ffs_04_08_3 trans_types="none" type="flow"/>
+<hs_ffs_04_08_4 trans_types="none" type="flow"/>
+<hs_ffs_04_08_5 trans_types="none" type="flow"/>
+<hs_ffs_04_08_6 trans_types="none" type="flow"/>
+<hs_ffs_04_08_7 trans_types="none" type="flow"/>
+<hs_ffs_04_08_8 trans_types="none" type="flow"/>
+<hs_ffs_05_01_1 trans_types="none" type="flow"/>
+<hs_ffs_05_01_2 trans_types="none" type="flow"/>
+<hs_ffs_05_01_3 trans_types="none" type="flow"/>
+<hs_ffs_05_01_4 trans_types="none" type="flow"/>
+<hs_ffs_05_01_5 trans_types="none" type="flow"/>
+<hs_ffs_05_01_6 trans_types="none" type="flow"/>
+<hs_ffs_05_01_7 trans_types="none" type="flow"/>
+<hs_ffs_05_01_8 trans_types="none" type="flow"/>
+<hs_ffs_05_02_1 trans_types="none" type="flow"/>
+<hs_ffs_05_02_2 trans_types="none" type="flow"/>
+<hs_ffs_05_02_3 trans_types="none" type="flow"/>
+<hs_ffs_05_02_4 trans_types="none" type="flow"/>
+<hs_ffs_05_02_5 trans_types="none" type="flow"/>
+<hs_ffs_05_02_6 trans_types="none" type="flow"/>
+<hs_ffs_05_02_7 trans_types="none" type="flow"/>
+<hs_ffs_05_02_8 trans_types="none" type="flow"/>
+<hs_ffs_05_03_1 trans_types="none" type="flow"/>
+<hs_ffs_05_03_2 trans_types="none" type="flow"/>
+<hs_ffs_05_03_3 trans_types="none" type="flow"/>
+<hs_ffs_05_03_4 trans_types="none" type="flow"/>
+<hs_ffs_05_03_5 trans_types="none" type="flow"/>
+<hs_ffs_05_03_6 trans_types="none" type="flow"/>
+<hs_ffs_05_03_7 trans_types="none" type="flow"/>
+<hs_ffs_05_03_8 trans_types="none" type="flow"/>
+<hs_ffs_05_04_1 trans_types="none" type="flow"/>
+<hs_ffs_05_04_2 trans_types="none" type="flow"/>
+<hs_ffs_05_04_3 trans_types="none" type="flow"/>
+<hs_ffs_05_04_4 trans_types="none" type="flow"/>
+<hs_ffs_05_04_5 trans_types="none" type="flow"/>
+<hs_ffs_05_04_6 trans_types="none" type="flow"/>
+<hs_ffs_05_04_7 trans_types="none" type="flow"/>
+<hs_ffs_05_04_8 trans_types="none" type="flow"/>
+<hs_ffs_05_05_1 trans_types="none" type="flow"/>
+<hs_ffs_05_05_2 trans_types="none" type="flow"/>
+<hs_ffs_05_05_3 trans_types="none" type="flow"/>
+<hs_ffs_05_05_4 trans_types="none" type="flow"/>
+<hs_ffs_05_05_5 trans_types="none" type="flow"/>
+<hs_ffs_05_05_6 trans_types="none" type="flow"/>
+<hs_ffs_05_05_7 trans_types="none" type="flow"/>
+<hs_ffs_05_05_8 trans_types="none" type="flow"/>
+<hs_ffs_05_06_1 trans_types="none" type="flow"/>
+<hs_ffs_05_06_2 trans_types="none" type="flow"/>
+<hs_ffs_05_06_3 trans_types="none" type="flow"/>
+<hs_ffs_05_06_4 trans_types="none" type="flow"/>
+<hs_ffs_05_06_5 trans_types="none" type="flow"/>
+<hs_ffs_05_06_6 trans_types="none" type="flow"/>
+<hs_ffs_05_06_7 trans_types="none" type="flow"/>
+<hs_ffs_05_06_8 trans_types="none" type="flow"/>
+<hs_ffs_05_07_1 trans_types="none" type="flow"/>
+<hs_ffs_05_07_2 trans_types="none" type="flow"/>
+<hs_ffs_05_07_3 trans_types="none" type="flow"/>
+<hs_ffs_05_07_4 trans_types="none" type="flow"/>
+<hs_ffs_05_07_5 trans_types="none" type="flow"/>
+<hs_ffs_05_07_6 trans_types="none" type="flow"/>
+<hs_ffs_05_07_7 trans_types="none" type="flow"/>
+<hs_ffs_05_07_8 trans_types="none" type="flow"/>
+<hs_ffs_05_08_1 trans_types="none" type="flow"/>
+<hs_ffs_05_08_2 trans_types="none" type="flow"/>
+<hs_ffs_05_08_3 trans_types="none" type="flow"/>
+<hs_ffs_05_08_4 trans_types="none" type="flow"/>
+<hs_ffs_05_08_5 trans_types="none" type="flow"/>
+<hs_ffs_05_08_6 trans_types="none" type="flow"/>
+<hs_ffs_05_08_7 trans_types="none" type="flow"/>
+<hs_ffs_05_08_8 trans_types="none" type="flow"/>
+<hs_ffs_06_01_1 trans_types="none" type="flow"/>
+<hs_ffs_06_01_2 trans_types="none" type="flow"/>
+<hs_ffs_06_01_3 trans_types="none" type="flow"/>
+<hs_ffs_06_01_4 trans_types="none" type="flow"/>
+<hs_ffs_06_01_5 trans_types="none" type="flow"/>
+<hs_ffs_06_01_6 trans_types="none" type="flow"/>
+<hs_ffs_06_01_7 trans_types="none" type="flow"/>
+<hs_ffs_06_01_8 trans_types="none" type="flow"/>
+<hs_ffs_06_02_1 trans_types="none" type="flow"/>
+<hs_ffs_06_02_2 trans_types="none" type="flow"/>
+<hs_ffs_06_02_3 trans_types="none" type="flow"/>
+<hs_ffs_06_02_4 trans_types="none" type="flow"/>
+<hs_ffs_06_02_5 trans_types="none" type="flow"/>
+<hs_ffs_06_02_6 trans_types="none" type="flow"/>
+<hs_ffs_06_02_7 trans_types="none" type="flow"/>
+<hs_ffs_06_02_8 trans_types="none" type="flow"/>
+<hs_ffs_06_03_1 trans_types="none" type="flow"/>
+<hs_ffs_06_03_2 trans_types="none" type="flow"/>
+<hs_ffs_06_03_3 trans_types="none" type="flow"/>
+<hs_ffs_06_03_4 trans_types="none" type="flow"/>
+<hs_ffs_06_03_5 trans_types="none" type="flow"/>
+<hs_ffs_06_03_6 trans_types="none" type="flow"/>
+<hs_ffs_06_03_7 trans_types="none" type="flow"/>
+<hs_ffs_06_03_8 trans_types="none" type="flow"/>
+<hs_ffs_06_04_1 trans_types="none" type="flow"/>
+<hs_ffs_06_04_2 trans_types="none" type="flow"/>
+<hs_ffs_06_04_3 trans_types="none" type="flow"/>
+<hs_ffs_06_04_4 trans_types="none" type="flow"/>
+<hs_ffs_06_04_5 trans_types="none" type="flow"/>
+<hs_ffs_06_04_6 trans_types="none" type="flow"/>
+<hs_ffs_06_04_7 trans_types="none" type="flow"/>
+<hs_ffs_06_04_8 trans_types="none" type="flow"/>
+<hs_ffs_06_05_1 trans_types="none" type="flow"/>
+<hs_ffs_06_05_2 trans_types="none" type="flow"/>
+<hs_ffs_06_05_3 trans_types="none" type="flow"/>
+<hs_ffs_06_05_4 trans_types="none" type="flow"/>
+<hs_ffs_06_05_5 trans_types="none" type="flow"/>
+<hs_ffs_06_05_6 trans_types="none" type="flow"/>
+<hs_ffs_06_05_7 trans_types="none" type="flow"/>
+<hs_ffs_06_05_8 trans_types="none" type="flow"/>
+<hs_ffs_06_06_1 trans_types="none" type="flow"/>
+<hs_ffs_06_06_2 trans_types="none" type="flow"/>
+<hs_ffs_06_06_3 trans_types="none" type="flow"/>
+<hs_ffs_06_06_4 trans_types="none" type="flow"/>
+<hs_ffs_06_06_5 trans_types="none" type="flow"/>
+<hs_ffs_06_06_6 trans_types="none" type="flow"/>
+<hs_ffs_06_06_7 trans_types="none" type="flow"/>
+<hs_ffs_06_06_8 trans_types="none" type="flow"/>
+<hs_ffs_06_07_1 trans_types="none" type="flow"/>
+<hs_ffs_06_07_2 trans_types="none" type="flow"/>
+<hs_ffs_06_07_3 trans_types="none" type="flow"/>
+<hs_ffs_06_07_4 trans_types="none" type="flow"/>
+<hs_ffs_06_07_5 trans_types="none" type="flow"/>
+<hs_ffs_06_07_6 trans_types="none" type="flow"/>
+<hs_ffs_06_07_7 trans_types="none" type="flow"/>
+<hs_ffs_06_07_8 trans_types="none" type="flow"/>
+<hs_ffs_06_08_1 trans_types="none" type="flow"/>
+<hs_ffs_06_08_2 trans_types="none" type="flow"/>
+<hs_ffs_06_08_3 trans_types="none" type="flow"/>
+<hs_ffs_06_08_4 trans_types="none" type="flow"/>
+<hs_ffs_06_08_5 trans_types="none" type="flow"/>
+<hs_ffs_06_08_6 trans_types="none" type="flow"/>
+<hs_ffs_06_08_7 trans_types="none" type="flow"/>
+<hs_ffs_06_08_8 trans_types="none" type="flow"/>
+<hs_ffs_07_01_1 trans_types="none" type="flow"/>
+<hs_ffs_07_01_2 trans_types="none" type="flow"/>
+<hs_ffs_07_01_3 trans_types="none" type="flow"/>
+<hs_ffs_07_01_4 trans_types="none" type="flow"/>
+<hs_ffs_07_01_5 trans_types="none" type="flow"/>
+<hs_ffs_07_01_6 trans_types="none" type="flow"/>
+<hs_ffs_07_01_7 trans_types="none" type="flow"/>
+<hs_ffs_07_01_8 trans_types="none" type="flow"/>
+<hs_ffs_07_02_1 trans_types="none" type="flow"/>
+<hs_ffs_07_02_2 trans_types="none" type="flow"/>
+<hs_ffs_07_02_3 trans_types="none" type="flow"/>
+<hs_ffs_07_02_4 trans_types="none" type="flow"/>
+<hs_ffs_07_02_5 trans_types="none" type="flow"/>
+<hs_ffs_07_02_6 trans_types="none" type="flow"/>
+<hs_ffs_07_02_7 trans_types="none" type="flow"/>
+<hs_ffs_07_02_8 trans_types="none" type="flow"/>
+<hs_ffs_07_03_1 trans_types="none" type="flow"/>
+<hs_ffs_07_03_2 trans_types="none" type="flow"/>
+<hs_ffs_07_03_3 trans_types="none" type="flow"/>
+<hs_ffs_07_03_4 trans_types="none" type="flow"/>
+<hs_ffs_07_03_5 trans_types="none" type="flow"/>
+<hs_ffs_07_03_6 trans_types="none" type="flow"/>
+<hs_ffs_07_03_7 trans_types="none" type="flow"/>
+<hs_ffs_07_03_8 trans_types="none" type="flow"/>
+<hs_ffs_07_04_1 trans_types="none" type="flow"/>
+<hs_ffs_07_04_2 trans_types="none" type="flow"/>
+<hs_ffs_07_04_3 trans_types="none" type="flow"/>
+<hs_ffs_07_04_4 trans_types="none" type="flow"/>
+<hs_ffs_07_04_5 trans_types="none" type="flow"/>
+<hs_ffs_07_04_6 trans_types="none" type="flow"/>
+<hs_ffs_07_04_7 trans_types="none" type="flow"/>
+<hs_ffs_07_04_8 trans_types="none" type="flow"/>
+<hs_ffs_07_05_1 trans_types="none" type="flow"/>
+<hs_ffs_07_05_2 trans_types="none" type="flow"/>
+<hs_ffs_07_05_3 trans_types="none" type="flow"/>
+<hs_ffs_07_05_4 trans_types="none" type="flow"/>
+<hs_ffs_07_05_5 trans_types="none" type="flow"/>
+<hs_ffs_07_05_6 trans_types="none" type="flow"/>
+<hs_ffs_07_05_7 trans_types="none" type="flow"/>
+<hs_ffs_07_05_8 trans_types="none" type="flow"/>
+<hs_ffs_07_06_1 trans_types="none" type="flow"/>
+<hs_ffs_07_06_2 trans_types="none" type="flow"/>
+<hs_ffs_07_06_3 trans_types="none" type="flow"/>
+<hs_ffs_07_06_4 trans_types="none" type="flow"/>
+<hs_ffs_07_06_5 trans_types="none" type="flow"/>
+<hs_ffs_07_06_6 trans_types="none" type="flow"/>
+<hs_ffs_07_06_7 trans_types="none" type="flow"/>
+<hs_ffs_07_06_8 trans_types="none" type="flow"/>
+<hs_ffs_07_07_1 trans_types="none" type="flow"/>
+<hs_ffs_07_07_2 trans_types="none" type="flow"/>
+<hs_ffs_07_07_3 trans_types="none" type="flow"/>
+<hs_ffs_07_07_4 trans_types="none" type="flow"/>
+<hs_ffs_07_07_5 trans_types="none" type="flow"/>
+<hs_ffs_07_07_6 trans_types="none" type="flow"/>
+<hs_ffs_07_07_7 trans_types="none" type="flow"/>
+<hs_ffs_07_07_8 trans_types="none" type="flow"/>
+<hs_ffs_07_08_1 trans_types="none" type="flow"/>
+<hs_ffs_07_08_2 trans_types="none" type="flow"/>
+<hs_ffs_07_08_3 trans_types="none" type="flow"/>
+<hs_ffs_07_08_4 trans_types="none" type="flow"/>
+<hs_ffs_07_08_5 trans_types="none" type="flow"/>
+<hs_ffs_07_08_6 trans_types="none" type="flow"/>
+<hs_ffs_07_08_7 trans_types="none" type="flow"/>
+<hs_ffs_07_08_8 trans_types="none" type="flow"/>
+<hs_ffs_08_01_1 trans_types="none" type="flow"/>
+<hs_ffs_08_01_2 trans_types="none" type="flow"/>
+<hs_ffs_08_01_3 trans_types="none" type="flow"/>
+<hs_ffs_08_01_4 trans_types="none" type="flow"/>
+<hs_ffs_08_01_5 trans_types="none" type="flow"/>
+<hs_ffs_08_01_6 trans_types="none" type="flow"/>
+<hs_ffs_08_01_7 trans_types="none" type="flow"/>
+<hs_ffs_08_01_8 trans_types="none" type="flow"/>
+<hs_ffs_08_02_1 trans_types="none" type="flow"/>
+<hs_ffs_08_02_2 trans_types="none" type="flow"/>
+<hs_ffs_08_02_3 trans_types="none" type="flow"/>
+<hs_ffs_08_02_4 trans_types="none" type="flow"/>
+<hs_ffs_08_02_5 trans_types="none" type="flow"/>
+<hs_ffs_08_02_6 trans_types="none" type="flow"/>
+<hs_ffs_08_02_7 trans_types="none" type="flow"/>
+<hs_ffs_08_02_8 trans_types="none" type="flow"/>
+<hs_ffs_08_03_1 trans_types="none" type="flow"/>
+<hs_ffs_08_03_2 trans_types="none" type="flow"/>
+<hs_ffs_08_03_3 trans_types="none" type="flow"/>
+<hs_ffs_08_03_4 trans_types="none" type="flow"/>
+<hs_ffs_08_03_5 trans_types="none" type="flow"/>
+<hs_ffs_08_03_6 trans_types="none" type="flow"/>
+<hs_ffs_08_03_7 trans_types="none" type="flow"/>
+<hs_ffs_08_03_8 trans_types="none" type="flow"/>
+<hs_ffs_08_04_1 trans_types="none" type="flow"/>
+<hs_ffs_08_04_2 trans_types="none" type="flow"/>
+<hs_ffs_08_04_3 trans_types="none" type="flow"/>
+<hs_ffs_08_04_4 trans_types="none" type="flow"/>
+<hs_ffs_08_04_5 trans_types="none" type="flow"/>
+<hs_ffs_08_04_6 trans_types="none" type="flow"/>
+<hs_ffs_08_04_7 trans_types="none" type="flow"/>
+<hs_ffs_08_04_8 trans_types="none" type="flow"/>
+<hs_ffs_08_05_1 trans_types="none" type="flow"/>
+<hs_ffs_08_05_2 trans_types="none" type="flow"/>
+<hs_ffs_08_05_3 trans_types="none" type="flow"/>
+<hs_ffs_08_05_4 trans_types="none" type="flow"/>
+<hs_ffs_08_05_5 trans_types="none" type="flow"/>
+<hs_ffs_08_05_6 trans_types="none" type="flow"/>
+<hs_ffs_08_05_7 trans_types="none" type="flow"/>
+<hs_ffs_08_05_8 trans_types="none" type="flow"/>
+<hs_ffs_08_06_1 trans_types="none" type="flow"/>
+<hs_ffs_08_06_2 trans_types="none" type="flow"/>
+<hs_ffs_08_06_3 trans_types="none" type="flow"/>
+<hs_ffs_08_06_4 trans_types="none" type="flow"/>
+<hs_ffs_08_06_5 trans_types="none" type="flow"/>
+<hs_ffs_08_06_6 trans_types="none" type="flow"/>
+<hs_ffs_08_06_7 trans_types="none" type="flow"/>
+<hs_ffs_08_06_8 trans_types="none" type="flow"/>
+<hs_ffs_08_07_1 trans_types="none" type="flow"/>
+<hs_ffs_08_07_2 trans_types="none" type="flow"/>
+<hs_ffs_08_07_3 trans_types="none" type="flow"/>
+<hs_ffs_08_07_4 trans_types="none" type="flow"/>
+<hs_ffs_08_07_5 trans_types="none" type="flow"/>
+<hs_ffs_08_07_6 trans_types="none" type="flow"/>
+<hs_ffs_08_07_7 trans_types="none" type="flow"/>
+<hs_ffs_08_07_8 trans_types="none" type="flow"/>
+<hs_ffs_08_08_1 trans_types="none" type="flow"/>
+<hs_ffs_08_08_2 trans_types="none" type="flow"/>
+<hs_ffs_08_08_3 trans_types="none" type="flow"/>
+<hs_ffs_08_08_4 trans_types="none" type="flow"/>
+<hs_ffs_08_08_5 trans_types="none" type="flow"/>
+<hs_ffs_08_08_6 trans_types="none" type="flow"/>
+<hs_ffs_08_08_7 trans_types="none" type="flow"/>
+
+<hs_ffs_08_08_8 trans_types="none" type="flow"/>
+  </perframe>   
+     
+  <perframe_params  fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>   
+</params>   
+   
+ 
