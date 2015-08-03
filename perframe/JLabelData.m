@@ -9805,7 +9805,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.predictblocks = Predict.predictblocks(0);
       self.fastPredict = Predict.fastPredict(0);
       self.windowdatachunk_radius = 100;
-      self.predictwindowdatachunk_radius = 10000;
+      self.predictwindowdatachunk_radius = 2000;
       self.labels = Labels.labels(0); 
       self.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
       self.labelidx_off = 0;

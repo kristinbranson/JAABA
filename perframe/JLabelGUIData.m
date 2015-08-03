@@ -217,6 +217,7 @@ classdef JLabelGUIData < handle
     status_bar_text_when_clear = '';
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
+    status_in_msgbox = false;
     
     defaultmoviefilename = 0;
     defaulttrxfilename = 0;
@@ -390,7 +391,7 @@ classdef JLabelGUIData < handle
       self.guipos.leftborder_leftpanels = panel_timelines_pos(1);
       self.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
       self.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
-      if self.guipos.topborder_toppanels < 0
+      if self.guipos.topborder_toppanels < 15
         self.guipos.topborder_toppanels = 15;
       end
       self.guipos.bottomborder_bottompanels = panel_timelines_pos(2);
