@@ -194,7 +194,6 @@ else
     end
   end
 end
-
 return
 
 
@@ -262,7 +261,6 @@ for buttonNum = 1:numel(buttonNames)
 end
 
 updateCheckMarksInMenus(handles);
-
 return
 
 
@@ -3814,6 +3812,7 @@ end
 set(handles.text_status,'ForegroundColor',color,'String',s);
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
+  handles.guidata.status_in_msgbox = true;
 end
 if verLessThan('matlab','8.4.0')
   drawnow('update');  % want immediate update
@@ -3829,8 +3828,11 @@ set(handles.text_status, ...
     'ForegroundColor',handles.guidata.idlestatuscolor, ...
     'String',handles.guidata.status_bar_text_when_clear);
 set(handles.figure_JLabel,'Pointer','arrow');
-h = findall(0,'Type','figure','Name','JAABA Status');
-if ~isempty(h), delete(h(ishandle(h))); end
+if handles.guidata.status_in_msgbox
+  h = findall(0,'Type','figure','Name','JAABA Status');
+  if ~isempty(h), delete(h(ishandle(h))); end
+  handles.guidata.status_in_msgbox = false;
+end
 if verLessThan('matlab','8.4.0')
   drawnow('update');  % want immediate update
 else
@@ -4577,7 +4579,7 @@ function panel_timelines_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.axes_timelines),
+if isempty(handles) || isempty(handles.guidata.axes_timelines),
   return;
 end
 panel_pos = get(handles.panel_timelines,'Position');
@@ -4687,7 +4689,7 @@ function panel_axes1_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.panel_previews),
+if isempty(handles)||isempty(handles.guidata.panel_previews),
   return;
 end
 previewi = find(handles.guidata.panel_previews==hObject,1);
@@ -5570,6 +5572,7 @@ if ~doloop
   start(T);
 end
 
+doUpdateTimeline = false;
 if(1)  % test framerate
 while true,
   handles = guidata(hObject);
@@ -5580,6 +5583,7 @@ while true,
   if exist('CALC_FEATURES','var') && CALC_FEATURES
     t0 = handles.guidata.ts(axi);
     CALC_FEATURES = false;
+    doUpdateTimeline = true;
   end
   
   if exist('PLAY_TIMER_DONE','var') && PLAY_TIMER_DONE
@@ -5616,11 +5620,19 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  handles = UpdateTimelineImages(handles);
+%   fprintf('%d\n',t);
+  if doUpdateTimeline
+    handles = UpdateTimelineImages(handles);
+    doUpdateTimeline = false;
+  end
   dt_sec = toc(ticker);
   pause_time = (t-t0)/handles.guidata.play_FPS - dt_sec;
   if pause_time <= 0,
-    drawnow;
+    if verLessThan('matlab','8.4.0')
+      drawnow;
+    else
+      drawnow('limitrate');
+    end
   else
     pause(pause_time);
   end
