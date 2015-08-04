@@ -243,6 +243,8 @@ classdef JLabelGUIData < handle
       % them in JLabelData's feature vocabulary, b/c they're not _really_
       % part of the feature vocabulary.)  (But I suppose we could add them
       % if we wanted to...)   
+      
+      mat_lt_8p4 = true;
   end
   
   properties (SetAccess=private)
@@ -292,6 +294,11 @@ classdef JLabelGUIData < handle
           c = gcp;
           obj.computation_threads = c.NumWorkers;        
         end
+      end
+      if verLessThan('matlab','8.4.0')
+        obj.mat_lt_8p4 = true;
+      else
+        obj.mat_lt_8p4 = false;
       end
     end
    
