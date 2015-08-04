@@ -106,6 +106,10 @@ end
 SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 
 handles.output = handles.figure_JLabel;
+% MK Aug 2015: Change the renderer for 2014b onwards
+if ~handles.guidata.mat_lt_8p4
+ set(handles.figure_JLabel,'renderer','painters')
+end
 % initialize statusbar
 
 %handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
@@ -194,7 +198,6 @@ else
     end
   end
 end
-
 return
 
 
@@ -262,7 +265,6 @@ for buttonNum = 1:numel(buttonNames)
 end
 
 updateCheckMarksInMenus(handles);
-
 return
 
 
@@ -623,7 +625,7 @@ function UpdatePlots(handles,varargin)
 
 persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total exp_next fly_next ts_next imnorm
 
-debug_cache = false;
+debug_cache = true;
 
 % if no experiments are loaded, nothing to do
 %if isempty(handles.data) || handles.data.nexps==0 ,
@@ -738,32 +740,54 @@ if handles.guidata.behaviorFocusOn
   iClsFoc = handles.guidata.behaviorFocusIdx;
   iLblsFoc = handles.data.iCls2iLbl{iClsFoc};
 end
-    
+
+useFast = false;
 % update timelines
 if refresh_timeline_manual,
-  set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
-  if handles.guidata.label_state ~= 0,
-    ts = sort([handles.label_t0,handles.guidata.ts(1)]);
-    ts(1) = max(ts(1),handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2);
-    ts(2) = min(ts(2),handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2);
-    ts = ts + [-.5,.5];
-    set(handles.guidata.htimeline_label_curr,'XData',ts([1,1,2,2,1]));
+  if useFast
+    nf = handles.guidata.timeline_nframes;
+    xlim = [handles.guidata.ts(1)-nf-1,...
+      handles.guidata.ts(1)+nf+1];
+    curI = handles.guidata.labels_plot.im(:,xlim(1):xlim(2),:);
+    set(handles.guidata.himage_timeline_manual,'CData',curI);
+    set(handles.guidata.axes_timelines(3),'XLim',[0.5 2*nf+1.5]);
+  else
+    set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
   end
 end
 
-if refresh_timeline_auto,
-  set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
-  [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
-  if handles.guidata.behaviorFocusOn
-    predidx1 = pred.predictedidx(iClsFoc,1);
-    if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
-      cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
-      set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
-    else
-      set(handles.text_scores,'String','');
-    end
-  end    
+if handles.guidata.label_state ~= 0,
+  ts = sort([handles.label_t0,handles.guidata.ts(1)]);
+  ts(1) = max(ts(1),handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2);
+  ts(2) = min(ts(2),handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2);
+  ts = ts + [-.5,.5];
+  set(handles.guidata.htimeline_label_curr,'XData',ts([1,1,2,2,1]));
 end
+
+if refresh_timeline_auto,
+  if useFast
+    nf = handles.guidata.timeline_nframes;
+    xlim = [handles.guidata.ts(1)-nf-1,...
+      handles.guidata.ts(1)+nf+1];
+    curI = handles.guidata.labels_plot.predicted_im(:,xlim(1):xlim(2),:);
+    set(handles.guidata.himage_timeline_auto,'CData',curI);
+    set(handles.guidata.axes_timelines(2),'XLim',[0.5 2*nf+1.5]);
+  else
+    set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
+  end
+end
+
+[pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
+if handles.guidata.behaviorFocusOn
+  predidx1 = pred.predictedidx(iClsFoc,1);
+  if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
+    cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
+    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
+  else
+    set(handles.text_scores,'String','');
+  end
+end
+
 if refresh_timeline_suggest && ~handles.data.IsGTMode(),
   set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
@@ -777,7 +801,7 @@ if refresh_GT_suggestion && ~isempty(fieldnames(handles.guidata.labels_plot)),
     'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
 end
 
-if refresh_timeline_xlim,
+if refresh_timeline_xlim & ~useFast,
   xlim = [handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2,...
     handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2];
   for i = 1:numel(handles.guidata.axes_timelines),
@@ -844,6 +868,11 @@ for i = axes2,
         if debug_cache
         fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        end
+        if handles.guidata.mat_lt_8p4,
+          drawnow;
+        else
+          drawnow('limitrate');
         end
       else
         ClearStatus(handles);
@@ -1199,7 +1228,9 @@ for i = axes2,
     end
   end
   
-  %drawnow;
+  if handles.guidata.mat_lt_8p4
+    drawnow;
+  end
   
 end
 return
@@ -1868,7 +1899,7 @@ if doforce || handles.guidata.ts(i) ~= t,
   
   % TODO: update timeline zoom
   for h = handles.guidata.axes_timeline_labels,
-    if verLessThan('matlab','8.4.0'),
+    if handles.guidata.mat_lt_8p4
       zoom(h,'reset');
     end
   end
@@ -3814,8 +3845,9 @@ end
 set(handles.text_status,'ForegroundColor',color,'String',s);
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
+  handles.guidata.status_in_msgbox = true;
 end
-if verLessThan('matlab','8.4.0')
+if handles.guidata.mat_lt_8p4
   drawnow('update');  % want immediate update
 else
   drawnow('limitrate');
@@ -3829,9 +3861,12 @@ set(handles.text_status, ...
     'ForegroundColor',handles.guidata.idlestatuscolor, ...
     'String',handles.guidata.status_bar_text_when_clear);
 set(handles.figure_JLabel,'Pointer','arrow');
-h = findall(0,'Type','figure','Name','JAABA Status');
-if ~isempty(h), delete(h(ishandle(h))); end
-if verLessThan('matlab','8.4.0')
+if handles.guidata.status_in_msgbox
+  h = findall(0,'Type','figure','Name','JAABA Status');
+  if ~isempty(h), delete(h(ishandle(h))); end
+  handles.guidata.status_in_msgbox = false;
+end
+if handles.guidata.mat_lt_8p4
   drawnow('update');  % want immediate update
 else
   drawnow('limitrate');
@@ -4577,7 +4612,7 @@ function panel_timelines_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.axes_timelines),
+if isempty(handles) || isempty(handles.guidata.axes_timelines),
   return;
 end
 panel_pos = get(handles.panel_timelines,'Position');
@@ -4687,7 +4722,7 @@ function panel_axes1_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.panel_previews),
+if isempty(handles)||isempty(handles.guidata.panel_previews),
   return;
 end
 previewi = find(handles.guidata.panel_previews==hObject,1);
@@ -5546,10 +5581,10 @@ set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 %SetButtonImage(handles.pushbutton_playstop);
 adjustButtonColorsIfMac(hObject);
 
-if ~handles.data.IsGTMode() && ~handles.data.isST
-  handles = predict(handles);
-  guidata(hObject,handles);
-end
+% if ~handles.data.IsGTMode() && ~handles.data.isST
+%   handles = predict(handles);
+%   guidata(hObject,handles);
+% end
 
 handles.guidata.hplaying = hObject;
 guidata(hObject,handles);
@@ -5561,7 +5596,7 @@ if nargin < 3,
 end
 
 if ~doloop
-  framesPerTick = 4000;
+  framesPerTick = handles.data.predictwindowdatachunk_radius;
   t_period = round(framesPerTick/handles.guidata.play_FPS*1000)/1000;
   T = timer('TimerFcn',{@predictTimerCallback,hObject,framesPerTick},...
         'Period',t_period,...
@@ -5570,6 +5605,7 @@ if ~doloop
   start(T);
 end
 
+doUpdateTimeline = false;
 if(1)  % test framerate
 while true,
   handles = guidata(hObject);
@@ -5580,6 +5616,7 @@ while true,
   if exist('CALC_FEATURES','var') && CALC_FEATURES
     t0 = handles.guidata.ts(axi);
     CALC_FEATURES = false;
+    doUpdateTimeline = true;
   end
   
   if exist('PLAY_TIMER_DONE','var') && PLAY_TIMER_DONE
@@ -5616,11 +5653,21 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  handles = UpdateTimelineImages(handles);
+  fprintf('%d\n',t);
+  if doUpdateTimeline
+    handles = UpdateTimelineImages(handles);
+    doUpdateTimeline = false;
+  end
   dt_sec = toc(ticker);
   pause_time = (t-t0)/handles.guidata.play_FPS - dt_sec;
   if pause_time <= 0,
-    drawnow;
+    if handles.guidata.mat_lt_8p4
+      drawnow;
+% MK Aug 2015: There is a drawnow in status update so no need to draw again here
+% for 2014b onwards.
+%     else
+%       drawnow('limitrate');
+    end
   else
     pause(pause_time);
   end

@@ -210,23 +210,27 @@ classdef LabelsPlot
       end
       
       % Permute image matrix to make it easier to assign behavior colors
-      im = permute(labels_plot.im,[3 1 2]); % im is now 3xnTLxn
+      % MK-- permuting maybe slow, removing it.
+%       im = permute(labels_plot.im,[3 1 2]); % im is now 3xnTLxn
       
       for behaviori = 1:labels_plot.nbeh
+        curTL = labels_plot.beh2TL(behaviori);
         tf = (labelidx.vals == behaviori) & labelidx.imp;
         curColor = labelcolors(behaviori,:);
         for channel = 1:3,
-          im(channel,tf) = curColor(channel);
+%           im(channel,tf) = curColor(channel); % if using the permute above.
+          labels_plot.im(curTL,tf,channel) = curColor(channel);
         end
         
         tf = (labelidx.vals == behaviori) & ~labelidx.imp;
         curColor = ShiftColor.decreaseIntensity(labelcolors(behaviori,:));
         for channel = 1:3,
-          im(channel,tf) = curColor(channel);
+%           im(channel,tf) = curColor(channel);
+          labels_plot.im(curTL,tf,channel) = curColor(channel);
         end
       end
       
-      labels_plot.im = permute(im,[2 3 1]);
+%       labels_plot.im = permute(im,[2 3 1]);
 
       % JLabel/SetLabelPlot does direct access to labels_plot.im
     end
@@ -261,10 +265,11 @@ classdef LabelsPlot
       bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;      
 
       im = labels_plot.predicted_im;
-      im(:) = 0;
+%       im(:) = 0;
       for iBeh = 1:2
         idxScores = pred==iBeh;
         idxPredict = idxScores & abs(scores)>confThresh(iBeh);
+        idxBottom = pred_bottom==iBeh;
         scoreNdx = ceil(scores(idxScores)*31)+32; % scoreNdx in [1,63]
         for channel = 1:3
           im(1,idxPredict,channel) = labelcolors(iBeh,channel);
@@ -278,7 +283,7 @@ classdef LabelsPlot
             im(5:6,isnan(bottomDist(:)'),channel) = 0;
           else
             im(5,idxBottomScores,channel) = scorecolor(bottomScoreNdx,channel,1);
-            im(6,pred_bottom==iBeh,channel) = labelcolors(iBeh,channel);
+            im(6,idxBottom,channel) = labelcolors(iBeh,channel);
           end
         end        
       end
