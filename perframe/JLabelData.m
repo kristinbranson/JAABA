@@ -2149,38 +2149,34 @@ classdef JLabelData < matlab.mixin.Copyable
       
       is_pc = ispc; % repeatedly calling ispc is slow
       
+      fsep = filesep;
+      pffns = obj.allperframefns;
+      nago = nargout;
       for i = 1:numel(obj.allperframefns),
 
         % loop through directories to look in
-        for j = 1:numel(expdirs_try),
-          expdir = expdirs_try{j};
-%           perframedir = fullfile(expdir,fn);  % BJA: slow by 10x
-          perframedir = [expdir filesep fn];
-          if is_pc && ~exist(perframedir,'dir'),
-            [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
-            if didfind,
-              perframedir = actualperframedir;
-            end
+        expdir = expdirs_try{1};
+        %           perframedir = fullfile(expdir,fn);  % BJA: slow by 10x
+        perframedir = [expdir fsep fn];
+        if is_pc && ~exist(perframedir,'dir'),
+          [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
+          if didfind,
+            perframedir = actualperframedir;
           end
-%           filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);  % BJA: slow by 10x
-          filename = [perframedir filesep obj.allperframefns{i} '.mat'];
-          if is_pc && ~exist(filename,'file'),
-            [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
-            if didfind,
-              filename = actualfilename;
-            end
+        end
+        %           filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);  % BJA: slow by 10x
+        filename = [perframedir fsep pffns{i} '.mat'];
+        if is_pc && ~exist(filename,'file'),
+          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+          if didfind,
+            filename = actualfilename;
           end
-          
-          if exist(filename,'file'),
-            filenames{i} = filename;
-            if nargout > 1
-              tmp = dir(filename);
-              timestamps(i) = tmp.datenum;
-            end
-          elseif j == 1,
-            filenames{i} = filename;
-          end
-          
+        end
+        
+        filenames{i} = filename;
+        if nago > 1
+          tmp = dir(filename);
+          timestamps(i) = tmp.datenum;
         end
       end
     end
@@ -2686,8 +2682,9 @@ classdef JLabelData < matlab.mixin.Copyable
       % If we got here, expi and iTarget are non-degenerate
       perframeFileNameList = obj.GetPerframeFiles(expi);
       nPerframeFeatures=numel(obj.allperframefns);
-      obj.perframedata=cell(1,nPerframeFeatures);
-      obj.perframeunits=cell(1,nPerframeFeatures);      
+      perframedata=cell(1,nPerframeFeatures);
+      perframeunits=cell(1,nPerframeFeatures);      
+      
       for j = 1:nPerframeFeatures,
         perframeFileName=perframeFileNameList{j};
         if ~exist(perframeFileName,'file'),
@@ -2695,10 +2692,20 @@ classdef JLabelData < matlab.mixin.Copyable
           msg = sprintf('Per-frame data file %s does not exist',perframeFileNameList{j});
           return;
         end
-        tmp = load(perframeFileName);
-        obj.perframedata{j} = tmp.data{iTarget};
-        obj.perframeunits{j} = tmp.units;
       end
+      
+      parfor j = 1:nPerframeFeatures,
+        perframeFileName=perframeFileNameList{j};
+        [ftmp,funits] = readPFData(perframeFileName,iTarget);
+%         tmp = load(perframeFileName);
+%         assert(isequal(ftmp,tmp.data(iTarget)));
+%         assert(isequal(funits,tmp.units));
+        
+        perframedata{j} = ftmp{1};
+        perframeunits{j} = funits;
+      end
+      obj.perframedata = perframedata;
+      obj.perframeunits = perframeunits;
       success=true;
       msg='';
     end  % method
@@ -2733,18 +2740,19 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       perframedir = obj.GetFile('perframedir',expi);
-      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
+      pffile = fullfile(perframedir,[obj.allperframefns{prop},'.mat']);
+      perframedata = readPFData(pffile,flies(1));
+      perframedata = perframedata{1};
       if nargin < 5,
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         % TODO: generalize to multi-fly
-        perframedata = tmp.data{flies(1)};
         T1 = T0 + numel(perframedata) - 1;
         return;
       end
       off = 1 - obj.GetTrxFirstFrame(expi,flies);
       i0 = T0 + off;
       i1 = T1 + off;
-      perframedata = tmp.data{flies(1)}(i0:i1);
+      perframedata = perframedata(i0:i1);
     end
 
     
@@ -3742,10 +3750,22 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.windowdata(iCls).labelidx_imp(idxcurr) = labelIdxImp{flyi}(tscurr-t0_labelidx+1);
               missingts{flyi} = setdiff(ts,tscurr);
             end
-            if ~isempty(missingts{flyi})
-              object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
-            end
 
+          end
+          
+          % Trim unnecessary flies.
+          toremove = cellfun(@(x) isempty(x),missingts);
+          flies_curr = flies_curr(~toremove);
+          Nfliescurr = size(flies_curr,1);
+          labelIdxVals = labelIdxVals(~toremove) ; % vectors, labelidx.vals for this exp/fly/classifier
+          labelIdxImp = labelIdxImp(~toremove); % vectors, labelidx.imp for this exp/fly/classifier
+          labelIdxT0 = labelIdxT0(~toremove); % scalars, labelidx T0 offsets for this exp/fly
+          missingts = missingts(~toremove); % vectors, labeled frames for this classiifer which are not in this classifier's windowdata
+          object = object(~toremove); % structs, dummy object for this exp/fly/classifier
+         
+          for flyi = 1:Nfliescurr
+            flies = flies_curr(flyi,:); 
+            object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
           end
           
           curperframefns = obj.curperframefns{iCls};
@@ -3768,20 +3788,35 @@ classdef JLabelData < matlab.mixin.Copyable
             object{flyi}.allperframefns = allperframefns;
           end
           
+          usecacheperframe = false;
+          if Nfliescurr ==1
+            usecacheperframe = obj.IsCurFly(expi,flies_curr);
+          end
+          cacheperframedata = obj.perframedata;
+          
           parfor perframei = 1:Ncpff
             perframefn = curperframefns{perframei};
             ndx = find(strcmp(perframefn,allperframefns));
-            perframedata = load(obj_getperframefiles{ndx}); %#ok
-            perframedata = perframedata.data;
             
+            if usecacheperframe
+              parperframedata = cacheperframedata(ndx);
+            else
+              parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr);
+            end
+%             if usecacheperframe
+%               tmp = readPFData(obj_getperframefiles{ndx},flies_curr);
+%               assert(isequal(tmp,parperframedata));
+%             end
+%             perframedata = load(obj_getperframefiles{ndx}); %#ok
+%             perframedata = perframedata.data;
             parfor_predictblocks{perframei} = cell(1,Nfliescurr);
             parfor_windowdata{perframei} = cell(1,Nfliescurr);
             
             for flyi = 1:Nfliescurr
               flies = flies_curr(flyi,:); %#ok<PFBNS>
-              
+%               assert(isequal(perframedata{flies},parperframedata{flyi}));
               [tmpsuccess,~,predictblocks,windowdata] = ...
-                PreLoadWindowData(object{flyi},perframefn,perframedata{flies},...
+                PreLoadWindowData(object{flyi},perframefn,parperframedata{flyi},...
                 missingts{flyi},labelIdxVals{flyi},labelIdxImp{flyi},labelIdxT0{flyi}); %#ok<PFBNS>
               assert(tmpsuccess,'Loading windowdata failed for perframe function %s.',perframefn);
               
@@ -5826,8 +5861,8 @@ classdef JLabelData < matlab.mixin.Copyable
             if perframeInMemory,
               perframedata = perframedata_cur{ndx};  %#ok
             else
-              perframedata = load(perframefile{ndx});  %#ok
-              perframedata = perframedata.data{flies(1)};  %#ok
+              perframedata = readPFData(perframefile{ndx},flies(1));  %#ok
+              perframedata = perframedata{1};  %#ok
             end
             
             i11 = min(i1,numel(perframedata));
@@ -9771,7 +9806,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.predictblocks = Predict.predictblocks(0);
       self.fastPredict = Predict.fastPredict(0);
       self.windowdatachunk_radius = 100;
-      self.predictwindowdatachunk_radius = 10000;
+      self.predictwindowdatachunk_radius = 2000;
       self.labels = Labels.labels(0); 
       self.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
       self.labelidx_off = 0;
