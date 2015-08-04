@@ -5861,8 +5861,8 @@ classdef JLabelData < matlab.mixin.Copyable
             if perframeInMemory,
               perframedata = perframedata_cur{ndx};  %#ok
             else
-              perframedata = load(perframefile{ndx});  %#ok
-              perframedata = perframedata.data{flies(1)};  %#ok
+              perframedata = readPFData(perframefile{ndx},flies(1));  %#ok
+              perframedata = perframedata{1};  %#ok
             end
             
             i11 = min(i1,numel(perframedata));
