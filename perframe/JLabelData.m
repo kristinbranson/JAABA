@@ -3798,11 +3798,18 @@ classdef JLabelData < matlab.mixin.Copyable
             perframefn = curperframefns{perframei};
             ndx = find(strcmp(perframefn,allperframefns));
             
-            if usecacheperframe
-              parperframedata = cacheperframedata(ndx);
+            % KB: usecacheperframe was false when Nflies_curr was 0, so was
+            % loading in per-frame data            
+            if Nfliescurr > 0,
+              if usecacheperframe
+                parperframedata = cacheperframedata(ndx);
+              else
+                parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr);
+              end
             else
-              parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr);
+              parperframedata = [];
             end
+
 %             if usecacheperframe
 %               tmp = readPFData(obj_getperframefiles{ndx},flies_curr);
 %               assert(isequal(tmp,parperframedata));
