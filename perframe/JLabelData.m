@@ -1144,7 +1144,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %           % return;
 %         else        
         feature_names = cell(1,Ncpff);
-        for j = 1:Ncpff
+        parfor j = 1:Ncpff
           fn = curPFFs{j};
           [~,tmp_feature_names_all] = ...
             ComputeWindowFeatures(FAKEPFDATA,wfcparams.(fn){:},'t0',51,'t1',51);
@@ -6990,6 +6990,7 @@ classdef JLabelData < matlab.mixin.Copyable
             self.loadwindowdata(iCls) && ...
             isprop(cs(iCls),'windowdata') && ...
             isstruct(cs(iCls).windowdata) && ...
+            ~isempty(cs(iCls).windowdata) && ...
             ~isempty(cs(iCls).savewindowdata) && ...
             cs(iCls).savewindowdata
           
@@ -7304,7 +7305,9 @@ classdef JLabelData < matlab.mixin.Copyable
             
       % AL20141122: Why are we setting windowfeaturenames? This only
       % depends on self.curperframefns and self.windowfeaturescellparams.
-      self.SetWindowFeatureNames();
+      % MK20150805: We don't need do this again. It is already being done
+      % in setWindowFeaturesParams.
+%       self.SetWindowFeatureNames();
       
       % AL20141126: initialization of loadwindowdata is change from earlier
       % behavior
