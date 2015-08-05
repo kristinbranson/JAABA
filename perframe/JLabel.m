@@ -625,7 +625,7 @@ function UpdatePlots(handles,varargin)
 
 persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total exp_next fly_next ts_next imnorm
 
-debug_cache = true;
+debug_cache = false;
 
 % if no experiments are loaded, nothing to do
 %if isempty(handles.data) || handles.data.nexps==0 ,
@@ -5653,7 +5653,8 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  fprintf('%d\n',t);
+  % MK20150805: Crude way to debug frame rate.
+%   fprintf('%d\n',t); 
   if doUpdateTimeline
     handles = UpdateTimelineImages(handles);
     doUpdateTimeline = false;
