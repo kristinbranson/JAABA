@@ -6815,34 +6815,39 @@ function menu_classifier_visualize_Callback(hObject, eventdata, handles)
 
 %MERGESTUPDATED
 
-if handles.data.nclassifiers>1
-  warning('JLabel:multiclass','Visualizing classifier ''%s'' only.',...
-    handles.data.classifiernames{1});
+% if handles.data.nclassifiers>1
+%   warning('JLabel:multiclass','Visualizing classifier ''%s'' only.',...
+%     handles.data.classifiernames{1});
+% end
+
+for ICLS = 1:handles.data.nclassifiers
+  
+  if ~handles.data.HasWindowdata(ICLS)
+    wstr = sprintf('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata for %s.',...
+      handles.data.classifiernames{ICLS});
+    uiwait(warndlg(wstr));
+    return;
+  end
+  
+  SetStatus(handles,'Creating classifier visualization');
+  
+  [hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
+    sorted_weights,feature_order,bins,scores] = ...
+    ShowWindowFeatureWeights(handles.data,'figpos',...
+    [10,10,1000,1000],'nfeatures_show',50,'iCls',ICLS); %#ok<ASGLU>
+  
+  ti = sprintf('Classifier %s %s',handles.data.classifiernames{ICLS},datestr(handles.data.classifierTS(ICLS)));
+  set(hfig,'Name',ti);
+ 
+  % MK Aug 14 2015: Where is handles.visualizeclassifier used??
+  handles.visualizeclassifier = ...
+    struct('sorted_weights',sorted_weights,...
+    'feature_order',feature_order,'bins',bins,...
+    'scores',scores);
+ 
+  
+  handles.guidata.open_peripherals(end+1) = hfig;
 end
-ICLS = 1;
-
-if ~handles.data.HasWindowdata(ICLS)
-  uiwait(warndlg('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata.'));
-  return;
-end
-
-SetStatus(handles,'Creating classifier visualization');
-
-[hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
-  sorted_weights,feature_order,bins,scores] = ...
-  ShowWindowFeatureWeights(handles.data,'figpos',...
-  [10,10,1000,1000],'nfeatures_show',50,'iCls',ICLS); %#ok<ASGLU>
-
-ti = sprintf('Classifier %s',datestr(handles.data.classifierTS(ICLS)));
-set(hfig,'Name',ti);
-
-handles.visualizeclassifier = ...
-  struct('sorted_weights',sorted_weights,...
-  'feature_order',feature_order,'bins',bins,...
-  'scores',scores);
-
-handles.guidata.open_peripherals(end+1) = hfig;
-
 guidata(hObject,handles);
 
 ClearStatus(handles);
@@ -7309,7 +7314,7 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok
-handles.guidata.open_peripheral(end+1) = f;          
+handles.guidata.open_peripherals(end+1) = f;          
 return
 
 
@@ -8927,10 +8932,15 @@ catch ME
 end
 if handles.data.expi==0 && handles.data.nexps>0
   handles = SetCurrentMovie(handles,1);
-  handles = UpdateTimelineImages(handles);
-  UpdatePlots(handles,'refresh_timeline_manual',true);
 end
+handles = UpdateTimelineImages(handles);
+UpdatePlots(handles,'refresh_timeline_manual',true);
 guidata(handles.figure_JLabel,handles);
+
+if ~handles.guidata.mat_lt_8p4
+  drawnow;
+end
+
 ClearStatus(handles);
 
 
@@ -9150,6 +9160,7 @@ UpdatePlots(handles, ...
     'refresh_timeline_hcurr',false,...
     'refresh_timeline_selection',false,...
     'refresh_curr_prop',false);  
+  if ~handles.guidata.mat_lt_8p4, drawnow(), end
 
 % --------------------------------------------------------------------
 function menu_file_remove_classifier_Callback(hObject, eventdata, handles)

@@ -215,14 +215,14 @@ classdef LabelsPlot
       
       for behaviori = 1:labels_plot.nbeh
         curTL = labels_plot.beh2TL(behaviori);
-        tf = (labelidx.vals == behaviori) & labelidx.imp;
+        tf = (labelidx.vals(curTL,:) == behaviori) & labelidx.imp(curTL,:);
         curColor = labelcolors(behaviori,:);
         for channel = 1:3,
 %           im(channel,tf) = curColor(channel); % if using the permute above.
           labels_plot.im(curTL,tf,channel) = curColor(channel);
         end
         
-        tf = (labelidx.vals == behaviori) & ~labelidx.imp;
+        tf = (labelidx.vals(curTL,:) == behaviori) & ~labelidx.imp(curTL,:);
         curColor = ShiftColor.decreaseIntensity(labelcolors(behaviori,:));
         for channel = 1:3,
 %           im(channel,tf) = curColor(channel);
