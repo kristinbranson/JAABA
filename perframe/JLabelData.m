@@ -6273,7 +6273,7 @@ classdef JLabelData < matlab.mixin.Copyable
         for expii = 1:numel(expis),
           endx = expis(expii);
           for flies = allflies{expii},
-            idx = obj.predictdata{endx}{flies}(ibeh).cur_valid;
+            idx = find(obj.predictdata{endx}{flies}(ibeh).cur_valid);
             ts = obj.predictdata{endx}{flies}(ibeh).t(idx);
             [sortedts, idxorder] = sort(ts);
             gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1; 
@@ -8480,9 +8480,11 @@ classdef JLabelData < matlab.mixin.Copyable
       
       if strcmp(jumpRestrict,'behavior')
         obj.PredictFast(expi,flies,T0,T1,ICLS);
+        obj.ApplyPostprocessing(expi,flies);
         dist(obj.predictdata{expi}{flies}(ICLS).cur < 0) = inf;
       elseif strcmp(jumpRestrict,'none')
         obj.PredictFast(expi,flies,T0,T1,ICLS);
+        obj.ApplyPostprocessing(expi,flies);
         dist(obj.predictdata{expi}{flies}(ICLS).cur > 0) = inf;
       end
       
@@ -9192,6 +9194,8 @@ classdef JLabelData < matlab.mixin.Copyable
               obj.PredictFast(expi,flies,labels_curr.t0s(j),labels_curr.t1s(j)-1,1);
             end
             
+            obj.ApplyPostprocessing(expi,flies);
+            
             % assumes that if have any loaded score for an experiment we
             % have scores for all the flies and for every frame.
 %             [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
@@ -9243,7 +9247,7 @@ classdef JLabelData < matlab.mixin.Copyable
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
               scores = obj.predictdata{expi}{flies}.cur_pp(idx)-0.5;
-              [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
+               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             end
