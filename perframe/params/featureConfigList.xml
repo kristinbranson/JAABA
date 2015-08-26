@@ -16,10 +16,12 @@
 <spacetime_mice file="params/featureConfig_spacetime_mice.xml" animal="fly"/>
 <larva_highres file="params/featureConfigLarvaehighres.xml" animal="larvacontour"/>
 <flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
-<flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
+<!--flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
 <flies_hoghofplus file="params/featureConfigHoghofplus_modernNames.xml" animal="fly"/>
-<flies_hoghofstationary file="params/featureConfigHoghofplusStationary_modernNames_hsflow.xml" animal="fly"/>
-<flies_hoghof_bkgsup file="params/featureConfigHoghofplusStationary_modernNames_hsflow_bkgsup.xml" animal="fly"/>
+<flies_hoghofstationary file="params/featureConfigHoghofplusStationary_modernNames_hsflow.xml" animal="fly"/-->
+<flies_hoghof_hs_aligned file="params/featureConfigHoghofplusStationary_modernNames_hsflow_bkgsup.xml" animal="fly"/>
+<flies_hoghof_hs_notaligned file="params/featureConfigHoghofplus_hsflow.xml" animal="fly"/>
+<flies_hoghof_deep_aligned file="params/featureConfigHoghofDeepStationary.xml" animal="fly"/>
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
 <adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
 </params>
