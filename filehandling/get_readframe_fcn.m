@@ -59,12 +59,30 @@ elseif strcmpi(ext,'.mmf'),
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
 elseif strcmpi(ext,'.tif'),
+
   info = imfinfo(filename);
-  headerinfo = struct('nr',info(1).Height,'nc',info(1).Width,'nframes',numel(info),'type','tif',...
-    'bitdepth',info(1).BitDepth);
-  readframe = @(f) deal(imread(filename,f),f);
-  nframes = headerinfo.nframes;
-  fid = -1;
+  isimseq = false;
+  if numel(info) == 1,
+    filespec = regexprep(filename,'_\d+\.tif$','_*.tif');
+    imfiles = mydir(filespec);
+    if numel(imfiles) > 1,
+      imfiles = sort(imfiles);
+      im = imread(imfiles{1});
+      headerinfo = struct('nr',size(im,1),'nc',size(im,2),'ncolors',size(im,3),'nframes',numel(imfiles),...
+        'type','imseq','imfiles',{imfiles});
+      readframe = @(f) imseq_read_frame(f,imfiles);
+      nframes = headerinfo.nframes;
+      fid = -1;
+      isimseq = true;
+    end
+  end
+  if ~isimseq,
+    headerinfo = struct('nr',info(1).Height,'nc',info(1).Width,'nframes',numel(info),'type','tif',...
+      'bitdepth',info(1).BitDepth);
+    readframe = @(f) deal(imread(filename,f),f);
+    nframes = headerinfo.nframes;
+    fid = -1;
+  end
 elseif strcmpi(ext,'.mat'),
 
   videofiletype = load(filename,'videofiletype');
@@ -173,6 +191,7 @@ else
     headerinfo = info;
     headerinfo.type = 'avi';
   else
+    try
     readerobj = VideoReader(filename);
     nframes = get(readerobj,'NumberOfFrames');
     if isempty(nframes),
@@ -184,8 +203,26 @@ else
     headerinfo.type = 'avi';
     headerinfo.nr = headerinfo.Height;
     headerinfo.nc = headerinfo.Width;
-    headerinfo.nframes = headerinfo.NumberOfFrames;
+    headerinfo.nframes = nframes;
     readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+    catch ME_videoreader,
+      
+      % try using aviread
+      try
+        headerinfo = aviinfo(filename); %#ok<FREMO>
+        nframes = headerinfo.NumFrames;
+        fps = headerinfo.FramesPerSecond;
+
+        readframe = @(f) aviread_helper(filename,f,fps);
+        headerinfo.type = 'avi';
+        fid = -1;
+      catch ME_aviread,
+        error('Could not open file %s with VideoReader (%s) or with aviread (%s)',...
+          filename,getReport(ME_videoreader),getReport(ME_aviread));
+      end
+      
+      
+    end
   end
 end
 
@@ -205,6 +242,19 @@ function [im,timestamp] = avi_read_frame(readerobj,headerinfo,f)
 im = read(readerobj,f);
 timestamp = (f-1)/headerinfo.FrameRate;
 
+function [im,f] = imseq_read_frame(f,imfiles)
 
+im = imread(imfiles{f});
 
+function [im,stamp] = aviread_helper(filename,f,fps)
 
+if numel(f) == 2,
+  M = aviread_rawy8(filename,f(1):f(2));
+else
+  M = aviread_rawy8(filename,f);
+end
+im = flipdim(cat(4,M.cdata),1);
+stamp = f / fps;
+    
+    
+    

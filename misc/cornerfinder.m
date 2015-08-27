@@ -105,14 +105,14 @@ for i=1:N,
       
       % What if the sub image is not in?
       
-      if (crIx-wintx-2 < 1), xmin=1; xmax = 2*wintx+5;
-      elseif (crIx+wintx+2 > nx), xmax = nx; xmin = nx-2*wintx-4;
+      if (crIx-wintx-2 < 1), break; xmin=1; xmax = 2*wintx+5;
+      elseif (crIx+wintx+2 > nx), break; xmax = nx; xmin = nx-2*wintx-4;
       else
 	 xmin = crIx-wintx-2; xmax = crIx+wintx+2;
       end;
 
-      if (crIy-winty-2 < 1), ymin=1; ymax = 2*winty+5;
-      elseif (crIy+winty+2 > ny), ymax = ny; ymin = ny-2*winty-4;
+      if (crIy-winty-2 < 1), break; ymin=1; ymax = 2*winty+5;
+      elseif (crIy+winty+2 > ny), break; ymax = ny; ymin = ny-2*winty-4;
       else
 	 ymin = crIy-winty-2; ymax = crIy+winty+2;
       end;
