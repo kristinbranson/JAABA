@@ -1,4 +1,9 @@
-function [scores model binVals bins] = loglossboostLearnRandomFeatures(data,labels,numIters,initWt,binVals,bins,params,obj)
+function [scores model binVals bins] = loglossboostLearnRandomFeatures(...
+  data,labels,numIters,initWt,binVals,bins,params,obj,str)
+
+if nargin<8,
+  obj = [];
+end
 
 numEx = size(data,1);
 wt = initWt;
@@ -73,9 +78,11 @@ for itt = 1:numIters
     if numel(etimehist) > etimehistlength,
       etimehist = etimehist(end-etimehistlength+1:end);
     end
-    %obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
-    %  round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
-    %drawnow();
+    if ~isempty(obj)
+      obj.SetStatus('%s %d%% training done. Time Remaining:%ds ',str,...
+        round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
+      drawnow();
+    end
     clk = tic;
   end
   

@@ -1692,26 +1692,43 @@ handlesbehaviorlist=cell(1,length(newclassifiers));
 handlesscorefiles=cell(1,length(newclassifiers));
 handlesindividualsbehavior=zeros(sum(cellfun(@length,handles.experimentlist)),length(newclassifiers));
 timestamps=nan(1,length(newclassifiers));
-parfor c=1:length(newclassifiers)
-%for c=1:length(newclassifiers)
+% KB: Changed the parfor to a for loop for debugging, change back if this
+% is slow
+%parfor c=1:length(newclassifiers)
+off = 0;
+
+% KB: replicating classifiers for each different behavior in that
+% classifier
+newclassifiers1 = {};
+for c=1:length(newclassifiers)
   classifier=load(newclassifiers{c},'-mat'); %#ok<PFTUS>
 
-  timestamps(c)=classifier.x.classifierStuff.timeStamp;
-
-  handlesbehaviorlist{c}=classifier.x.behaviors.names{1};
-  %handlesscorefiles{c}=params.file.scorefilename;
-  handlesscorefiles{c}=classifier.x.file.scorefilename;
-
-  ee=0;  behavior_data=[];  parfor_tmp=zeros(sum(cellfun(@length,handles.experimentlist)),1);
-  for g=1:length(handles.grouplist)
-    for e=1:length(handles.experimentlist{g})
-      parfor_tmp(ee+e)=get_nindividuals_behavior(handles.experimentlist{g}{e},handlesscorefiles{c},...
-          classifier.x.classifierStuff.timeStamp);
-    end
-    ee=ee+length(handles.experimentlist{g});
+  if ~iscell(classifier.x.file.scorefilename),
+    classifier.x.file.scorefilename = {classifier.x.file.scorefilename};
   end
-  handlesindividualsbehavior(:,c)=parfor_tmp;
+
+  for c1 = 1:numel(classifier.x.file.scorefilename),
+     
+    off = off + 1;
+    newclassifiers1{off} = newclassifiers{c};
+    timestamps(off)=classifier.x.classifierStuff.timeStamp;
+    handlesbehaviorlist{off}=classifier.x.behaviors.names{c1};
+    %handlesscorefiles{c}=params.file.scorefilename;
+    handlesscorefiles{off}=classifier.x.file.scorefilename{c1};
+
+    ee=0;  behavior_data=[];  parfor_tmp=zeros(sum(cellfun(@length,handles.experimentlist)),1);
+    for g=1:length(handles.grouplist)
+      for e=1:length(handles.experimentlist{g})
+        parfor_tmp(ee+e)=get_nindividuals_behavior(handles.experimentlist{g}{e},handlesscorefiles{off},...
+            classifier.x.classifierStuff.timeStamp);
+      end
+      ee=ee+length(handles.experimentlist{g});
+    end
+    handlesindividualsbehavior(:,off)=parfor_tmp;
+  end
 end
+
+newclassifiers = newclassifiers1;
 
 handlesexperimentlist=[handles.experimentlist{:}];
 if((isnan(handles.fps))&&(length(handlesexperimentlist)>0))
@@ -2751,8 +2768,8 @@ for b=bb
   num_indi=0;
   during_data=cell(length(ggee),length(individual));
   not_during_data=cell(length(ggee),length(individual));
-  parfor gei=1:numel(ggee)
-  %for gei=1:numel(ggee)
+ %AR parfor gei=1:numel(ggee)
+  for gei=1:numel(ggee) %R AR
     ge = ggee(gei);
 
     if(b>0)
@@ -3739,15 +3756,15 @@ for b=bb
   end
   time_base=xdata./handles.fps;
   xstr='time (sec)';
-  if(time_base(end)>300)
+  if(time_base(end)>60)
     time_base=time_base./60;
     xstr='time (min)';
   end
-  if(time_base(end)>300)
+  if(time_base(end)>60)
     time_base=time_base./60;
     xstr='time (hr)';
   end
-  if(time_base(end)>120)
+  if(time_base(end)>24)
     time_base=time_base./24;
     xstr='time (d)';
   end
@@ -4767,15 +4784,15 @@ for b=bb
   tstr='';
   time_base=(1:size(behavior_cumulative,2))./handles.fps;
   xstr='time (sec)';
-  if(time_base(end)>300)
+  if(time_base(end)>60)
     time_base=time_base./60;
     xstr='time (min)';
   end
-  if(time_base(end)>300)
+  if(time_base(end)>60)
     time_base=time_base./60;
     xstr='time (hr)';
   end
-  if(time_base(end)>120)
+  if(time_base(end)>24)
     time_base=time_base./24;
     xstr='time (d)';
   end

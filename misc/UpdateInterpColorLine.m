@@ -1,6 +1,6 @@
 function UpdateInterpColorLine(h,varargin)
 
-[x,y,colors,alphas] = myparse(varargin,'x','','y','','colors','','alphas','');
+[x,y,z,colors,alphas] = myparse(varargin,'x','','y','','z','','colors','','alphas','');
 
 args = {};
 if ~ischar(x),
@@ -13,6 +13,12 @@ if ~ischar(y),
   y = [y;flipud(y)];
   args(end+1:end+2) = {'YData',y};
 end
+if ~ischar(z),
+  z = z(:);
+  z = [z;flipud(z)];
+  args(end+1:end+2) = {'ZData',z};
+end
+  
 if ~ischar(colors),
   colors = [colors;flipud(colors)];
   args(end+1:end+2) = {'FaceVertexCData',colors};

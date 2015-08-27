@@ -1,45 +1,48 @@
-function [success,msg,predictblocks,windowdata] = PreLoadWindowData(object,perframei,perframedata,missingts,labelidxStruct,t0_labelidx)
-% [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
-% Compute and store the window data for experiment expi, flies flies,
-% and all frames ts. 
-% This function finds all frames that currently do not have window data
-% cached. In a loop, it finds the first frame that is missing window
-% data, and computes window data for all frames in a chunk of size
-% 2*obj.windowdatachunk_radius + 1 after this frame using the function
-% ComputeWindowDataChunk. Then, it updates the frames that are missing
-% window data. It proceeds in this loop until there are no frames
-% in the input ts that lack window data. 
+function [success,msg,predictblocks,windowdata] = PreLoadWindowData(...
+  object,perframefn,perframedata,missingts,labelIdxVals,labelIdxImp,labelIdxT0)
+% PreLoadWindowData 
+% Compute window data for experiment, flies, classifier as specified in
+% dummy-object object to fill in missing times missingts.
+%
+% object: dummy object created by JLabelData.createPreLoadWindowDataObj
+%   using specific expi, flies, iClassifier
+% perframefn: perframe feature name
+% perframedata: perframe data for perframefn
+% missingts: vector of times over which to compute window data, except any 
+%   elements that are also elements of object.windowdata_t_flyndx will not be
+%   computed (as those times already have window data). missingts does NOT
+%   have to be sorted
+% labelIdxVals/Imp: vector, labelidx.vals and labelidx.imp for this
+%   expi/fly/classifier
+% labelIdxT0: T0 for labelIdx
+%
+% Start with missingts; in a loop, find the first frame that is missing
+% window data, and computes window data for all frames in a chunk of size
+% 2*obj.windowdatachunk_radius + 1. Iterate until all elements of missingts
+% are filled in.
 
-  success = false; msg = '';
-  predictblocks.t0=[];
-  predictblocks.t1=[];
-  windowdata.X=[];
-  windowdata.t=[];
-  windowdata.labelidx_new=[];
-  windowdata.labelidx_imp=[];
+% MERGESTUPDATED
 
-  % If there are no per-frame features, declare victory.
-  if isempty(fieldnames(object.windowfeaturesparams)) ,
-    success=true;
-    return
-  end
+  success = false; 
+  msg = '';
+  predictblocks.t0 = [];
+  predictblocks.t1 = [];
+  windowdata.X = [];
+  windowdata.t = [];
+  windowdata.labelidx_new = [];
+  windowdata.labelidx_imp = [];
 
-  % no frames missing data?
-  if isempty(missingts),
+  % If there are no per-frame features or no frames missing data, declare victory.
+  if  isempty(missingts) || object.isempty_fieldnames_windowfeaturesparams
     success = true;
     return;
   end
 
-  % total number of frames to compute window data for -- used for
-  % showing prctage complete. 
-  nts0 = numel(missingts);
-
-  while true,
+  while true
 
     % choose a frame missing window data
-    %t = missingts(1);
     t = median(missingts);
-    if ~ismember(t,missingts),
+    if ~ismember(t,missingts)
       t = missingts(argmin(abs(t-missingts)));
     end
 
@@ -66,7 +69,7 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(object,perfr
     end
 
     if ~any(docompute),
-      t1 = t0-1;
+      %t1 = t0-1;
       success = true;
       return;
     end
@@ -76,11 +79,11 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(object,perfr
     i0 = t0 - object.GetTrxFirstFrame + 1;
     i1 = t1 - object.GetTrxFirstFrame + 1;
 
-    fn = object.curperframefns{perframei};
+%     fn = object.curperframefns{perframei};
 
     i11 = min(i1,numel(perframedata));
     [x_curr,~] = ...
-      ComputeWindowFeatures(perframedata,object.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
+      ComputeWindowFeatures(perframedata,object.windowfeaturescellparams.(perframefn){:},'t0',i0,'t1',i11);
 
     if i11 < i1,
       x_curr(:,end+1:end+i1-i11) = nan;
@@ -93,13 +96,21 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(object,perfr
     idxnew = (~ismember(tsnew,object.windowdata_t_flyndx)) & ismember(tsnew,missingts);
       % a boolean array the same size as tsnew, each element true iff
       % that element is not in tscurr, and is in missingts
+      %
+      % AL 20141120: For current single callsite (JLabelData.PreLoadPeri) I 
+      % think the first clause is automatic, ie if you are an element of 
+      % missingts then you cannot be an element of object.windowdata_t_flyndx.      
     m = nnz(idxnew);  % the number of frames for which we now have window data, but we didn't before
-    if m==0; return; end  % if we didn't make progress, return, signalling failure
+    if m==0
+      % if we didn't make progress, return, signaling failure
+      return;
+    end  
 
     % Add this chunk to predictblocks, which lists all the chunks for
     % which we do prediction, when we do prediction
-    [i0s,i1s] = get_interval_ends(idxnew); i1s = i1s-1;
-    for j = 1:numel(i0s),
+    [i0s,i1s] = get_interval_ends(idxnew); 
+    i1s = i1s-1;
+    for j = 1:numel(i0s)
       predictblocks.t0(end+1) = t0+i0s(j)-1;
       predictblocks.t1(end+1) = t0+i1s(j)-1;
     end
@@ -107,10 +118,10 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(object,perfr
     % add to windowdata
     windowdata.X(end+1:end+m,:) = X(idxnew,:);
     windowdata.t(end+1:end+m,1) = tsnew(idxnew);
-    tempLabelsNew = labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
+    tempLabelsNew = labelIdxVals(t0-labelIdxT0+1:t1-labelIdxT0+1);
     windowdata.labelidx_new(end+1:end+m,1) = tempLabelsNew(idxnew);
-    tempLabelsImp = labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
-    windowdata.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);        
+    tempLabelsImp = labelIdxImp(t0-labelIdxT0+1:t1-labelIdxT0+1);
+    windowdata.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);
 
     % remove from missingts all ts that were computed in this chunk
     missingts(missingts >= t0 & missingts <= t1) = [];
@@ -123,8 +134,8 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(object,perfr
   end
 
   % store feature_names -- these shouldn't really change
-%   windowdata.featurenames = feature_names;
+  % windowdata.featurenames = feature_names;
 
   success = true;
 
-end  % method
+end
