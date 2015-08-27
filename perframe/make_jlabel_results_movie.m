@@ -42,13 +42,13 @@ if handles.guidata.useVideoWriter,
   switch lower(handles.guidata.outavi_compression),
     case 'motion jpeg avi',
       set(aviobj,'Quality',handles.guidata.outavi_quality);
-    case {'uncompressed avi','none'},
-    case {'archival','motion jpeg 2000'},
+    case {'uncompressed avi','none','archival'},
+    case {'motion jpeg 2000'},
       set(aviobj,'CompressionRatio',handles.guidata.outavi_quality);      
   end
   open(aviobj);
 else
-  if isempty(handles.guidata.avifileTempDataFile),
+  if ~isfield(handles.guidata,'avifileTempDataFile') || isempty(handles.guidata.avifileTempDataFile),
     aviobj = avifile(aviname,'fps',handles.guidata.outavi_fps,'quality',100,'compression',handles.guidata.outavi_compression);
   else
     aviobj = myavifile(aviname,'fps',handles.guidata.outavi_fps,'quality',100,'compression',handles.guidata.outavi_compression,...
@@ -84,7 +84,24 @@ for t = t0:t1,
       fr.cdata = imresize(fr.cdata,[height,width]);
     end
   end
-  if handles.guidata.useVideoWriter,
+  if handles.guidata.useVideoWriter
+    fmt = aviobj.VideoFormat;
+    if strcmp(fmt,'Grayscale')
+      if ndims(fr.cdata)==3
+        fr.cdata = rgb2gray(fr.cdata);
+      end
+    elseif strcmp(fmt,'Indexed')
+      if ndims(fr.cdata)==3
+        if exist('videoWriterColorMap','var')==0
+          [fr.cdata,fr.colormap] = rgb2ind(fr.cdata,256);
+          videoWriterColorMap = fr.colormap;
+        else
+          [fr.cdata,fr.colormap] = rgb2ind(fr.cdata,videoWriterColorMap);
+        end
+      end
+    else
+        % none
+    end
     writeVideo(aviobj,fr);
   else
     aviobj = addframe(aviobj,fr);

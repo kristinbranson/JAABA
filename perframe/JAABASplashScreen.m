@@ -78,6 +78,7 @@ try
       end
       break;
     end
+    fclose(fid);
   else
     version = '???';
   end
