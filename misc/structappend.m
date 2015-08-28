@@ -27,8 +27,8 @@ else
     fn = fnsmissing{i};
     snew(1).(fn) = [];
   end
-  fnsnew = fieldnames(sbase);
-  fnsbase = fieldnames(snew);
+  fnsbase = fieldnames(sbase); 
+  fnsnew = fieldnames(snew);
   if ~all(strcmp(fnsbase,fnsnew)),
     [~,order] = ismember(fnsbase,fnsnew);
     s = cat(dim,sbase,orderfields(snew,order));
