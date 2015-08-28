@@ -1,5 +1,7 @@
 function result=naturalLanguageListFromStringList(stringList)
 
+% AL201508: Looks like dup, see civilizedStringFromCellArrayOfStrings
+
 n=length(stringList);
 if n==0
   result='';
