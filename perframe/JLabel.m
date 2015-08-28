@@ -106,10 +106,11 @@ end
 SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 
 handles.output = handles.figure_JLabel;
-% MK Aug 2015: Change the renderer for 2014b onwards
-if ~handles.guidata.mat_lt_8p4
- set(handles.figure_JLabel,'renderer','painters')
-end
+% MK 12 Aug 2015: Change the renderer for 2014b onwards
+% MK 29 Aug 2015: Doesn't seem to matter that much
+% if ~handles.guidata.mat_lt_8p4
+%  set(handles.figure_JLabel,'renderer','painters')
+% end
 % initialize statusbar
 
 %handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
@@ -869,7 +870,7 @@ for i = axes2,
         fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         end
-        if handles.guidata.mat_lt_8p4,
+        if handles.guidata.mat_lt_8p5,
           drawnow;
         else
           drawnow('limitrate');
@@ -1228,7 +1229,7 @@ for i = axes2,
     end
   end
   
-  if handles.guidata.mat_lt_8p4
+  if handles.guidata.mat_lt_8p5
     drawnow;
   end
   
@@ -3847,7 +3848,7 @@ if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
   handles.guidata.status_in_msgbox = true;
 end
-if handles.guidata.mat_lt_8p4
+if handles.guidata.mat_lt_8p5
   drawnow('update');  % want immediate update
 else
   drawnow('limitrate');
@@ -3866,7 +3867,7 @@ if handles.guidata.status_in_msgbox
   if ~isempty(h), delete(h(ishandle(h))); end
   handles.guidata.status_in_msgbox = false;
 end
-if handles.guidata.mat_lt_8p4
+if handles.guidata.mat_lt_8p5
   drawnow('update');  % want immediate update
 else
   drawnow('limitrate');
@@ -8937,7 +8938,7 @@ handles = UpdateTimelineImages(handles);
 UpdatePlots(handles,'refresh_timeline_manual',true);
 guidata(handles.figure_JLabel,handles);
 
-if ~handles.guidata.mat_lt_8p4
+if ~handles.guidata.mat_lt_8p5
   drawnow;
 end
 
@@ -9160,7 +9161,7 @@ UpdatePlots(handles, ...
     'refresh_timeline_hcurr',false,...
     'refresh_timeline_selection',false,...
     'refresh_curr_prop',false);  
-  if ~handles.guidata.mat_lt_8p4, drawnow(), end
+  if ~handles.guidata.mat_lt_8p5, drawnow(), end
 
 % --------------------------------------------------------------------
 function menu_file_remove_classifier_Callback(hObject, eventdata, handles)

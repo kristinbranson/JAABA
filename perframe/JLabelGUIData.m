@@ -245,6 +245,7 @@ classdef JLabelGUIData < handle
       % if we wanted to...)   
       
       mat_lt_8p4 = true;
+      mat_lt_8p5 = true;
   end
   
   properties (SetAccess=private)
@@ -299,6 +300,11 @@ classdef JLabelGUIData < handle
         obj.mat_lt_8p4 = true;
       else
         obj.mat_lt_8p4 = false;
+      end
+      if verLessThan('matlab','8.5.0')
+        obj.mat_lt_8p5 = true;
+      else
+        obj.mat_lt_8p5 = false;
       end
     end
    
