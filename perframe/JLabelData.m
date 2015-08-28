@@ -2174,7 +2174,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         
         filenames{i} = filename;
-        if nago > 1
+        if nago > 1 && exist(filename,'file');
           tmp = dir(filename);
           timestamps(i) = tmp.datenum;
         end
