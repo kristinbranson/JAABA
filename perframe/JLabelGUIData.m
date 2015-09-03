@@ -70,6 +70,8 @@ classdef JLabelGUIData < handle
     
     ts = 0; % vector with length equal to numel(self.axes_previews)
     hplaying = nan;
+    
+    
     edit_framenumbers = [];
     pushbutton_playstops = [];
 
@@ -209,14 +211,13 @@ classdef JLabelGUIData < handle
     outavi_quality = 95;
     useVideoWriter = false;
     
-    % bookmark_windows = [];
-
     %% Misc
     
     % Status Bar
     status_bar_text_when_clear = '';
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
+    status_in_msgbox = false;
     
     defaultmoviefilename = 0;
     defaulttrxfilename = 0;
@@ -242,6 +243,9 @@ classdef JLabelGUIData < handle
       % them in JLabelData's feature vocabulary, b/c they're not _really_
       % part of the feature vocabulary.)  (But I suppose we could add them
       % if we wanted to...)   
+      
+      mat_lt_8p4 = true;
+      mat_lt_8p5 = true;
   end
   
   properties (SetAccess=private)
@@ -291,6 +295,16 @@ classdef JLabelGUIData < handle
           c = gcp;
           obj.computation_threads = c.NumWorkers;        
         end
+      end
+      if verLessThan('matlab','8.4.0')
+        obj.mat_lt_8p4 = true;
+      else
+        obj.mat_lt_8p4 = false;
+      end
+      if verLessThan('matlab','8.5.0')
+        obj.mat_lt_8p5 = true;
+      else
+        obj.mat_lt_8p5 = false;
       end
     end
    
@@ -352,8 +366,13 @@ classdef JLabelGUIData < handle
       temp = self.labels_timelines(1:end-2);
       self.labels_timelines(1:end-2) = temp(order);
 
-      self.text_timeline_props = nan(size(self.axes_timeline_props));
-      self.text_timelines = nan(size(self.axes_timelines));
+      if verLessThan('matlab','8.4.0'),
+        self.text_timeline_props = nan(size(self.axes_timeline_props));
+        self.text_timelines = nan(size(self.axes_timelines));
+      else
+        self.text_timeline_props = gobjects(size(self.axes_timeline_props));
+        self.text_timelines = gobjects(size(self.axes_timelines));        
+      end
       [~,idx] = ismember(self.axes_timeline_props,self.axes_timelines);
       for ii = 1:numel(self.axes_timeline_props),
         i = idx(ii);
@@ -385,7 +404,7 @@ classdef JLabelGUIData < handle
       self.guipos.leftborder_leftpanels = panel_timelines_pos(1);
       self.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
       self.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
-      if self.guipos.topborder_toppanels < 0
+      if self.guipos.topborder_toppanels < 15
         self.guipos.topborder_toppanels = 15;
       end
       self.guipos.bottomborder_bottompanels = panel_timelines_pos(2);
@@ -585,9 +604,12 @@ classdef JLabelGUIData < handle
       end
 
       % play/stop
-      self.hplaying = nan;
+      if verLessThan('matlab','8.4.0'),
+        self.hplaying = nan;
+      else
+        self.hplaying = gobjects;
+      end
 
-%       self.bookmark_windows = [];
     end    
     
     function initializeFinal(self)
@@ -742,16 +764,24 @@ classdef JLabelGUIData < handle
       self.initClassifierFocusPopup();
       self.initHTimelineLabelCurr();
       self.jlabelCall('UpdateLabelButtons');
-      self.jlabelCall('UpdateEnablementAndVisibilityOfControls');      
+      self.jlabelCall('UpdateEnablementAndVisibilityOfControls');
+      if numel(self.label_shortcuts) ~= 2*self.data.nbehaviors + 1,
+        if self.data.nbehaviors == 2,
+          self.label_shortcuts = {'z','a','x','s','c'}';
+        else
+          self.label_shortcuts = cellstr(num2str((1:2*self.data.nbehaviors+1)'));
+        end
+      end
+
     end
     
     function resetLabelButtons(self)
-      deleteHandleNotNan(self.togglebutton_label_behaviors(2:end));
+      deleteValidHandles(self.togglebutton_label_behaviors(2:end));
       self.togglebutton_label_behaviors = self.togglebutton_label_behaviors(1);
-      deleteHandleNotNan(self.togglebutton_unknown_behaviors);
+      deleteValidHandles(self.togglebutton_unknown_behaviors);
       self.togglebutton_unknown_behaviors = [];
       self.togglebutton_unknowns = self.gdata.togglebutton_label_unknown;
-      deleteHandleNotNan(self.togglebutton_label_noneall);
+      deleteValidHandles(self.togglebutton_label_noneall);
       self.togglebutton_label_noneall = [];
     end
     
@@ -916,7 +946,8 @@ classdef JLabelGUIData < handle
         tfBehVis = false(1,self.data.nbehaviors);
         tfBehVis(iLbls) = true;
       else
-        tfBehVis = true(1,self.data.nbehaviors);
+        tfBehVis = false(1,self.data.nbehaviors);
+        tfBehVis(1:self.data.nbehaviors/2) = true;
       end
       
       if self.plot_labels_manual

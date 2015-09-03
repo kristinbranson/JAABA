@@ -31,6 +31,37 @@ classdef Jab < handle
       Jab.save(J,fname);
     end
     
+    function [tfsuccess,jabfiles] = uiGetJabFiles(varargin)
+      % [tfsuccess,jabfiles] = uiGetJabFiles(p1,v1,...)
+      %
+      % Nice(r) GUI for multiple jab selection.
+      %
+      % Optional PVs:
+      %  * promptstr, char.
+      %
+      % tfsuccess: if false, user canceled GUI
+      % jabfiles: cellstr
+      
+      promptstr = myparse(varargin,...
+        'promptstr','Select jab files');
+      
+      %jabpath = ExpPP.loadConfigVal('jabpath');
+      jabpath = [];
+      if isempty(jabpath)
+        jabpath = pwd;
+      end
+      jabfiles = uipickfiles('Prompt',promptstr,...
+        'FilterSpec',jabpath,'Type',{'*.jab','JAB-files'},'SmartAdd',true);
+      if ~iscell(jabfiles) || isempty(jabfiles), % canceled
+        tfsuccess = false;
+        jabfiles = [];
+      else
+        tfsuccess = true;
+        %jabpath = fileparts(jabfiles{1});
+        %ExpPP.saveConfigVal('jabpath',jabpath);
+      end
+    end
+    
     function clearLabels(jabfile,realbeh)
       % Clear all labels for realbeh and No-realbeh       
       
@@ -143,14 +174,17 @@ classdef Jab < handle
     
     function merge(jabfiles,jabout)
       % jabMerge(jabfiles,jabout)
+      % Merge two or more jab files.
+      %
+      % Behaviors with the same name (precisely, case-sensitive, etc) are 
+      % treated as the same classifier. Experiment names/directories should
+      % be in a consistent format.
+      %
       % jabfiles: optional. cellstr of jab filenames
       % jabout: optional. output jab filename
-
-      % ALTODO: verify behavior, eg this uses ExpPP.loadConfigVal
-
       
       if ~exist('jabfiles','var') || isempty(jabfiles)
-        [tfsuccess,jabfiles] = ExpPP.uiGetJabFiles('promptstr','Select jab files to combine');
+        [tfsuccess,jabfiles] = Jab.uiGetJabFiles('promptstr','Select jab files to combine');
         if ~tfsuccess
           return;
         end
@@ -160,18 +194,15 @@ classdef Jab < handle
         jabfiles = cellstr(jabfiles);
       end
       assert(iscellstr(jabfiles),'Expected ''jabfiles'' to be a cellstr of jab filenames.');
-      
-      % ALTODO: create a new verify method
-      %Macguffin.jabVerifyAug2014(jabfiles);      
-      
-      Q = cellfun(@loadAnonymous,jabfiles,'uni',0);
-      Q = cat(1,Q{:});
-      Qmerge = Macguffin(Q);
+            
+      Js = cellfun(@Jab.load,jabfiles,'uni',0);
+      Js = cat(1,Js{:});
+      Jmerge = Macguffin(Js);            
       
       % come up with a proposed name for combined jab
       if ~exist('jabout','var') || isempty(jabout)
         MAXFILENAMELENGTH = 45;
-        behnames = Labels.verifyBehaviorNames(Qmerge.behaviors.names);
+        behnames = Labels.verifyBehaviorNames(Jmerge.behaviors.names);
         combjabname = '';
         for i = 1:numel(behnames)
           combjabname = [combjabname behnames{i} '.']; %#ok<AGROW>
@@ -182,7 +213,8 @@ classdef Jab < handle
         end
         combjabname = [combjabname 'jab'];
 
-        jabpath = ExpPP.loadConfigVal('jabpath');
+        %jabpath = ExpPP.loadConfigVal('jabpath');
+        jabpath = [];
         if isempty(jabpath)
           jabpath = pwd;
         end    
@@ -200,9 +232,8 @@ classdef Jab < handle
         end
       end
         
-      tmp.x = Qmerge; %#ok<STRNU>
-      save(jabout,'-struct','tmp');
-      ExpPP.saveConfigVal('jabpath',fileparts(jabout));
+      Jab.save(Jmerge,jabout);
+      %ExpPP.saveConfigVal('jabpath',fileparts(jabout));
     end    
     
     function [scorefiles,behaviors] = jabfileScoresBehs(jabname)
@@ -217,14 +248,8 @@ classdef Jab < handle
       end
       behaviors = Labels.verifyBehaviorNames(x.behaviors.names);      
       assert(numel(scorefiles)==numel(behaviors));
-    end    
-    
-    
+    end     
     
   end
   
 end
-  
-  
-  
-  
