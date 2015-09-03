@@ -106,6 +106,11 @@ end
 SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 
 handles.output = handles.figure_JLabel;
+% MK 12 Aug 2015: Change the renderer for 2014b onwards
+% MK 29 Aug 2015: Doesn't seem to matter that much
+% if ~handles.guidata.mat_lt_8p4
+%  set(handles.figure_JLabel,'renderer','painters')
+% end
 % initialize statusbar
 
 %handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
@@ -127,7 +132,8 @@ ClearStatus(handles);
 adjustColorsIfMac(hObject);
 
 % Hide the splash window
-set(handles.guidata.hsplash,'visible','off');
+%set(handles.guidata.hsplash,'visible','off');
+delete(handles.guidata.hsplash);
 
 handles = initLabelButtons(handles);
 
@@ -193,7 +199,6 @@ else
     end
   end
 end
-
 return
 
 
@@ -261,7 +266,6 @@ for buttonNum = 1:numel(buttonNames)
 end
 
 updateCheckMarksInMenus(handles);
-
 return
 
 
@@ -276,13 +280,24 @@ end
 for i = 1:numel(handles.guidata.slider_previews),
   fcn = get(handles.guidata.slider_previews(i),'Callback');
   %set(handles.guidata.slider_previews(i),'Callback','');
-  if i == 1,
-    handles.guidata.hslider_listeners = handle.listener(handles.guidata.slider_previews(i),...
-      'ActionEvent',fcn);
+  if verLessThan('matlab','8.4.0'),
+    if i == 1,
+      handles.guidata.hslider_listeners = handle.listener(handles.guidata.slider_previews(i),...
+        'ActionEvent',fcn);
+    else
+      handles.guidata.hslider_listeners(i) = handle.listener(handles.guidata.slider_previews(i),...
+        'ActionEvent',fcn);
+    end
   else
-    handles.guidata.hslider_listeners(i) = handle.listener(handles.guidata.slider_previews(i),...
-      'ActionEvent',fcn);
+    if i == 1,
+      handles.guidata.hslider_listeners = addlistener(handles.guidata.slider_previews(i),...
+        'ContinuousValueChange',fcn);
+    else
+      handles.guidata.hslider_listeners(i) = addlistener(handles.guidata.slider_previews(i),...
+        'ContinuousValueChange',fcn);
+    end
   end
+  setappdata(handles.guidata.slider_previews(i),'sliderListener',handles.guidata.hslider_listeners(i));  
 end
 
 % fly current positions
@@ -306,7 +321,11 @@ handles.guidata.fly_colors = fif(handles.data.getColorAssignment,...
   handles.guidata.fly_colors);
 
 nAx = numel(handles.guidata.axes_previews);
-handles.guidata.hlabel_curr = nan(1,nAx);
+if verLessThan('matlab','8.4.0')
+  handles.guidata.hlabel_curr = nan(1,nAx);
+else
+  handles.guidata.hlabel_curr = gobjects(1,nAx);  
+end
 for i = 1:nAx
   % cla(handles.guidata.axes_previews(i),'reset');
   delete(get(handles.guidata.axes_previews(i),'children'));
@@ -531,7 +550,12 @@ for i = 1:numel(handles.guidata.axes_timelines),
   set(handles.guidata.axes_timelines(i),'XColor','w','YColor','w','Color',timeline_axes_color);
 end
 
-handles.guidata.hcurr_timelines = nan(size(handles.guidata.axes_timelines));
+if verLessThan('matlab','8.4.0')
+  handles.guidata.hcurr_timelines = nan(size(handles.guidata.axes_timelines));
+else
+  handles.guidata.hcurr_timelines = gobjects(size(handles.guidata.axes_timelines));
+end
+
 for i = 1:numel(handles.guidata.axes_timelines),
   % handles.guidata.hcurr_timelines(i) = plot(handles.guidata.axes_timelines(i),nan(1,2),[-10^6,10^6],'y-','HitTest','off','linewidth',2);
   handles.guidata.hcurr_timelines(i) = ...
@@ -543,7 +567,13 @@ for i = 1:numel(handles.guidata.axes_timelines),
          'HitTest','off', ...
          'linewidth',2);
 end
-handles.guidata.hselection = nan(size(handles.guidata.axes_timelines));
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.hselection = nan(size(handles.guidata.axes_timelines));
+else
+  handles.guidata.hselection = gobjects(size(handles.guidata.axes_timelines));
+end
+
 for i = 1:numel(handles.guidata.axes_timelines),
   ylim = [.5,1.5];
   ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
@@ -571,12 +601,17 @@ end
 
 % for faster refreshing
 set(handles.axes_preview,'BusyAction','cancel');
-set(handles.guidata.hflies,'EraseMode','none');
-if ~isempty(handles.guidata.hflies_extra),
-  set(handles.guidata.hflies_extra,'EraseMode','none');
+
+% TODO: The alternative doesn't seem to be applicable
+% http://in.mathworks.com/help/matlab/graphics_transition/how-do-i-replace-the-erasemode-property.html
+if verLessThan('matlab','8.4.0')
+  set(handles.guidata.hflies,'EraseMode','none');
+  if ~isempty(handles.guidata.hflies_extra),
+    set(handles.guidata.hflies_extra,'EraseMode','none');
+  end
+  set(handles.guidata.htrx,'EraseMode','none');
+  set(handles.guidata.hfly_markers,'EraseMode','none');
 end
-set(handles.guidata.htrx,'EraseMode','none');
-set(handles.guidata.hfly_markers,'EraseMode','none');
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(handles.figure_JLabel);
@@ -706,32 +741,54 @@ if handles.guidata.behaviorFocusOn
   iClsFoc = handles.guidata.behaviorFocusIdx;
   iLblsFoc = handles.data.iCls2iLbl{iClsFoc};
 end
-    
+
+useFast = false;
 % update timelines
 if refresh_timeline_manual,
-  set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
-  if handles.guidata.label_state ~= 0,
-    ts = sort([handles.label_t0,handles.guidata.ts(1)]);
-    ts(1) = max(ts(1),handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2);
-    ts(2) = min(ts(2),handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2);
-    ts = ts + [-.5,.5];
-    set(handles.guidata.htimeline_label_curr,'XData',ts([1,1,2,2,1]));
+  if useFast
+    nf = handles.guidata.timeline_nframes;
+    xlim = [handles.guidata.ts(1)-nf-1,...
+      handles.guidata.ts(1)+nf+1];
+    curI = handles.guidata.labels_plot.im(:,xlim(1):xlim(2),:);
+    set(handles.guidata.himage_timeline_manual,'CData',curI);
+    set(handles.guidata.axes_timelines(3),'XLim',[0.5 2*nf+1.5]);
+  else
+    set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
   end
 end
 
-if refresh_timeline_auto,
-  set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
-  [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
-  if handles.guidata.behaviorFocusOn
-    predidx1 = pred.predictedidx(iClsFoc,1);
-    if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
-      cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
-      set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
-    else
-      set(handles.text_scores,'String','');
-    end
-  end    
+if handles.guidata.label_state ~= 0,
+  ts = sort([handles.label_t0,handles.guidata.ts(1)]);
+  ts(1) = max(ts(1),handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2);
+  ts(2) = min(ts(2),handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2);
+  ts = ts + [-.5,.5];
+  set(handles.guidata.htimeline_label_curr,'XData',ts([1,1,2,2,1]));
 end
+
+if refresh_timeline_auto,
+  if useFast
+    nf = handles.guidata.timeline_nframes;
+    xlim = [handles.guidata.ts(1)-nf-1,...
+      handles.guidata.ts(1)+nf+1];
+    curI = handles.guidata.labels_plot.predicted_im(:,xlim(1):xlim(2),:);
+    set(handles.guidata.himage_timeline_auto,'CData',curI);
+    set(handles.guidata.axes_timelines(2),'XLim',[0.5 2*nf+1.5]);
+  else
+    set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
+  end
+end
+
+[pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
+if handles.guidata.behaviorFocusOn
+  predidx1 = pred.predictedidx(iClsFoc,1);
+  if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
+    cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
+    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
+  else
+    set(handles.text_scores,'String','');
+  end
+end
+
 if refresh_timeline_suggest && ~handles.data.IsGTMode(),
   set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
@@ -745,7 +802,7 @@ if refresh_GT_suggestion && ~isempty(fieldnames(handles.guidata.labels_plot)),
     'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
 end
 
-if refresh_timeline_xlim,
+if refresh_timeline_xlim & ~useFast,
   xlim = [handles.guidata.ts(1)-(handles.guidata.timeline_nframes-1)/2,...
     handles.guidata.ts(1)+(handles.guidata.timeline_nframes-1)/2];
   for i = 1:numel(handles.guidata.axes_timelines),
@@ -812,6 +869,11 @@ for i = axes2,
         if debug_cache
         fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        end
+        if handles.guidata.mat_lt_8p5,
+          drawnow;
+        else
+          drawnow('limitrate');
         end
       else
         ClearStatus(handles);
@@ -1167,7 +1229,9 @@ for i = axes2,
     end
   end
   
-  %drawnow;
+  if handles.guidata.mat_lt_8p5
+    drawnow;
+  end
   
 end
 return
@@ -1288,7 +1352,13 @@ if ~(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && handles
   gridwidth = nanmean([handles.data.trx.a])*5;
 
   % create new grid
-  handles.guidata.bkgdgrid = nan(2,numel(handles.guidata.axes_previews));
+
+if verLessThan('matlab','8.4.0'),
+    handles.guidata.bkgdgrid = nan(2,numel(handles.guidata.axes_previews));
+else
+    handles.guidata.bkgdgrid = gobjects(2,numel(handles.guidata.axes_previews));
+end
+
   xgrid = minx-gridwidth/2:gridwidth:handles.guidata.movie_maxx;
   xgrid1 = [xgrid;xgrid;nan(1,numel(xgrid))];
   xgrid2 = [miny+zeros(1,numel(xgrid));handles.guidata.movie_maxy+ones(1,numel(xgrid));nan(1,numel(xgrid))];
@@ -1369,9 +1439,27 @@ end
 
 % update plotted trx handles, as number of flies will change
 nPreviewAxes=numel(handles.guidata.axes_previews);
-handles.guidata.hflies = nan(maxnflies_curr,nPreviewAxes);
-handles.guidata.hflies_extra = nan(maxnflies_curr,handles.data.trxGraphicParams.nextra_markers,nPreviewAxes);
-handles.guidata.hfly_markers = nan(maxnflies_curr,nPreviewAxes);
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.hflies = nan(maxnflies_curr,nPreviewAxes);
+else
+  handles.guidata.hflies = gobjects(maxnflies_curr,nPreviewAxes);
+end
+
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.hflies_extra = nan(maxnflies_curr,handles.data.trxGraphicParams.nextra_markers,nPreviewAxes);
+else
+  handles.guidata.hflies_extra = gobjects(maxnflies_curr,handles.data.trxGraphicParams.nextra_markers,nPreviewAxes);
+end
+
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.hfly_markers = nan(maxnflies_curr,nPreviewAxes);
+else
+  handles.guidata.hfly_markers = gobjects(maxnflies_curr,nPreviewAxes);
+end
+
 handles.guidata.idx2fly = zeros(1,maxnflies_curr);
 handles.guidata.fly2idx = zeros(1,handles.data.nTargetsInCurrentExp);
 
@@ -1812,7 +1900,9 @@ if doforce || handles.guidata.ts(i) ~= t,
   
   % TODO: update timeline zoom
   for h = handles.guidata.axes_timeline_labels,
-    zoom(h,'reset');
+    if handles.guidata.mat_lt_8p4
+      zoom(h,'reset');
+    end
   end
   
 %   % out of bounds for labeling? then turn off labeling
@@ -2070,21 +2160,32 @@ new_unknown_button_pos = [info.unknown_button_pos(1),info.out_border_y,info.unkn
 set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 
 % update the array of button handles
-handles.guidata.togglebutton_label_behaviors = nan(1,2*nBehaviors);
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.togglebutton_label_behaviors = nan(1,2*nBehaviors);
+else
+  handles.guidata.togglebutton_label_behaviors = gobjects(1,2*nBehaviors);
+end
+
   % order is: behavior1
   %           behavior1 maybe ("normbehavior")
   %           behavior2
   %           behavior2 maybe ("normbehavior")
   %           et cetera
+if  verLessThan('matlab','8.4.0')
+  emptybutton = nan;
+else
+  emptybutton = gobjects;
+end
 for i=1:nBehaviors
   % the behavior proper
   thisButton=findobj(handles.figure_JLabel,'tag',sprintf('togglebutton_label_behavior%d',i));
   handles.guidata.togglebutton_label_behaviors(2*i-1)= ...
-    fif(isempty(thisButton),nan,thisButton);
+    fif(isempty(thisButton),emptybutton,thisButton);
   % maybe the behavior
   thisButton=findobj(handles.figure_JLabel,'tag',sprintf('togglebutton_label_normbehavior%d',i));
   handles.guidata.togglebutton_label_behaviors(2*i)= ...
-    fif(isempty(thisButton),nan,thisButton);
+    fif(isempty(thisButton),emptybutton,thisButton);
 end
   
 % Update the buttons, creating them de novo if needed
@@ -2094,19 +2195,25 @@ for i = 1:nBehaviors,
   % Set up the "definitely the behavior" button.
   %
   % Create the button if needed.
-  if isnan(handles.guidata.togglebutton_label_behaviors(2*i-1))
+  if verLessThan('matlab','8.4.0')
+    validhandle = isnan(handles.guidata.togglebutton_label_behaviors(2*i-1));
+  else
+    validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(2*i-1));
+  end
+  if validhandle,
     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
       uicontrol('Style','togglebutton', ...
-                'Units','pixels', ...
-                'FontUnits','pixels', ...
-                'FontSize',14,...
-                'FontWeight','bold', ...
-                'Enable','off',...
-                'Callback',callback,...
-                'Parent',handles.panel_labelbuttons,...
-                'Tag',sprintf('togglebutton_label_behavior%d',i));
+      'Units','pixels', ...
+      'FontUnits','pixels', ...
+      'FontSize',14,...
+      'FontWeight','bold', ...
+      'Enable','off',...
+      'Callback',callback,...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag',sprintf('togglebutton_label_behavior%d',i));
     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
   end
+  
   % Set the button properties (always)
   if isAdvancedMode
     pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*(2*i-1)-info.in_border_y*(2*i-2),...
@@ -2124,6 +2231,7 @@ for i = 1:nBehaviors,
         pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*i-info.in_border_y*(i-1),...
              info.button_width/3,info.button_height];  
         buttonLabel=behaviorNameCapitalized{i};
+        buttonLabel = buttonLabel(1:min(end,4));
       else
         iRealButton = i-nRealBeh;
         pos = [info.out_border_x+info.button_width/3,new_panel_height-info.out_border_y-info.button_height*iRealButton-info.in_border_y*(iRealButton-1),...
@@ -2145,7 +2253,13 @@ for i = 1:nBehaviors,
   %
   if isAdvancedMode
     % Create the button if needed.
-    if isnan(handles.guidata.togglebutton_label_behaviors(2*i))
+    if verLessThan('matlab','8.4.0')
+      validhandle = isnan(handles.guidata.togglebutton_label_behaviors(2*i));
+    else
+      validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(2*i));
+    end
+    
+    if validhandle
       handles.guidata.togglebutton_label_behaviors(2*i) = ...
         uicontrol('Style','togglebutton', ...
                   'Units','pixels', ...
@@ -2171,18 +2285,36 @@ for i = 1:nBehaviors,
     % basic mode, or no-data-yet
     % delete the maybe-the-behavior button if it exists
     thisButton=handles.guidata.togglebutton_label_behaviors(2*i);
-    if ~isnan(thisButton)
-      delete(thisButton)
-      handles.guidata.togglebutton_label_behaviors(2*i)=nan;
+    if verLessThan('matlab','8.4.0')
+      validhandle = isnan(thisButton);
+    else
+      validhandle = ~ishandle(thisButton);
     end
-  end  
+    
+    if ~validhandle
+      delete(thisButton)
+      
+      if verLessThan('matlab','8.4.0'),
+        handles.guidata.togglebutton_label_behaviors(2*i)=nan;
+      else
+        handles.guidata.togglebutton_label_behaviors(2*i)=gobjects;
+      end
+      
+    end
+  end
 end
 
 %
 % Set up the behavior-specific unknown buttons if necessary
 %
 unkcallback = get(handles.togglebutton_label_unknown,'Callback');
-handles.guidata.togglebutton_unknown_behaviors = nan(1,nRealBeh);
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.togglebutton_unknown_behaviors = nan(1,nRealBeh);
+else
+  handles.guidata.togglebutton_unknown_behaviors = gobjects(1,nRealBeh);
+end
+
 if tfMultiClassifiers
   for i = 1:nRealBeh
     pos = [info.out_border_x+info.button_width*2/3,new_panel_height-info.out_border_y-info.button_height*i-info.in_border_y*(i-1),...
@@ -2429,8 +2561,14 @@ grobjectsEnabledIffMovie = ...
    handles.pushbutton_playselection, ...
    handles.bagButton, ...
    handles.similarFramesButton];
-grobjectsEnabledIffMovie = ...
-  grobjectsEnabledIffMovie(~isnan(grobjectsEnabledIffMovie));
+if verLessThan('matlab','8.4.0')
+  grobjectsEnabledIffMovie = ...
+    grobjectsEnabledIffMovie(~isnan(grobjectsEnabledIffMovie));
+else
+  grobjectsEnabledIffMovie = ...
+    grobjectsEnabledIffMovie(ishghandle(grobjectsEnabledIffMovie));  
+end
+
 set(grobjectsEnabledIffMovie,'Enable',onIff(someExperimentIsCurrent));
 
 if ispc && someExperimentIsCurrent,
@@ -2477,6 +2615,8 @@ return
 %--------------------------------------------------------------------------
 function handles = LoadRC(handles)
 % Load the user preferences from the .JLabelrc.mat file.
+
+% AL 20150524: Looks like a JLabelGUIData method
 
 % rc file name
 if isdeployed,
@@ -2922,7 +3062,13 @@ if get(hObject,'Value'),
   
   % set everything else to off
   for j = 1:2*handles.data.nbehaviors,
-    if j == buttonNum || isnan(handles.guidata.togglebutton_label_behaviors(j)),
+    if verLessThan('matlab','8.4.0')
+    validhandle = isnan(handles.guidata.togglebutton_label_behaviors(j));
+else
+validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j));
+end
+
+    if j == buttonNum || validhandle
       continue;
     end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
@@ -3006,7 +3152,15 @@ else % label pen is up.
   
 %   handles.data.StoreLabels();
   for j = 1:2*handles.data.nbehaviors,
-    if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
+if verLessThan('matlab','8.4.0')
+validhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
+else
+validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
+end
+
+    if validhandle
+continue; 
+end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','on');
   end
   setIfValidHandle(handles.guidata.togglebutton_unknown_behaviors,'Value',0,'Enable','on');
@@ -3126,8 +3280,10 @@ scores = handles.data.NormalizeScores(scoresidx);
 labelsPlotOffset = handles.guidata.labels_plot.off;
 iFirst = t0+labelsPlotOffset;
 iLast = t1+labelsPlotOffset;
+
 handles.guidata.labels_plot.predx(:,iFirst:iLast,:,:) = nan;
 handles.guidata.labels_plot.predy(:,iFirst:iLast,:,:) = nan;
+
 
 % Loop over the behaviors (including "none")
 nBeh = handles.data.nbehaviors;
@@ -3170,17 +3326,30 @@ function togglebutton_label_unknown_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of togglebutton_label_unknown
 if get(hObject,'Value'),
   % toggle on  
-  handles.guidata.label_state = get(hObject,'UserData'); 
+  handles.guidata.label_state = get(hObject,'UserData');
   handles.guidata.label_imp = [];
   handles.label_t0 = handles.guidata.ts(1);
-
+  
   % set everything else to off
   for j = 1:2*handles.data.nbehaviors,
-    if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
+    if verLessThan('matlab','8.4.0')
+      invalidhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
+    else
+      invalidhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
+    end
+    
+    if invalidhandle
+      continue;
+    end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
-  end  
+  end
   h = handles.guidata.togglebutton_unknowns;
-  set(h(h~=hObject & ~isnan(h)),'Value',0,'Enable','off');
+  if verLessThan('matlab','8.4.0')
+    invalidhandle = isnan(h);
+  else
+    invalidhandle = ~ishghandle(h);
+  end
+  set(h(h~=hObject & ~invalidhandle),'Value',0,'Enable','off');
 
   set(handles.guidata.htimeline_label_curr,'XData',handles.label_t0 + [-.5,-.5,.5,.5,-.5],...
     'FaceColor',handles.guidata.labelunknowncolor);
@@ -3241,7 +3410,15 @@ else
     
   %handles.data.StoreLabels();
   for j = 1:2*handles.data.nbehaviors,
-    if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
+if verLessThan('matlab','8.4.0')
+invalidhandle = isnan(handles.guidata.togglebutton_label_behaviors(j)) ;
+else
+invalidhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(j)) ;
+end
+
+    if invalidhandle
+      continue;
+    end
     buttonStr = sprintf('%s',handles.data.labelnames{ceil(j/2)});
     if handles.guidata.GUIAdvancedMode && mod(j,2); 
       buttonStr = sprintf('Important %s',buttonStr); 
@@ -3249,7 +3426,14 @@ else
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'String',buttonStr,'Enable','on');
   end
   h = handles.guidata.togglebutton_unknowns;
-  set(h(h~=hObject & ~isnan(h)),'Value',0,'Enable','on');  
+if verLessThan('matlab','8.4.0')
+invalidhandle = isnan(h);
+else
+invalidhandle = ~ishandle(h);
+end
+
+
+  set(h(h~=hObject & ~invalidhandle),'Value',0,'Enable','on');  
   UpdatePlots(handles,...
     'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
     'refresh_timeline_manual',true,...
@@ -3662,8 +3846,13 @@ end
 set(handles.text_status,'ForegroundColor',color,'String',s);
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
+  handles.guidata.status_in_msgbox = true;
 end
-drawnow('update');  % want immediate update
+if handles.guidata.mat_lt_8p5
+  drawnow('update');  % want immediate update
+else
+  drawnow('limitrate');
+end
 return
 
 
@@ -3673,9 +3862,16 @@ set(handles.text_status, ...
     'ForegroundColor',handles.guidata.idlestatuscolor, ...
     'String',handles.guidata.status_bar_text_when_clear);
 set(handles.figure_JLabel,'Pointer','arrow');
-h = findall(0,'Type','figure','Name','JAABA Status');
-if ~isempty(h), delete(h(ishandle(h))); end
-drawnow('update');  % want immediate update
+if handles.guidata.status_in_msgbox
+  h = findall(0,'Type','figure','Name','JAABA Status');
+  if ~isempty(h), delete(h(ishandle(h))); end
+  handles.guidata.status_in_msgbox = false;
+end
+if handles.guidata.mat_lt_8p5
+  drawnow('update');  % want immediate update
+else
+  drawnow('limitrate');
+end
 return 
 
 
@@ -4111,7 +4307,15 @@ switch eventdata.Key,
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
     else
       for behaviori = 1:2*handles.data.nbehaviors,
-        if isnan(handles.guidata.togglebutton_label_behaviors(behaviori)), continue; end
+if verLessThan('matlab','8.4.0')
+validhandle = isnan(handles.guidata.togglebutton_label_behaviors(behaviori));
+else
+validhandle = ~ishandle(handles.guidata.togglebutton_label_behaviors(behaviori));
+end
+
+        if validhandle
+ continue; 
+end
         if get(handles.guidata.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
           set(handles.guidata.togglebutton_label_behaviors(behaviori),'Value',0);
           togglebutton_label_behavior1_Callback(handles.guidata.togglebutton_label_behaviors(behaviori), eventdata, handles);
@@ -4409,7 +4613,7 @@ function panel_timelines_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.axes_timelines),
+if isempty(handles) || isempty(handles.guidata.axes_timelines),
   return;
 end
 panel_pos = get(handles.panel_timelines,'Position');
@@ -4456,7 +4660,7 @@ manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
 set(handles.timeline_label_manual,'Position',manual_radio_pos);
 
 clsFocusPos = get(handles.classifierFocusPopup,'Position');
-clsFocusPos(2) = timeline_manual_pos(2) + 5*timeline_manual_pos(4)/6 - clsFocusPos(4)/2;
+clsFocusPos(2) = timeline_manual_pos(2) + timeline_manual_pos(4) - clsFocusPos(4);
 set(handles.classifierFocusPopup,'Position',clsFocusPos);
 
 % Positions of the automatic timeline's labels
@@ -4474,8 +4678,11 @@ set(handles.automaticTimelineScoresLabel,'Position',labelScoresPos);
 labelPredictionPos(2) = timeline_auto_pos(2) + ...
   5*timeline_auto_pos(4)/6 - labelPredictionPos(4)/2;
 set(handles.automaticTimelinePredictionLabel,'Position',labelPredictionPos);
-autoPopupPos(2) = timeline_auto_pos(2) + 5*timeline_auto_pos(4)/6 - ...
-  autoPopupPos(4)/2;
+% autoPopupPos(2) = timeline_auto_pos(2) + 5*timeline_auto_pos(4)/6 - ...
+%   autoPopupPos(4)/2;
+% MK -- Modifying above to align it better with auto timeline
+autoPopupPos(2) = timeline_auto_pos(2) + timeline_auto_pos(4) - ...
+  autoPopupPos(4);
 set(handles.automaticTimelinePopup,'Position',autoPopupPos);
 
 % Scores text position
@@ -4516,7 +4723,7 @@ function panel_axes1_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.panel_previews),
+if isempty(handles)||isempty(handles.guidata.panel_previews),
   return;
 end
 previewi = find(handles.guidata.panel_previews==hObject,1);
@@ -4694,7 +4901,8 @@ else
   end
   set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
   zoom(handles.guidata.axes_timeline_props(propi),'reset');
-  if ~isnan(handles.guidata.timeline_data_ylims(1,prop)),
+
+  if ~isnan(handles.guidata.timeline_data_ylims(1,prop))
     ylim = handles.guidata.timeline_data_ylims(:,prop);
     set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
   end
@@ -4938,7 +5146,9 @@ hdata = line('parent',gca, ...
              'linestyle','-');
 handles.guidata.htimeline_data = [hdata,handles.guidata.htimeline_data];
 xlim = get(handles.guidata.axes_timelines(2),'XLim');
-if isnan(handles.guidata.timeline_data_ylims(1,prop)),
+
+
+if isnan(handles.guidata.timeline_data_ylims(1,prop))
   ylim = maxylim;
 else
   ylim = handles.guidata.timeline_data_ylims(:,prop)';
@@ -5187,7 +5397,13 @@ if ~ishandle(handles.guidata.buttondown_axes),
 end
 if isnan(handles.guidata.selection_t0),
   h = handles.guidata.buttondown_axes;
-  handles.guidata.buttondown_axes = nan;
+
+if verLessThan('matlab','8.4.0'),
+    handles.guidata.buttondown_axes = nan;
+else
+    handles.guidata.buttondown_axes = gobjects;
+end
+
   handles.guidata.selection_t0 = nan;
   handles.guidata.selection_t1 = nan;
   if ~handles.guidata.didclearselection,
@@ -5209,7 +5425,13 @@ if ~isnan(handles.guidata.selection_t0),
   %fprintf('Selected %d to %d\n',handles.guidata.selected_ts);
   UpdateSelection(handles);
 end
-handles.guidata.buttondown_axes = nan;
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.buttondown_axes = nan;
+else
+  handles.guidata.buttondown_axes = gobjects;
+end
+
 handles.guidata.selection_t0 = nan;
 handles.guidata.selection_t1 = nan;
 guidata(hObject,handles);
@@ -5266,7 +5488,13 @@ if handles.guidata.hplaying == handles.pushbutton_playselection,
 end
 
 handles.guidata.selected_ts = nan(1,2);
-handles.guidata.buttondown_axes = nan;
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.buttondown_axes = nan;
+else
+  handles.guidata.buttondown_axes = gobjects;
+end
+
 handles.guidata.selection_t0 = nan;
 handles.guidata.selection_t1 = nan;
 guidata(hObject,handles);
@@ -5286,7 +5514,12 @@ function pushbutton_playstop_Callback(hObject, eventdata, handles)
 if handles.guidata.hplaying == hObject,
   stopPlaying(handles);
 else
-  if ~isnan(handles.guidata.hplaying),
+if verLessThan('matlab','8.4.0')
+  validhandle =  isnan(handles.guidata.hplaying);
+else
+  validhandle = ~ishghandle(handles.guidata.hplaying);
+end
+  if ~validhandle,
     stopPlaying(handles);
   end
   play(hObject,handles);
@@ -5304,7 +5537,12 @@ function pushbutton_playselection_Callback(hObject, eventdata, handles)
 if handles.guidata.hplaying == hObject,
   stopPlaying(handles);
 else
-  if ~isnan(handles.guidata.hplaying),
+  if verLessThan('matlab','8.4.0')
+    validhandle = isnan(handles.guidata.hplaying);
+  else
+    validhandle = ~ishghandle(handles.guidata.hplaying);
+  end
+  if ~validhandle,
     stopPlaying(handles);
   end
   if any(isnan(handles.guidata.selected_ts)),
@@ -5344,10 +5582,10 @@ set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 %SetButtonImage(handles.pushbutton_playstop);
 adjustButtonColorsIfMac(hObject);
 
-if ~handles.data.IsGTMode() && ~handles.data.isST
-  handles = predict(handles);
-  guidata(hObject,handles);
-end
+% if ~handles.data.IsGTMode() && ~handles.data.isST
+%   handles = predict(handles);
+%   guidata(hObject,handles);
+% end
 
 handles.guidata.hplaying = hObject;
 guidata(hObject,handles);
@@ -5359,7 +5597,7 @@ if nargin < 3,
 end
 
 if ~doloop
-  framesPerTick = 4000;
+  framesPerTick = handles.data.predictwindowdatachunk_radius;
   t_period = round(framesPerTick/handles.guidata.play_FPS*1000)/1000;
   T = timer('TimerFcn',{@predictTimerCallback,hObject,framesPerTick},...
         'Period',t_period,...
@@ -5368,6 +5606,7 @@ if ~doloop
   start(T);
 end
 
+doUpdateTimeline = false;
 if(1)  % test framerate
 while true,
   handles = guidata(hObject);
@@ -5378,6 +5617,7 @@ while true,
   if exist('CALC_FEATURES','var') && CALC_FEATURES
     t0 = handles.guidata.ts(axi);
     CALC_FEATURES = false;
+    doUpdateTimeline = true;
   end
   
   if exist('PLAY_TIMER_DONE','var') && PLAY_TIMER_DONE
@@ -5414,11 +5654,22 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  handles = UpdateTimelineImages(handles);
+  % MK20150805: Crude way to debug frame rate.
+%   fprintf('%d\n',t); 
+  if doUpdateTimeline
+    handles = UpdateTimelineImages(handles);
+    doUpdateTimeline = false;
+  end
   dt_sec = toc(ticker);
   pause_time = (t-t0)/handles.guidata.play_FPS - dt_sec;
   if pause_time <= 0,
-    drawnow;
+    if handles.guidata.mat_lt_8p4
+      drawnow;
+% MK Aug 2015: There is a drawnow in status update so no need to draw again here
+% for 2014b onwards.
+%     else
+%       drawnow('limitrate');
+    end
   else
     pause(pause_time);
   end
@@ -5488,13 +5739,25 @@ function handles = stopPlaying(handles)
 clear global PLAY_TIMER_DONE;
 T = timerfind('Tag','predictTimer');
 if ~isempty(T),  stop(T(:)); delete(T(:)); end
-if isnan(handles.guidata.hplaying), return; end;
+if verLessThan('matlab','8.4.0')
+  validhandle = isnan(handles.guidata.hplaying) ;
+else
+  validhandle = ~ishghandle(handles.guidata.hplaying) ;
+end
+  
+if validhandle
+  return; 
+end;
 set(handles.guidata.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
 %SetButtonImage(handles.guidata.hplaying);
 adjustButtonColorsIfMac(handles.guidata.hplaying);
   
 hObject = handles.guidata.hplaying;
-handles.guidata.hplaying = nan;
+if verLessThan('matlab','8.4.0')
+  handles.guidata.hplaying = nan;
+else
+  handles.guidata.hplaying = gobjects;
+end  
 guidata(hObject,handles);
 return
 
@@ -5711,7 +5974,7 @@ return
 % -------------------------------------------------------------------------
 function handles = AddBookmark(handles,clip)
 
-fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
+fprintf('Create bookmark for %d:%d\n',clip.t0,clip.t1);
 flystr = sprintf('%d, ',handles.data.flies);
 flystr = flystr(1:end-2);
 SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d...',...
@@ -6119,7 +6382,7 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-CompressionPreferences(handles.figure_JLabel);
+CompressionPreferences(handles.guidata);
 return
 
 
@@ -6236,10 +6499,9 @@ if handles.data.nclassifiers>1
   % JLabelData methods are updated (untested), but UI is not updated
 end
 
-[success,msg,crossError,tlabels] = handles.data.CrossValidate();
+[success,msg,crossError] = handles.data.CrossValidate();
 msg = msg{1};
 crossError = crossError{1};
-tlabels = tlabels{1};
 if ~success
   warndlg(msg); 
   return; 
@@ -6268,11 +6530,11 @@ rnames = {sprintf('%s Important ',handles.data.labelnames{1}),...
 dat = {};
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError(1).numbers(row,col));
-    if isnan(crossError(1).frac(row,col))
+    t1 = sprintf('%d ',crossError.numbers(row,col));
+    if isnan(crossError.frac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError(1).frac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError.frac(row,col)*100);
     end
     dat{row,col} = sprintf('%s%s',t1,t2);  %#ok
   end
@@ -6282,13 +6544,13 @@ dat(5,:) = repmat({''},1,3);
 
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError(1).oldNumbers(row,col));
-    if isnan(crossError(1).oldFrac(row,col))
+    t1 = sprintf('%d ',crossError.oldNumbers(row,col));
+    if isnan(crossError.oldFrac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError(1).oldFrac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError.oldFrac(row,col)*100);
     end
-    dat{5+row,col} = sprintf('%s%s',t1,t2);  %#ok  
+    dat{5+row,col} = sprintf('%s%s',t1,t2);
   end
 end
         
@@ -6297,31 +6559,32 @@ t = uitable('Parent',f,'Data',dat([1 3 5 6 8],:),'ColumnName',cnames,...
             'ColumnWidth',{100},...
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok  
 
-handles.guidata.open_peripherals(end+1) = f;          
-if numel(crossError)>1
-  for tndx = 1:numel(crossError)
-    errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);  %#ok
-    errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);  %#ok
-  end
-  totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
-  totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
-
-  errorAll = errorAll/totExamplesAll;
-  errorImp = errorImp/totExamplesImp;
-
-  f = figure('Name','Cross Validation Error with time');
-  % ax = plot([errorAll errorImp]);
-  % legend(ax,{'All', 'Important'});
-  % set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
-  % title(gca,'Cross Validation Error with time');
-  ax = axes('parent',f,'box','on');
-  line('parent',ax, ...
-       'ydata',[errorAll errorImp]);
-  legend(ax,{'All', 'Important'});
-  set(ax,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
-  title(ax,'Cross Validation Error with time');
-  handles.guidata.open_peripherals(end+1) = f;          
-end
+handles.guidata.open_peripherals(end+1) = f;
+assert(isscalar(crossError));
+% if numel(crossError)>1
+%   for tndx = 1:numel(crossError)
+%     errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);  %#ok
+%     errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);  %#ok
+%   end
+%   totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
+%   totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
+% 
+%   errorAll = errorAll/totExamplesAll;
+%   errorImp = errorImp/totExamplesImp;
+% 
+%   f = figure('Name','Cross Validation Error with time');
+%   % ax = plot([errorAll errorImp]);
+%   % legend(ax,{'All', 'Important'});
+%   % set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+%   % title(gca,'Cross Validation Error with time');
+%   ax = axes('parent',f,'box','on');
+%   line('parent',ax, ...
+%        'ydata',[errorAll errorImp]);
+%   legend(ax,{'All', 'Important'});
+%   set(ax,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+%   title(ax,'Cross Validation Error with time');
+%   handles.guidata.open_peripherals(end+1) = f;          
+% end
 return
 
 
@@ -6553,34 +6816,39 @@ function menu_classifier_visualize_Callback(hObject, eventdata, handles)
 
 %MERGESTUPDATED
 
-if handles.data.nclassifiers>1
-  warning('JLabel:multiclass','Visualizing classifier ''%s'' only.',...
-    handles.data.classifiernames{1});
+% if handles.data.nclassifiers>1
+%   warning('JLabel:multiclass','Visualizing classifier ''%s'' only.',...
+%     handles.data.classifiernames{1});
+% end
+
+for ICLS = 1:handles.data.nclassifiers
+  
+  if ~handles.data.HasWindowdata(ICLS)
+    wstr = sprintf('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata for %s.',...
+      handles.data.classifiernames{ICLS});
+    uiwait(warndlg(wstr));
+    return;
+  end
+  
+  SetStatus(handles,'Creating classifier visualization');
+  
+  [hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
+    sorted_weights,feature_order,bins,scores] = ...
+    ShowWindowFeatureWeights(handles.data,'figpos',...
+    [10,10,1000,1000],'nfeatures_show',50,'iCls',ICLS); %#ok<ASGLU>
+  
+  ti = sprintf('Classifier %s %s',handles.data.classifiernames{ICLS},datestr(handles.data.classifierTS(ICLS)));
+  set(hfig,'Name',ti);
+ 
+  % MK Aug 14 2015: Where is handles.visualizeclassifier used??
+  handles.visualizeclassifier = ...
+    struct('sorted_weights',sorted_weights,...
+    'feature_order',feature_order,'bins',bins,...
+    'scores',scores);
+ 
+  
+  handles.guidata.open_peripherals(end+1) = hfig;
 end
-ICLS = 1;
-
-if ~handles.data.HasWindowdata(ICLS)
-  uiwait(warndlg('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata.'));
-  return;
-end
-
-SetStatus(handles,'Creating classifier visualization');
-
-[hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
-  sorted_weights,feature_order,bins,scores] = ...
-  ShowWindowFeatureWeights(handles.data,'figpos',...
-  [10,10,1000,1000],'nfeatures_show',50,'iCls',ICLS); %#ok<ASGLU>
-
-ti = sprintf('Classifier %s',datestr(handles.data.classifierTS(ICLS)));
-set(hfig,'Name',ti);
-
-handles.visualizeclassifier = ...
-  struct('sorted_weights',sorted_weights,...
-  'feature_order',feature_order,'bins',bins,...
-  'scores',scores);
-
-handles.guidata.open_peripherals(end+1) = hfig;
-
 guidata(hObject,handles);
 
 ClearStatus(handles);
@@ -7047,6 +7315,7 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok
+handles.guidata.open_peripherals(end+1) = f;          
 return
 
 
@@ -7542,10 +7811,8 @@ fileNameAbs=fullfile(pathname,filename);
 openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
 
 if handles.data.nexps == 0,
-
   drawnow;
-  JModifyFiles('figureJLabel',handles.figure_JLabel);
-  
+  JModifyFiles('figureJLabel',handles.figure_JLabel);  
 end
 
 % Set the jump type to be ground truth suggestions for gtmode
@@ -7558,9 +7825,12 @@ return
 
 
 % -------------------------------------------------------------------------
-function openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
+function openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode,macguffin)
 
-% get handles
+if exist('macguffin','var')==0
+  macguffin = [];
+end
+
 handles=guidata(figureJLabel);
 
 % get just the relative file name
@@ -7589,8 +7859,9 @@ while ~successfullyOpened && keepTrying ,
   try
     handles.data.openJabFile(fileNameAbs, ...
                              groundTruthingMode, ...
-                             originalExpDirs, ...
-                             substituteExpDirs);
+                             'macguffin',macguffin,...
+                             'originalExpDirs',originalExpDirs,...
+                             'substituteExpDirs',substituteExpDirs);
     successfullyOpened=true;
   catch excp
     %ClearStatus(handles);
@@ -7675,16 +7946,12 @@ end
 % If we get here then the JLabelData object has successfully opened the
 % .jab file
 
-% First set the project parameters, which will initialize the JLabelData
-%basicParams=basicParamsFromMacguffin(everythingParams);
-%initBasicParams(figureJLabel,basicParams,groundTruthingMode);
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
 % are loaded.
-data=handles.data;  % ref
-%data.SetGTMode(groundTruthingMode);
+data=handles.data;
 
 % Set the GUI to match the labeling mode
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
@@ -8011,16 +8278,22 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'basicParamsStruct',macG,...
   'handleobj',hobj));
 
-if isempty(hobj.data)
+macguf = hobj.data;
+if isempty(macguf)
   return;
 end
 
-newFileSetupDone(figureJLabel,hobj.data);
+%newFileSetupDone(figureJLabel,hobj.data);
+openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode,macguf);
 
 % no experiments? ask to add
 if handles.data.nexps==0
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
+end
+
+if handles.data.IsGTMode
+  handles.guidata.NJObj.SetCurrentType('Ground Truth Suggestions');
 end
 
 return
@@ -8660,10 +8933,15 @@ catch ME
 end
 if handles.data.expi==0 && handles.data.nexps>0
   handles = SetCurrentMovie(handles,1);
-  handles = UpdateTimelineImages(handles);
-  UpdatePlots(handles,'refresh_timeline_manual',true);
 end
+handles = UpdateTimelineImages(handles);
+UpdatePlots(handles,'refresh_timeline_manual',true);
 guidata(handles.figure_JLabel,handles);
+
+if ~handles.guidata.mat_lt_8p5
+  drawnow;
+end
+
 ClearStatus(handles);
 
 
@@ -8883,6 +9161,7 @@ UpdatePlots(handles, ...
     'refresh_timeline_hcurr',false,...
     'refresh_timeline_selection',false,...
     'refresh_curr_prop',false);  
+  if ~handles.guidata.mat_lt_8p5, drawnow(), end
 
 % --------------------------------------------------------------------
 function menu_file_remove_classifier_Callback(hObject, eventdata, handles)
