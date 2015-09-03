@@ -321,6 +321,8 @@ colWidth = repmat({70},1,13);
 colWidth{1} = 300;
 set(handles.table,'ColumnWidth',colWidth);
 
+uitablepeer  = findjobj(hObject,'-nomenu','class','uitablepeer');
+set(uitablepeer,'MouseClickedCallback',@MouseClickHandler);
 
 % rowHeaderViewport=jscrollpane.getComponent(4);
 % rowHeader=rowHeaderViewport.getComponent(0);
@@ -343,8 +345,6 @@ function varargout = SwitchTarget_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 % set double click callback
-uitablepeer  = findjobj(hObject,'-nomenu','class','uitablepeer');
-set(uitablepeer,'MouseClickedCallback',@MouseClickHandler);
 
 varargout{1} = handles.output;
 

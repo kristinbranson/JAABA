@@ -27,5 +27,12 @@ else
     fn = fnsmissing{i};
     snew(1).(fn) = [];
   end
-  s = cat(dim,sbase,snew);
+  fnsbase = fieldnames(sbase); 
+  fnsnew = fieldnames(snew);
+  if ~all(strcmp(fnsbase,fnsnew)),
+    [~,order] = ismember(fnsbase,fnsnew);
+    s = cat(dim,sbase,orderfields(snew,order));
+  else
+    s = cat(dim,sbase,snew);
+  end
 end

@@ -3,6 +3,12 @@ function success=testJAABAWindowdata()
 % This tests to make sure that loading cached windowdata and computing
 % windowdata again learn the same classifier.
 
+% AL20150602. This test doesn't work when I run it on the current codebase;
+% I think it's because window feature computation is no longer
+% deterministic, even with the setting of RNG state below.
+% ComputeWindowFeatures() is called within a parfor and has a call to
+% randsample.
+
 %%
 success = false;
 jabFileName='/groups/branson/home/kabram/bransonlab/projects/JAABA/test_data/test_windowdata.jab';

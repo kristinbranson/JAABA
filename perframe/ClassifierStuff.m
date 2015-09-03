@@ -21,10 +21,10 @@ classdef ClassifierStuff < handle
       
       self.type = 'boosting';
       self.params = struct('dim',cell(0,1), ...
-                         'error',[], ...
-                         'dir',[], ....
-                         'tr',[], ...
-                         'alpha',[]);
+                           'error',[], ...
+                           'dir',[], ....
+                           'tr',[], ...
+                           'alpha',[]);
       self.timeStamp = 0;  % default time stamp (bad idea?)
       self.confThresholds = [0 0];
       self.scoreNorm = 0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
@@ -67,17 +67,8 @@ classdef ClassifierStuff < handle
         end
       end  
     end
-    
-%     function init(self,nbehavior)
-%       self.params = repmat({self.params},1,nbehavior);
-%       self.trainingParams = repmat({self.trainingParams},1,nbehavior);
-%       self.timeStamp = repmat(self.timeStamp,1,nbehavior);
-%       assert(all(self.confThresholds==0));
-%       self.confThresholds = zeros(1,2*nbehavior);
-%       self.scoreNorm = repmat(self.scoreNorm,1,nbehavior);
-%     end
-    
-    function tfmodified = modernize(self)      
+        
+    function tfmodified = modernize(self)
       tfmodified = false;
       for i = 1:numel(self)
         if isempty(self(i).savewindowdata)
