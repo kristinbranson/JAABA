@@ -1,60 +1,71 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="PrepareJAABAData" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\PrepareJAABAData.prj" preferred-package-type="package.type.zip" build-checksum="3985812482" preferred-package-location="C:\Code\Jdetect">
-    <param.project.name>C:\Code\Jdetect\perframe\PrepareJAABAData.prj</param.project.name>
-    <param.target.type>Console Application</param.target.type>
+<deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
+  <configuration build-checksum="1910150032" file="C:\Code\Jdetect\perframe\PrepareJAABAData.prj" location="C:\Code\Jdetect\perframe" name="PrepareJAABAData" preferred-package-location="C:\Code\Jdetect\perframe\PrepareJAABAData\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="MATLAB Compiler for Standalone Applications">
     <param.appname>PrepareJAABAData</param.appname>
-    <param.intermediate>${PROJECT_ROOT}\PrepareJAABAData\src</param.intermediate>
-    <param.output>${PROJECT_ROOT}\PrepareJAABAData\distrib</param.output>
+    <param.icon>${PROJECT_ROOT}\PrepareJAABAData_resources\icon.ico</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\PrepareJAABAData_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\PrepareJAABAData_resources\icon_32.png</file>
+      <file>${PROJECT_ROOT}\PrepareJAABAData_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\PrepareJAABAData_resources\icon_16.png</file>
+    </param.icons>
+    <param.version>1.6</param.version>
+    <param.authnamewatermark>Mayank Kabra, Alice Robie, Kristin Branson</param.authnamewatermark>
+    <param.email />
+    <param.company>HHMI Janelia Research Campus</param.company>
+    <param.summary />
+    <param.description />
+    <param.screenshot>C:\Code\Jdetect\JAABASplashScreen.png</param.screenshot>
+    <param.guid />
+    <param.installpath.string>PrepareJAABAData</param.installpath.string>
+    <param.installpath.combo>option.installpath.programfiles</param.installpath.combo>
+    <param.logo />
+    <param.install.notes />
+    <param.intermediate>${PROJECT_ROOT}\PrepareJAABAData\for_testing</param.intermediate>
+    <param.files.only>${PROJECT_ROOT}\PrepareJAABAData\for_redistribution_files_only</param.files.only>
+    <param.output>${PROJECT_ROOT}\PrepareJAABAData\for_redistribution</param.output>
+    <param.enable.clean.build>false</param.enable.clean.build>
+    <param.user.defined.mcr.options />
     <param.embed.ctf>true</param.embed.ctf>
-    <param.tbx_on_path>
-      <item>all</item>
-    </param.tbx_on_path>
-    <param.warnings>
-      <warning.fullpath>on</warning.fullpath>
-      <warning.duplicate>on</warning.duplicate>
-      <warning.option.ignored>on</warning.option.ignored>
-      <warning.libname>on</warning.libname>
-      <warning.demo>on</warning.demo>
-    </param.warnings>
-    <param.version>1.0</param.version>
-    <param.user.only.registration>false</param.user.only.registration>
-    <param.c.cpp.options.file />
-    <param.include.dirs />
-    <param.lib.dirs />
-    <param.lib.files />
-    <param.defines />
-    <param.undefines />
-    <param.debug>false</param.debug>
-    <param.share.mcr>false</param.share.mcr>
-    <param.disable.jvm>false</param.disable.jvm>
-    <param.disable.display>false</param.disable.display>
+    <param.server.ctf>${PROJECT_ROOT}\PrepareJAABAData\for_testing\.ctf</param.server.ctf>
+    <param.server.readme>${PROJECT_ROOT}\PrepareJAABAData\for_testing\readme.txt</param.server.readme>
+    <param.target.type>subtarget.standalone</param.target.type>
+    <param.support.packages />
+    <param.required.mcr.products>
+      <item>35000</item>
+      <item>35001</item>
+    </param.required.mcr.products>
+    <param.web.mcr>true</param.web.mcr>
+    <param.package.mcr>false</param.package.mcr>
+    <param.no.mcr>false</param.no.mcr>
+    <param.web.mcr.name>MyAppInstaller_web</param.web.mcr.name>
+    <param.package.mcr.name>MyAppInstaller_mcr</param.package.mcr.name>
+    <param.no.mcr.name>MyAppInstaller_app</param.no.mcr.name>
+    <param.windows.command.prompt>false</param.windows.command.prompt>
     <param.create.log>false</param.create.log>
     <param.log.file />
-    <param.user.defined.mcr.options>
-      <item>-startmsg,Starting PrepareJAABAData. Please wait, this may take a while...</item>
-    </param.user.defined.mcr.options>
     <unset>
-      <param.project.name />
-      <param.target.type />
-      <param.appname />
+      <param.email />
+      <param.summary />
+      <param.description />
+      <param.guid />
+      <param.installpath.combo />
+      <param.logo />
+      <param.install.notes />
       <param.intermediate />
+      <param.files.only />
       <param.output />
+      <param.enable.clean.build />
       <param.embed.ctf />
-      <param.tbx_on_path />
-      <param.warnings />
-      <param.version />
-      <param.user.only.registration />
-      <param.c.cpp.options.file />
-      <param.include.dirs />
-      <param.lib.dirs />
-      <param.lib.files />
-      <param.defines />
-      <param.undefines />
-      <param.debug />
-      <param.share.mcr />
-      <param.disable.jvm />
-      <param.disable.display />
+      <param.server.ctf />
+      <param.server.readme />
+      <param.target.type />
+      <param.support.packages />
+      <param.web.mcr />
+      <param.package.mcr />
+      <param.no.mcr />
+      <param.web.mcr.name />
+      <param.package.mcr.name />
+      <param.no.mcr.name />
       <param.create.log />
       <param.log.file />
     </unset>
@@ -62,7 +73,98 @@
       <file>${PROJECT_ROOT}\PrepareJAABAData_compiled.m</file>
     </fileset.main>
     <fileset.resources>
+      <file>C:\Code\Jdetect\filehandling\cleanup_ctrax_data.m</file>
+      <file>C:\Code\Jdetect\filehandling\fileparts.m</file>
+      <file>C:\Code\Jdetect\filehandling\fmf_get_datatype.m</file>
+      <file>C:\Code\Jdetect\filehandling\fmf_read_frame.m</file>
+      <file>C:\Code\Jdetect\filehandling\fmf_read_header.m</file>
+      <file>C:\Code\Jdetect\filehandling\fmfreadframe.m</file>
+      <file>C:\Code\Jdetect\filehandling\get_readframe_fcn.m</file>
+      <file>C:\Code\Jdetect\filehandling\getContoursLarvaeLouis.m</file>
+      <file>C:\Code\Jdetect\filehandling\GetPCShortcutFileActualPath.m</file>
+      <file>C:\Code\Jdetect\filehandling\load_tracks.m</file>
+      <file>C:\Code\Jdetect\filehandling\mmf_get_readframe_fcn.m</file>
+      <file>C:\Code\Jdetect\filehandling\mmf_read_frame.m</file>
+      <file>C:\Code\Jdetect\filehandling\mmf_read_header.m</file>
+      <file>C:\Code\Jdetect\filehandling\mmf_read_mean.m</file>
+      <file>C:\Code\Jdetect\filehandling\parsejpg8.mexw64</file>
+      <file>C:\Code\Jdetect\filehandling\r_readseqinfo.m</file>
+      <file>C:\Code\Jdetect\filehandling\read_ann.m</file>
+      <file>C:\Code\Jdetect\filehandling\read_seq_frame.m</file>
+      <file>C:\Code\Jdetect\filehandling\ReadChoreDatFile.m</file>
+      <file>C:\Code\Jdetect\filehandling\ReadChoreSpineFile.m</file>
+      <file>C:\Code\Jdetect\filehandling\ReadMWTBlobFile.m</file>
+      <file>C:\Code\Jdetect\filehandling\ReadSingleLarvaTrackerFrame.m</file>
+      <file>C:\Code\Jdetect\filehandling\save_tracks.m</file>
+      <file>C:\Code\Jdetect\filehandling\sbfmf_read_frame.m</file>
+      <file>C:\Code\Jdetect\filehandling\sbfmf_read_header.m</file>
+      <file>C:\Code\Jdetect\filehandling\sbfmfreadframe.m</file>
+      <file>C:\Code\Jdetect\filehandling\ufmf_get_readframe_fcn.m</file>
+      <file>C:\Code\Jdetect\filehandling\ufmf_read_frame.m</file>
+      <file>C:\Code\Jdetect\filehandling\ufmf_read_header.m</file>
+      <file>C:\Code\Jdetect\filehandling\ufmf_read_mean.m</file>
+      <file>C:\Code\Jdetect\filehandling\uigetdir2.m</file>
+      <file>C:\Code\Jdetect\filehandling\videoioreadframe.m</file>
+      <file>C:\Code\Jdetect\misc\absolutepath.m</file>
+      <file>C:\Code\Jdetect\misc\adjustButtonColorsIfMac.m</file>
+      <file>C:\Code\Jdetect\misc\argmax.m</file>
+      <file>C:\Code\Jdetect\misc\argmin.m</file>
+      <file>C:\Code\Jdetect\misc\cov2ell.m</file>
+      <file>C:\Code\Jdetect\misc\createfileinfodialog.m</file>
+      <file>C:\Code\Jdetect\misc\creategetfileinfodialog.m</file>
+      <file>C:\Code\Jdetect\misc\deletefileinfodialog.m</file>
+      <file>C:\Code\Jdetect\misc\dist2.m</file>
+      <file>C:\Code\Jdetect\misc\dtypechar2matlabclass.m</file>
+      <file>C:\Code\Jdetect\misc\eigs_2x2.m</file>
+      <file>C:\Code\Jdetect\misc\fitcircle_manual.m</file>
+      <file>C:\Code\Jdetect\misc\isabspath.m</file>
+      <file>C:\Code\Jdetect\misc\isglobalpath.m</file>
+      <file>C:\Code\Jdetect\misc\IsNiceFileName.m</file>
+      <file>C:\Code\Jdetect\misc\modrange.m</file>
+      <file>C:\Code\Jdetect\misc\mydir.m</file>
+      <file>C:\Code\Jdetect\misc\myparse.m</file>
+      <file>C:\Code\Jdetect\misc\myparse_nocheck.m</file>
+      <file>C:\Code\Jdetect\misc\myweb_nocheck.m</file>
+      <file>C:\Code\Jdetect\misc\splitext.m</file>
+      <file>C:\Code\Jdetect\misc\strsplit.m</file>
+      <file>C:\Code\Jdetect\misc\structappend.m</file>
+      <file>C:\Code\Jdetect\misc\structarrayset.m</file>
+      <file>C:\Code\Jdetect\misc\uigetfilehelp.m</file>
+      <file>C:\Code\Jdetect\misc\uipickfiles.m</file>
+      <file>${PROJECT_ROOT}\Convert2JAABAWrapper.m</file>
+      <file>${PROJECT_ROOT}\ConvertCtrax2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertJCtrax2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertLarvaeLouis2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertLarvaeReid2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertLarvaeRiveraAlba2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertMAGATAnalyzer2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertMotr2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertMotrCtc2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertMWT2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertQtrax2JAABA.m</file>
+      <file>${PROJECT_ROOT}\ConvertRawMotr2JAABA.m</file>
+      <file>${PROJECT_ROOT}\deployedRelative2Global.m</file>
       <file>${PROJECT_ROOT}\mkshortcut.vbs</file>
+      <file>${PROJECT_ROOT}\myfileparts.m</file>
+      <file>${PROJECT_ROOT}\parseunits.m</file>
+      <file>${PROJECT_ROOT}\PrepareJAABAData.fig</file>
+      <file>${PROJECT_ROOT}\PrepareJAABAData.m</file>
+      <file>${PROJECT_ROOT}\ReadArenaParameters_Ctrax.m</file>
+      <file>${PROJECT_ROOT}\ReadArenaParameters_LarvaeReid.m</file>
+      <file>${PROJECT_ROOT}\ReadArenaParameters_MAGATAnalyzer.m</file>
+      <file>${PROJECT_ROOT}\ReadArenaParameters_MWT.m</file>
+      <file>${PROJECT_ROOT}\ReadArenaParameters_Qtrax.m</file>
+      <file>${PROJECT_ROOT}\ReadArenaParameters_Wrapper.m</file>
+      <file>${PROJECT_ROOT}\ReadFPS_Ctrax.m</file>
+      <file>${PROJECT_ROOT}\ReadFPS_LarvaeLouis.m</file>
+      <file>${PROJECT_ROOT}\ReadFPS_MAGATAnalyzer.m</file>
+      <file>${PROJECT_ROOT}\ReadFPS_MWT.m</file>
+      <file>${PROJECT_ROOT}\ReadFPS_Qtrax.m</file>
+      <file>${PROJECT_ROOT}\ReadFPS_Wrapper.m</file>
+      <file>${PROJECT_ROOT}\SetInputDataTypeParams.m</file>
+      <file>${PROJECT_ROOT}\SetLandmarkParameters.m</file>
+      <file>${PROJECT_ROOT}\SetLandmarkParameters_px.m</file>
+      <file>${PROJECT_ROOT}\SetUpJAABAPath.m</file>
     </fileset.resources>
     <fileset.package>
       <file>C:\Code\Jdetect\LICENSE.txt</file>
@@ -70,169 +172,14 @@
       <file>C:\Code\Jdetect\README.txt</file>
     </fileset.package>
     <build-deliverables>
-      <file name="readme.txt" location="${PROJECT_ROOT}\PrepareJAABAData\distrib" optional="true">C:\Code\Jdetect\perframe\PrepareJAABAData\distrib\readme.txt</file>
-      <file name="PrepareJAABAData.exe" location="${PROJECT_ROOT}\PrepareJAABAData\distrib" optional="false">C:\Code\Jdetect\perframe\PrepareJAABAData\distrib\PrepareJAABAData.exe</file>
+      <file location="${PROJECT_ROOT}\PrepareJAABAData\for_testing" name="splash.png" optional="false">C:\Code\Jdetect\perframe\PrepareJAABAData\for_testing\splash.png</file>
+      <file location="${PROJECT_ROOT}\PrepareJAABAData\for_testing" name="readme.txt" optional="true">C:\Code\Jdetect\perframe\PrepareJAABAData\for_testing\readme.txt</file>
+      <file location="${PROJECT_ROOT}\PrepareJAABAData\for_testing" name="PrepareJAABAData.exe" optional="false">C:\Code\Jdetect\perframe\PrepareJAABAData\for_testing\PrepareJAABAData.exe</file>
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2012a</root>
-      <path>
-        <directory>C:\Code\Jdetect\tests</directory>
-        <directory>${PROJECT_ROOT}\params</directory>
-        <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
-        <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
-        <directory>C:\Code\Jdetect\filehandling</directory>
-        <directory>C:\Code\Jdetect\misc</directory>
-        <directory>C:\Code\Jdetect\perframe</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
-        <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\graph3d</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\graphics</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\plottools</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\scribe</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\specgraph</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\uitools</directory>
-        <directory>${MATLAB_ROOT}\toolbox\local</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\general</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\ops</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\lang</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\elmat</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\randfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\elfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\specfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\matfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\datafun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\polyfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\funfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\sparfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\strfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\iofun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\timefun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\datatypes</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\verctrl</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\codetools</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\helptools</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\winfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\winfun\NET</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\hds</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\guide</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\datamanager</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\optimfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\audiovideo</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\bioinfo</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\biolearning</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\microarray</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\mass_spec</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\proteins</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\biomatrices</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\graphtheory</directory>
-        <directory>${MATLAB_ROOT}\toolbox\bioinfo\biodemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\comparisons</directory>
-        <directory>${MATLAB_ROOT}\toolbox\compiler</directory>
-        <directory>${MATLAB_ROOT}\toolbox\compiler\compilerdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\curvefit\curvefit</directory>
-        <directory>${MATLAB_ROOT}\toolbox\curvefit\splines</directory>
-        <directory>${MATLAB_ROOT}\toolbox\curvefit\cftoolgui</directory>
-        <directory>${MATLAB_ROOT}\toolbox\curvefit\sftoolgui</directory>
-        <directory>${MATLAB_ROOT}\toolbox\curvefit\curvefitdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\daq\daq</directory>
-        <directory>${MATLAB_ROOT}\toolbox\daq\daqguis</directory>
-        <directory>${MATLAB_ROOT}\toolbox\daq\daqdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\database\database</directory>
-        <directory>${MATLAB_ROOT}\toolbox\database\vqb</directory>
-        <directory>${MATLAB_ROOT}\toolbox\database\dbdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\distcomp</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\user</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\mpi</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\parallel</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\parallel\util</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\lang</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\cluster</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\gpu</directory>
-        <directory>${MATLAB_ROOT}\toolbox\distcomp\pctdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\images\colorspaces</directory>
-        <directory>${MATLAB_ROOT}\toolbox\images\images</directory>
-        <directory>${MATLAB_ROOT}\toolbox\images\imuitools</directory>
-        <directory>${MATLAB_ROOT}\toolbox\images\iptformats</directory>
-        <directory>${MATLAB_ROOT}\toolbox\images\iptutils</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\imagesci</directory>
-        <directory>${MATLAB_ROOT}\toolbox\images\imdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\imaq\imaq</directory>
-        <directory>${MATLAB_ROOT}\toolbox\imaq\imaqblks\imaqblks</directory>
-        <directory>${MATLAB_ROOT}\toolbox\imaq\imaqblks\imaqmasks</directory>
-        <directory>${MATLAB_ROOT}\toolbox\imaq\imaqblks\imaqmex</directory>
-        <directory>${MATLAB_ROOT}\toolbox\imaq\imaqdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\instrument</directory>
-        <directory>${MATLAB_ROOT}\toolbox\sam\m3i</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nncontrol</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nndemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nndemos\nndatasets</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnadapt</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nndatafun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnderivative</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nndistance</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nndivision</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nninitlayer</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nninitnetwork</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nninitweight</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnlearn</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnnetfun</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnnetinput</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnnetwork</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnperformance</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnplot</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnprocess</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnsearch</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nntopology</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nntrain</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nntransfer</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnet\nnweight</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnguis</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnobsolete</directory>
-        <directory>${MATLAB_ROOT}\toolbox\nnet\nnutils</directory>
-        <directory>${MATLAB_ROOT}\toolbox\optim\optim</directory>
-        <directory>${MATLAB_ROOT}\toolbox\optim\optimdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\asynciolib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\coder\coder</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\controllib\general</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\controllib\graphics</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\controllib\graphics\utils</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\controllib\graphics\plotoptions</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\dastudio</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\dspblks\dspblks</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\dspblks\dspmex</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\filterdesignlib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\imageslib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\imaqlib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\optimlib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\rptgen</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\siglib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\spcuilib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\statslib</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\testmeaslib\general</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\testmeaslib\graphics</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\testmeaslib\simulink</directory>
-        <directory>${MATLAB_ROOT}\toolbox\signal\signal</directory>
-        <directory>${MATLAB_ROOT}\toolbox\signal\sigtools</directory>
-        <directory>${MATLAB_ROOT}\toolbox\signal\sptoolgui</directory>
-        <directory>${MATLAB_ROOT}\toolbox\signal\sigdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\simulink</directory>
-        <directory>${MATLAB_ROOT}\toolbox\stats\stats</directory>
-        <directory>${MATLAB_ROOT}\toolbox\stats\classreg</directory>
-        <directory>${MATLAB_ROOT}\toolbox\stats\statsdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\symbolic\symbolic</directory>
-        <directory>${MATLAB_ROOT}\toolbox\symbolic\symbolicdemos</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\system</directory>
-        <directory>${MATLAB_ROOT}\toolbox\matlab\timeseries</directory>
-      </path>
+      <root>C:\Program Files\MATLAB\R2014b</root>
+      <toolboxes />
     </matlab>
     <platform>
       <unix>false</unix>
@@ -251,4 +198,3 @@
     </platform>
   </configuration>
 </deployment-project>
-
