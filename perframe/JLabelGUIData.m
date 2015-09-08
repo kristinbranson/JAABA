@@ -245,6 +245,7 @@ classdef JLabelGUIData < handle
       % if we wanted to...)   
       
       mat_lt_8p4 = true;
+      mat_lt_8p5 = true;
   end
   
   properties (SetAccess=private)
@@ -299,6 +300,11 @@ classdef JLabelGUIData < handle
         obj.mat_lt_8p4 = true;
       else
         obj.mat_lt_8p4 = false;
+      end
+      if verLessThan('matlab','8.5.0')
+        obj.mat_lt_8p5 = true;
+      else
+        obj.mat_lt_8p5 = false;
       end
     end
    
@@ -598,11 +604,11 @@ classdef JLabelGUIData < handle
       end
 
       % play/stop
-if verLessThan('matlab','8.4.0'),
-      self.hplaying = nan;
-else
-      self.hplaying = gobjects;
-end
+      if verLessThan('matlab','8.4.0'),
+        self.hplaying = nan;
+      else
+        self.hplaying = gobjects;
+      end
 
     end    
     
@@ -758,7 +764,15 @@ end
       self.initClassifierFocusPopup();
       self.initHTimelineLabelCurr();
       self.jlabelCall('UpdateLabelButtons');
-      self.jlabelCall('UpdateEnablementAndVisibilityOfControls');      
+      self.jlabelCall('UpdateEnablementAndVisibilityOfControls');
+      if numel(self.label_shortcuts) ~= 2*self.data.nbehaviors + 1,
+        if self.data.nbehaviors == 2,
+          self.label_shortcuts = {'z','a','x','s','c'}';
+        else
+          self.label_shortcuts = cellstr(num2str((1:2*self.data.nbehaviors+1)'));
+        end
+      end
+
     end
     
     function resetLabelButtons(self)
