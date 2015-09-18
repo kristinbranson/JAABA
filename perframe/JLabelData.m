@@ -9623,7 +9623,13 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Set the JAABA version
       try 
-        vid = fopen('version.txt','r');
+        
+        if isdeployed,
+          verfilename = deployedRelative2Global('version.txt');
+        else
+          verfilename = 'version.txt';
+        end
+        vid = fopen(verfilename,'r');
         vv = textscan(vid,'%s');
         fclose(vid);
         obj.version = vv{1}{1};

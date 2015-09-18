@@ -27,6 +27,22 @@ function [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename,varargi
 %CTRAX_ISVIDEOIO = exist('videoReader','file');
 CTRAX_ISVIDEOIO = false;
 
+if iscell(filename),
+  
+  readframes = cell(size(filename));
+  nframes = inf;
+  fid = nan(size(filename));
+  headerinfo = cell(size(filename));
+  for i = 1:numel(filename),
+    [readframes{i},nframescurr,fid(i),headerinfo{i}] = get_readframe_fcn(filename{i},varargin{:});
+    nframes = min(nframes,nframescurr);
+  end
+  
+  readframe = @(f) multi_read_frame(f,readframes);
+  return;
+  
+end
+
 [~,ext] = splitext(filename);
 
 if ispc && ~exist(filename,'file') && ~strcmpi(ext,'.seq'),  
@@ -203,7 +219,11 @@ else
     headerinfo.type = 'avi';
     headerinfo.nr = headerinfo.Height;
     headerinfo.nc = headerinfo.Width;
-    headerinfo.nframes = nframes;
+    if isfield(headerinfo,'NumberOfFrames'),
+      headerinfo.nframes = headerinfo.NumberOfFrames;
+    elseif isfield(headerinfo,'Duration') && isfield(headerinfo,'FrameRate'),
+      headerinfo.nframes = headerinfo.Duration*headerinfo.FrameRate;
+    end
     readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
     catch ME_videoreader,
       
@@ -226,6 +246,18 @@ else
   end
 end
 
+function varargout = multi_read_frame(f,readframes)
+
+[im,timestamp] = readframes{1}(f);
+
+for i = 2:numel(readframes),
+  im = cat(2,im,readframes{i}(f));  
+end
+varargout{1} = im;
+if nargout >= 2,
+  varargout{2} = timestamp;
+end
+
 function [im,timestamp] = seq_read_frame_piotr(f,sr)
 im = [];
 timestamp = [];
@@ -239,7 +271,13 @@ end
 
 function [im,timestamp] = avi_read_frame(readerobj,headerinfo,f)
 
-im = read(readerobj,f);
+try
+  im = read(readerobj,f);
+catch ME,
+  warning('Error reading the first try: %s',getReport(ME));
+  pause(.01);
+  im = read(readerobj,f);
+end
 timestamp = (f-1)/headerinfo.FrameRate;
 
 function [im,f] = imseq_read_frame(f,imfiles)

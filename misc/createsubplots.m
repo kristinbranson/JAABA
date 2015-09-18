@@ -34,7 +34,9 @@ else
   border = reshape(border,[2,2]);
 end
 
-h = zeros(1,n1*n2);
+if verLessThan('matlab','8.4.0'),
+  h = zeros(1,n1*n2);
+end
 if ~exist('hfig','var'),
   hfig = clf;
 elseif ~ishandle(hfig),
