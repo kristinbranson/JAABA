@@ -4522,7 +4522,6 @@ end
 originalUnits=get(handles.figure_JLabel,'units');
 set(handles.figure_JLabel,'Units','pixels');
 figpos = get(handles.figure_JLabel,'Position');
-set(handles.figure_JLabel,'Units',originalUnits);
 
 minh = 700;
 minw = 500;
@@ -4530,6 +4529,8 @@ if figpos(3) < minw || figpos(4) < minh,
   figpos(3:4) = max(figpos(3:4),[minw,minh]);
   set(handles.figure_JLabel,'Position',figpos);
 end
+
+set(handles.figure_JLabel,'Units',originalUnits);
 
 updatePanelPositions(handles);
 
@@ -4541,6 +4542,11 @@ function handles = updatePanelPositions(handles)
 % Update the position and visibility of the labelbuttons, select, learn, 
 % similar, and selection info panels based on the current mode.
 
+visiblestate = get(handles.panel_timelines,'Visible');
+set(handles.panel_timelines,'Visible','on');
+if ~handles.guidata.mat_lt_8p4,
+  drawnow;
+end
 originalUnits=get(handles.figure_JLabel,'units');
 set(handles.figure_JLabel,'Units','pixels');
 figpos = get(handles.figure_JLabel,'Position');
@@ -4607,6 +4613,8 @@ new_learn_pos = [figpos(3) - learn_pos(3) - handles.guidata.guipos.rightborder_r
   learn_pos(3:4)];
 set(handles.panel_learn,'Position',...
   new_learn_pos);
+
+set(handles.panel_timelines,'Visible',visiblestate);
 
 return
 
