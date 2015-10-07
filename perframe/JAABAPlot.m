@@ -193,7 +193,7 @@ for i = 1:numel(fnssave),
     try
       handles.(fn) = handles_saved.(fn);
     catch ME,
-      projectfile('Could not set handles.%s to handles_saved.%s: %s',fn,fn,getReport(ME));
+      warning('Could not set handles.%s to handles_saved.%s: %s',fn,fn,getReport(ME));
       iserror = true;
       break;
     end
@@ -5978,7 +5978,7 @@ if(isnumeric(file) && isnumeric(path) && (file==0) && (path==0))  return;  end
 filename = fullfile(path,file);
 [success,msg] = SaveConfiguration(handles,filename);
 if ~success,
-  projectfile('Error saving to file %s: %s',filename,msg);
+  warning('Error saving to file %s: %s',filename,msg);
 end
 
 
