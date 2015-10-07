@@ -193,7 +193,7 @@ for i = 1:numel(fnssave),
     try
       handles.(fn) = handles_saved.(fn);
     catch ME,
-      warning('Could not set handles.%s to handles_saved.%s: %s',fn,fn,getReport(ME));
+      projectfile('Could not set handles.%s to handles_saved.%s: %s',fn,fn,getReport(ME));
       iserror = true;
       break;
     end
@@ -772,7 +772,8 @@ handles.computation_threads = SetUpMatlabPoolforJAABAPlot;
 
 
 handles.featurehistogram_stylelist=...
-    {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means', 'Box Plot'};
+    {'Central Tendency','Central Tendency & Dispersion',...
+    'Overlayed per-Exp Means','Box Plot','Box Plot, per Fly'};
 handles.featurehistogram_stylelist2=...
     {'per Frame','Mean per Bout','Median per Bout','Max per Bout','Min per Bout','Std. Dev. per Bout'};
 handles.featuretimeseries_stylelist=...
@@ -2382,7 +2383,7 @@ if(~isnan(fid)) fprintf(fid,'\n');  end
 
 
 % --- 
-function [during not_during]=calculate_feature_histogram(behavior_data,behavior_logic,behavior_data2,...
+function [during,not_during]=calculate_feature_histogram(behavior_data,behavior_logic,behavior_data2,...
     feature_data,sexdata,individual,perwhat,behaviornot)
 
 %if(isempty(behavior_data.allScores.scores))
@@ -2483,9 +2484,6 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     end
   end
 end
-
-during=[during{:}];
-not_during=[not_during{:}];
 
 
 % ---
@@ -2747,9 +2745,14 @@ for b=bb
   if(style<4)
     xstr=get_label(feature_list(feature_value),units.units);
     ystr='normalized';
-  else
+  elseif style==4
     xstr='group';
     ystr=get_label(feature_list(feature_value),units.units);
+  elseif style==5
+    xstr='group/exp/indiv';
+    ystr=get_label(feature_list(feature_value),units.units);
+  else
+    assert(false);
   end
 
   if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
@@ -2768,6 +2771,8 @@ for b=bb
   num_indi=0;
   during_data=cell(length(ggee),length(individual));
   not_during_data=cell(length(ggee),length(individual));
+  during_data_full=cell(length(ggee),1); % during_data_full{iExp}{iTrx} is numeric vector
+  not_during_data_full=cell(length(ggee),1);
  %AR parfor gei=1:numel(ggee)
   for gei=1:numel(ggee) %R AR
     ge = ggee(gei);
@@ -2790,7 +2795,10 @@ for b=bb
 
     [behavior_data,behavior_data2,~,feature_data,sex_data]=...
         cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
-    num_indi=num_indi+length(feature_data.data);
+    nIndiExp = length(feature_data.data); % number of targets in this exp
+    num_indi=num_indi+nIndiExp;
+    during_data_full{gei} = cell(1,nIndiExp);
+    not_during_data_full{gei} = cell(1,nIndiExp);
 
     ii=0;
     parfor_tmp=cell(1,length(individual));
@@ -2809,9 +2817,25 @@ for b=bb
       end
       tmploop=nan;  if isnumeric(i)  tmploop=i;  end
 
-      [parfor_tmp{ii} not_parfor_tmp{ii}]=calculate_feature_histogram(...
+      [tmpduring,tmpnotduring]=calculate_feature_histogram(...
           behavior_data,behavior_logic,behavior_data2,feature_data,tmp2,tmploop,...
           handles.featurehistogram_style2,handles.behaviornot);
+      parfor_tmp{ii}=[tmpduring{:}];
+      not_parfor_tmp{ii}=[tmpnotduring{:}];
+      if ischar(i) && i=='A' && individual=='A'
+        assert(isequal(numel(tmpduring),numel(tmpnotduring),nIndiExp));
+        during_data_full{gei} = tmpduring;
+        not_during_data_full{gei} = tmpnotduring;
+      elseif isnumeric(i)
+        tf = cellfun(@(x)~isempty(x),tmpduring);
+        assert(tf(i) && nnz(tf)==1);
+        tf = cellfun(@(x)~isempty(x),tmpnotduring);
+        assert(tf(i) && nnz(tf)==1);
+        during_data_full{gei}{i} = tmpduring{i};
+        not_during_data_full{gei}{i} = tmpnotduring{i};
+      else
+        assert(false,'Unexpected codepath');
+      end
 
       if(comparison==1)
         not_parfor_tmp{ii}=[parfor_tmp{ii} not_parfor_tmp{ii}];
@@ -2843,6 +2867,9 @@ for b=bb
     tmp=reshape(during_data,1,numel(during_data));
   end
   if((comparison>0) && ~isempty(not_during_data))
+    % AL 20151006: seems odd, see (comparison==1) clause above,
+    % not_during_data seems to already contain during_data. But looks like
+    % tmp only used for binning so maybe not critical
     tmp=[tmp reshape(not_during_data,1,numel(not_during_data))];
   end
 
@@ -2935,7 +2962,7 @@ for b=bb
               fid,handlesexperimentlist(idx));
           if(ii==1)  h(g)=ans;  end
         end
-      else
+      elseif style==4 % Boxplot
         if(comparison>0)
           xticklabels{g+(ii-1)*length(handles.grouplist)}=handles.grouplist{g};
           tmp=nanmean(not_during_data(idx2,:),2);
@@ -2987,6 +3014,32 @@ for b=bb
         end
         findobj(tmp,'tag','Outliers');
         set(ans,'markeredgecolor',color);
+      elseif style==5 % Boxplot, perFly
+        % Create data vector X and grouping variables:
+        % G1: group
+        % G2: experiment
+        % G3: individual
+      
+        if exist('style5X','var')==0
+          style5X = zeros(0,1);
+          style5G1 = cell(0,1);
+          style5G2 = nan(0,1);
+          style5G3 = nan(0,1);
+        end
+        for iExp = idx(:)'
+          nTgt = numel(during_data_full{iExp});
+          for iTgt = 1:nTgt
+            z = during_data_full{iExp}{iTgt};
+            nTmp = numel(z);
+            style5X = [style5X;z(:)];
+            style5G1 = [style5G1; repmat(handles.grouplist(g),nTmp,1)];
+            style5G2 = [style5G2; repmat(iExp,nTmp,1)];
+            style5G3 = [style5G3; repmat(iTgt,nTmp,1)];
+            %tmp=boxplot(ha,z,'positions',xBoxPlotPerFly,'colors',color);
+          end
+        end
+      else
+        assert(false);
       end
     end
 
@@ -3044,10 +3097,25 @@ for b=bb
   ylabel(ha,ystr,'interpreter','none');
   if(style<4)
     axis(ha,'tight');
-  else
+  elseif style==4
     axisalmosttight([],ha);
     set(ha,'xtick',(1:length(xticklabels))+0.25*(comparison>0),'xticklabel',xticklabels);
-  end
+  elseif style==5
+    assert(comparison==0,'Comparisons not supported for this plot style.');
+    assert(individual=='A' && ii==1,...
+      'Individuals not supported for this plot style.');
+    if(handles.dump2csv)
+      warningNoTrace('JAABAPlot:dump','CSV dump unsupported for this plot style. Data in CSV is likely NOT REPRESENTATIVE of plot.');
+    end
+    if(handles.dump2mat)
+      warningNoTrace('JAABAPlot:dump','MAT dump unsupported for this plot style. Data in MAT-file is likely NOT REPRESENTATIVE of plot.');
+    end
+    boxplot(ha,style5X,{style5G1 style5G2 style5G3},...
+      'plotstyle','compact',...
+      'boxstyle','filled',...
+      'colorgroup',style5G1,...
+      'factorseparator',[1 2]);
+  end    
   zoom(ha,'reset');
 end
 
@@ -3189,8 +3257,10 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       for b=1:nbehaviors
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
-        [during not_during]=calculate_feature_histogram(bdata{b},1,[],...
+        [during,not_during]=calculate_feature_histogram(bdata{b},1,[],...
             fdata,sexdata,nan,handles.featurehistogram_style2,0);
+        during=[during{:}];
+        not_during=[not_during{:}];
         parfor_tmp(b,f,:)=[mean(during) mean(not_during) mean([during not_during]) ...
             std(during) std(not_during) std([during not_during]) ...
             length(during) length(not_during) length([during not_during])];
@@ -3198,8 +3268,10 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       if(nbehaviors==0)
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
-        [during not_during]=calculate_feature_histogram([],1,[],...
+        [during,not_during]=calculate_feature_histogram([],1,[],...
             fdata,sexdata,nan,handles.featurehistogram_style2,0);
+        during=[during{:}];
+        not_during=[not_during{:}];
         parfor_tmp(1,f,:)=[mean(during) mean(not_during) mean([during not_during]) ...
             std(during) std(not_during) std([during not_during]) ...
             length(during) length(not_during) length([during not_during])];
@@ -5906,7 +5978,7 @@ if(isnumeric(file) && isnumeric(path) && (file==0) && (path==0))  return;  end
 filename = fullfile(path,file);
 [success,msg] = SaveConfiguration(handles,filename);
 if ~success,
-  warning('Error saving to file %s: %s',filename,msg);
+  projectfile('Error saving to file %s: %s',filename,msg);
 end
 
 
