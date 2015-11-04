@@ -21,20 +21,33 @@ etimehist = [];
 etimehistlength = 25;
 nittoutput = 3;
 origbins = bins; origdata = data; origbinVals = binVals;
-featureSetRatio = 1.1;
+
+numFeatures = size(origbins,1);
+if numFeatures<10000,
+  featureSetRatio = 1.1;
+elseif numFeatures < 20000
+  featureSetRatio = 0.8;
+else
+  featureSetRatio = 0.5;
+end
 
 % params.numSample = min(params.numSample,round(numEx/2));
 for itt = 1:numIters
-  if ceil(itt*10/numIters)-ceil( (itt-1)*10/numIters) > 0.5
+  if featureSetRatio<1 && ... 
+    (ceil(itt*10/numIters)-ceil( (itt-1)*10/numIters) > 0.5)
     % every 1/10th iterations select features to train on.
     selFeatures = rand(1,size(origbins,1))>featureSetRatio;
     feature_map = find(~selFeatures);
-    bins = origbins;
-    data = origdata;
-    binVals = origbinVals;
-    bins(selFeatures,:) = [];
-    data(:,selFeatures) = [];
-    binVals(:,selFeatures) = [];
+    % MAYANK NOV 4 2015. copying and deleting as below is slow
+%     bins = origbins;
+%     data = origdata;
+%     binVals = origbinVals;
+%     bins(selFeatures,:) = [];
+%     data(:,selFeatures) = [];
+%     binVals(:,selFeatures) = [];
+    bins = origbins(~selFeatures,:);
+    data = origdata(:,~selFeatures);
+    binVals = origbinVals(:,~selFeatures);
   end
   count = 0;
   while(count<1)
