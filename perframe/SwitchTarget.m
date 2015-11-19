@@ -161,17 +161,17 @@ iCls2LblNames = handles.JLDObj.iCls2LblNames;
 if ~handles.JLDObj.IsGTMode()
   fieldList(end+1,:) = { @(gs,cs)gs.trajLength  'Trajectory| Length'};
   fieldList(end+1,:) = { @(gs,cs)gs.firstframe  'Start frame'};
+  fieldList(end+1,:) = { @(gs,cs)gs.sexfrac     'Sex|(% male)'};
   fieldList(end+1,:) = { @(gs,cs)gs.nbouts      'Bouts|labeled'};
   fieldList(end+1,:) = { @(gs,cs)gs.totalframes 'Frames|labeled'};
-  fieldList(end+1,:) = { @(gs,cs)gs.posframes   'Frames|labeled|pos'};
-  fieldList(end+1,:) = { @(gs,cs)gs.negframes   'Frames|labeled|neg'};
-  fieldList(end+1,:) = { @(gs,cs)gs.sexfrac     'Sex|(% male)'};
   
+  for iCls = 1:nCls
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).posframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{1})}; %#ok<*AGROW>
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).negframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{2})};
+  end
   if nCls>1
-    for iCls = 1:nCls      
-      fieldList(end+1,:) = { @(gs,cs)cs(iCls).posframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{1})}; %#ok<*AGROW>
-      fieldList(end+1,:) = { @(gs,cs)cs(iCls).negframes sprintf('Frames|labeled|%s',iCls2LblNames{iCls}{2})};
-    end
+    fieldList(end+1,:) = { @(gs,cs)gs.posframes   'Frames|labeled|pos'};
+    fieldList(end+1,:) = { @(gs,cs)gs.negframes   'Frames|labeled|neg'};
   end
   for iCls = 1:nCls
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscorepos sprintf('%s| predicted | (current)',iCls2LblNames{iCls}{1})};
@@ -179,9 +179,9 @@ if ~handles.JLDObj.IsGTMode()
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreframes sprintf('%s|predicted | total | (current)',iCls2LblNames{iCls}{1})};
   end
   for iCls = 1:nCls
-    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscorepos_loaded sprintf('%s| predicted | (loaded)',iCls2LblNames{iCls}{1})};
-    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreneg_loaded sprintf('%s| predicted | (loaded)',iCls2LblNames{iCls}{2})};
-    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreframes_loaded sprintf('%s|predicted | total | (loaded)',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscorepos_loaded sprintf('%s| predicted | (imported)',iCls2LblNames{iCls}{1})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreneg_loaded sprintf('%s| predicted | (imported)',iCls2LblNames{iCls}{2})};
+    fieldList(end+1,:) = { @(gs,cs)cs(iCls).nscoreframes_loaded sprintf('%s|predicted | total | (imported)',iCls2LblNames{iCls}{1})};
   end
   for iCls = 1:nCls
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).errorsPos sprintf('%s|errors',iCls2LblNames{iCls}{1})};
@@ -203,8 +203,8 @@ else
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_suggestion_frames,sprintf('Ground Truthing|Frames|Suggested|%s',iCls2LblNames{iCls}{1})};
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_nbouts,sprintf('Ground Truthing|Bouts|labeled|%s',iCls2LblNames{iCls}{1})};
     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_totalframes,sprintf('Ground Truthing|Frames|labeled|total|%s',iCls2LblNames{iCls}{1})};
-    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_posframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{1}) };
-    fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_negframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{2}) };
+%     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_posframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{1}) };
+%     fieldList(end+1,:) = { @(gs,cs)cs(iCls).gt_negframes,sprintf('Ground Truthing|Frames|labeled|%s',iCls2LblNames{iCls}{2}) };
   end
 end  
 
