@@ -391,7 +391,7 @@ classdef JLabelGUIData < handle
       handles=guidata(figureJLabel);  
         % note that we only read from handles, and we never write it back
         % to the figure
-      figpos = get(figureJLabel,'Position');
+      figpos = get(handles.figure_JLabel,'Position');
       panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
       % panel_learn_pos = get(handles.panel_learn,'Position');
       panel_timelines_pos = get(handles.panel_timelines,'Position');

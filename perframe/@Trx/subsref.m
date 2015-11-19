@@ -142,7 +142,7 @@ else
     end
   end
 end
-if nargout < numel(res),
+if nargout>0 && nargout < numel(res),
   if numel(res) == 1,
     varargout{1:nargout} = res{1};
   else
