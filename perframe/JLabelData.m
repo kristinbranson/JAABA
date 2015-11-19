@@ -6531,7 +6531,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
         pd = obj.predictdata{expi}{flyNum}(iCls);
         
-        if pd.loaded_valid(1)
+        if ~isempty(pd.loaded_valid) && pd.loaded_valid(1)
           idxcurr = pd.loaded_valid;
           flyStats(iCls).nscoreframes_loaded = nnz(idxcurr);
           flyStats(iCls).nscorepos_loaded = nnz(pd.loaded(idxcurr)>0);
@@ -9623,7 +9623,13 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Set the JAABA version
       try 
-        vid = fopen('version.txt','r');
+        
+        if isdeployed,
+          verfilename = deployedRelative2Global('version.txt');
+        else
+          verfilename = 'version.txt';
+        end
+        vid = fopen(verfilename,'r');
         vv = textscan(vid,'%s');
         fclose(vid);
         obj.version = vv{1}{1};

@@ -197,6 +197,70 @@
     
     <absyaw trans_types="none" type="compatbility"/>
 
+    <angle_biggest_wing trans_types="none" type="wing_appearance"/>
+
+    <angle_smallest_wing trans_types="none" type="wing_appearance"/>
+
+    <area_inmost_wing trans_types="none,relative" type="wing_appearance"/>
+
+    <area_outmost_wing trans_types="none,relative" type="wing_appearance"/>
+
+    <dangle_biggest_wing trans_types="none,abs,flip" type="wing_movement"/>
+
+    <dangle_smallest_wing trans_types="none,abs,flip" type="wing_movement"/>
+    
+    <darea_inmost_wing trans_types="none,abs,relative" type="wing_movement"/>
+
+    <darea_outmost_wing trans_types="none,abs,relative" type="wing_movement"/>
+
+    <dmax_wing_angle trans_types="none,abs" type="wing_movement"/>
+
+    <dmax_wing_area trans_types="none,abs,relative" type="wing_movement"/>
+
+    <dmin_wing_angle trans_types="none,abs" type="wing_movement"/>
+
+    <dmin_wing_area trans_types="none,abs,relative" type="wing_movement"/>
+
+    <dnwingsdetected trans_types="none,abs" type="wing_appearance"/>
+
+    <dwing_angle_diff trans_types="none,abs" type="wing_movement"/>
+
+    <dwing_angle_imbalance trans_types="none,abs" type="wing_movement"/>
+
+    <max_absdwing_angle trans_types="none" type="wing_movement"/>
+
+    <max_absdwing_area trans_types="none,relative" type="wing_movement"/>
+
+    <max_dwing_angle_in trans_types="none" type="wing_movement"/>
+
+    <max_dwing_angle_out trans_types="none" type="wing_movement"/>
+
+    <max_wing_angle trans_types="none" type="wing_appearance"/>
+
+    <max_wing_area trans_types="none,relative" type="wing_appearance"/>
+
+    <mean_wing_angle trans_types="none" type="wing_appearance"/>
+
+    <mean_wing_area trans_types="none,relative" type="wing_appearance"/>
+
+    <min_absdwing_angle trans_types="none" type="wing_movement"/>
+
+    <min_absdwing_area trans_types="none,relative" type="wing_movement"/>
+
+    <min_dwing_angle_in trans_types="none" type="wing_movement"/>
+
+    <min_dwing_angle_out trans_types="none" type="wing_movement"/>
+
+    <min_wing_angle trans_types="none" type="wing_appearance"/>
+
+    <min_wing_area trans_types="none,relative" type="wing_appearance"/>
+
+    <nwingsdetected trans_types="none" type="wing_appearance"/>
+
+    <wing_angle_diff trans_types="none" type="wing_appearance"/>
+
+    <wing_angle_imbalance trans_types="none" type="wing_appearance"/>
+
 <hf_01_01_1 trans_types="none" type="hog"/>
 <hf_01_01_2 trans_types="none" type="hog"/>
 <hf_01_01_3 trans_types="none" type="hog"/>
