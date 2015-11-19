@@ -340,6 +340,24 @@ else
 end
 handles.filename = fullfile(pathname,filename);
 [handles.filedir,handles.filenamebase,handles.fileext] = fileparts(handles.filename);
+if strcmp(handles.fileext,'.mjpg'),
+  
+  res = questdlg('Is this an indexed MJPG file? If so, you will be prompted to select the corresponding index file location.');
+  if strcmpi(res,'Yes'),
+    
+    defaultindexfile = fullfile(handles.filedir,'index.txt');
+    if ~exist(defaultindexfile,'file'),
+      defaultindexfile = handles.filedir;
+    end
+    [indexfilename,indexpath] = uigetfile('*.txt','Choose MJPG index file',defaultindexfile);
+    if ~ischar(indexfilename),
+      return;
+    end
+    handles.indexfilename = fullfile(indexpath,indexfilename);
+    varargin = [varargin,{'indexfilename',handles.indexfilename}];
+  end
+  
+end
 
 if isfield(handles,'fid') && ~isempty(fopen(handles.fid)) && handles.fid > 1,
   fclose(handles.fid);
