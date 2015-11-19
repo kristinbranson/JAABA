@@ -6531,7 +6531,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
         pd = obj.predictdata{expi}{flyNum}(iCls);
         
-        if pd.loaded_valid(1)
+        if ~isempty(pd.loaded_valid) && pd.loaded_valid(1)
           idxcurr = pd.loaded_valid;
           flyStats(iCls).nscoreframes_loaded = nnz(idxcurr);
           flyStats(iCls).nscorepos_loaded = nnz(pd.loaded(idxcurr)>0);

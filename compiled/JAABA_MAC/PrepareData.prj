@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Standalone Application" name="PrepareData" location="/Users/kabram/Documents/JAABA/compiled" file="/Users/kabram/Documents/JAABA/compiled/PrepareData.prj" build-checksum="3162977942">
-    <param.project.name>/Users/kabram/Documents/JAABA/compiled/PrepareData.prj</param.project.name>
+  <configuration target="target.standalone" target-name="Standalone Application" name="PrepareData" location="/Users/kabram/Work/JAABA/compiled/JAABA_MAC" file="/Users/kabram/Work/JAABA/compiled/JAABA_MAC/PrepareData.prj" build-checksum="3172676809">
+    <param.project.name>/Users/kabram/Work/JAABA/compiled/JAABA_MAC/PrepareData.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>PrepareData</param.appname>
     <param.intermediate>${PROJECT_ROOT}/PrepareData/src</param.intermediate>
@@ -57,13 +57,15 @@
       <param.log.file />
       <param.user.defined.mcr.options />
     </unset>
-    <fileset.main />
+    <fileset.main>
+      <file>/Users/kabram/Work/JAABA/perframe/PrepareJAABAData_compiled.m</file>
+    </fileset.main>
     <fileset.resources />
     <fileset.package />
     <build-deliverables>
-      <file name="PrepareData.app" location="${PROJECT_ROOT}/PrepareData/distrib" optional="false">/Users/kabram/Documents/JAABA/compiled/PrepareData/distrib/PrepareData.app</file>
-      <file name="readme.txt" location="${PROJECT_ROOT}/PrepareData/distrib" optional="true">/Users/kabram/Documents/JAABA/compiled/PrepareData/distrib/readme.txt</file>
-      <file name="run_PrepareData.sh" location="${PROJECT_ROOT}/PrepareData/distrib" optional="false">/Users/kabram/Documents/JAABA/compiled/PrepareData/distrib/run_PrepareData.sh</file>
+      <file name="run_PrepareData.sh" location="${PROJECT_ROOT}/PrepareData/distrib" optional="false">/Users/kabram/Work/JAABA/compiled/JAABA_MAC/PrepareData/distrib/run_PrepareData.sh</file>
+      <file name="PrepareData.app" location="${PROJECT_ROOT}/PrepareData/distrib" optional="false">/Users/kabram/Work/JAABA/compiled/JAABA_MAC/PrepareData/distrib/PrepareData.app</file>
+      <file name="readme.txt" location="${PROJECT_ROOT}/PrepareData/distrib" optional="true">/Users/kabram/Work/JAABA/compiled/JAABA_MAC/PrepareData/distrib/readme.txt</file>
     </build-deliverables>
     <workflow />
     <matlab>
