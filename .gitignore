@@ -5,3 +5,14 @@
 *.bak
 #*#
 perframe/.PrepareJAABAData_rc.mat
+*.db
+*.mov
+*.avi
+*.prj
+*.pl
+*.jab
+*.zip
+*.out
+*.pdf
+*.mat
+untitled*.m
