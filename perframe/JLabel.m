@@ -780,10 +780,14 @@ end
 
 [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
 if handles.guidata.behaviorFocusOn
-  predidx1 = pred.predictedidx(iClsFoc,1);
-  if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
-    cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
-    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
+  if ~isempty(pred.predictedidx)
+    predidx1 = pred.predictedidx(iClsFoc,1);
+    if t0<=handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0
+      cur_scores = handles.data.NormalizeScores(pred.scoresidx(iClsFoc,1),iClsFoc);
+      set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
+    else
+      set(handles.text_scores,'String','');
+    end
   else
     set(handles.text_scores,'String','');
   end
