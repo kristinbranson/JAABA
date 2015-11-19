@@ -124,7 +124,7 @@ set(handles.slider_Frame,'Callback','');
 if numel(varargin) >= 2 && exist(varargin{2},'file'),
   filename = varargin{2};
   try
-    handles = open_fmf(handles,filename);
+    handles = open_fmf(handles,filename,varargin{3:end});
   catch
     handles = open_fmf(handles);
   end
@@ -302,7 +302,7 @@ function menu_File_Open_Callback(hObject, eventdata, handles)
 handles = open_fmf(handles);
 guidata(hObject,handles);
 
-function handles = open_fmf(handles,filename)
+function handles = open_fmf(handles,filename,varargin)
 
 global ISPLAYING;
 
@@ -318,6 +318,7 @@ handles.filterspec = {  '*.ufmf','MicroFlyMovieFormat (*.ufmf)'; ...
   '*.mp4','MP4 (*.mp4)'
   '*.mov','MOV (*.mov)'
   '*.mmf','MMF (*.mmf)'
+  '*.mjpg','MJPG (*.mjpg)'
   '*.*','*.*'};
 
 if isfield(handles,'fileext'),
@@ -349,7 +350,7 @@ end
 
 try
   [handles.readframe,handles.nframes,handles.fid,handlies.headerinfo] = ...
-    get_readframe_fcn(handles.filename);
+    get_readframe_fcn(handles.filename,varargin{:});
 catch ME
   s = sprintf('Could not read video %s.',filename);
   uiwait(errordlg(s,'Error opening video'));
