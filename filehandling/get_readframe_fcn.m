@@ -116,132 +116,91 @@ elseif strcmpi(ext,'.mat'),
       error('Do not know how to parse mat file of type %s',videofiletype);
   end
   
-elseif strcmpi(ext,'.seq'),
-  [indexfilename,seqtype] = myparse(varargin,'indexfilename',0,'seqtype',0);
-  
-  if ischar(indexfilename),
-    seqtype = 'shay';
-  end
-  
-  % get file names
-  if ispc && ~exist(filename,'file'),
-      
-    [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
-    if ~didfind,
-      error('Could not find movie file %s',filename);
-    end
-    filename0 = filename;
-    % use actualfilename instead
-    filename = actualfilename;
-      
-    % try the index file using the original filename
-    if ~ischar(indexfilename),
-      indexfilename = regexprep(filename0,'seq$','mat');
-      [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
-      if ~didfind && ~strcmp(filename0,filename),
-        % try to find the index file using the source filename
-        indexfilename = regexprep(filename,'seq$','mat');
-        [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
-        % if didn't find index file, then maybe this is a piotr seq file
-        if ~didfind,
-          if ischar(seqtype) && strcmpi(seqtype,'shay'),
-            error('Could not find index file for %s',filename);
-          else
-            seqtype = 'piotr';
-          end
-        end
-      end
-    end
-    
-  else
-    
-    % set seqtype to piotr if indexfilename doesn't exist
-    if ~ischar(seqtype) && ~ischar(indexfilename),
-      indexfilename = regexprep(filename,'seq$','mat');
-      if ~exist(indexfilename,'file'),
-        seqtype = 'piotr';
-      end
-    end
-    
-  end
-    
-  % get actual filename for shortcuts
-  if strcmpi(seqtype,'piotr'),
-    warning('Closing file currently not implemented for Piotr''s seq files...');
-    headerinfo = seqIo(filename,'getinfo');
-    headerinfo.nr = headerinfo.height;
-    headerinfo.nc = headerinfo.width;
-    headerinfo.nframes = headerinfo.numFrames;
-    headerinfo.type = 'seq_piotr';
-    fid = 0;
-    nframes = headerinfo.numFrames;
-    sr = seqIo(filename,'r');
-    readframe = @(f) seq_read_frame_piotr(f,sr);
-  else
-    
-    if ischar(indexfilename),
-      headerinfo = r_readseqinfo(filename,indexfilename);
-    else
-      headerinfo = r_readseqinfo(filename);
-    end
-    if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
-      headerinfo.m_iNumFrames = numel(headerinfo.m_aiSeekPos);
-    end
-    headerinfo.nr = headerinfo.m_iHeight;
-    headerinfo.nc = headerinfo.m_iWidth;
-    headerinfo.nframes = headerinfo.m_iNumFrames;
-    headerinfo.type = 'seq';
-    fid = 0;
-    nframes = headerinfo.m_iNumFrames;
-    readframe = @(f) read_seq_frame(headerinfo,f);
-  end
 else
   fid = 0;
-  if CTRAX_ISVIDEOIO,
-    readerobj = videoReader(filename,'preciseFrames',30,'frameTimeoutMS',5000);
-    info = getinfo(readerobj);
-    nframes = info.numFrames;
-    seek(readerobj,0);
-    seek(readerobj,1);
-    readframe = @(f) videoioreadframe(readerobj,f);
-    headerinfo = info;
-    headerinfo.type = 'avi';
-  else
-    try
-    readerobj = VideoReader(filename);
-    nframes = get(readerobj,'NumberOfFrames');
-    if isempty(nframes),
-      % approximate nframes from duration
-      nframes = get(readerobj,'Duration')*get(readerobj,'FrameRate');
+  
+  isindexedmjpg = false;
+  if strcmpi(ext,'.mjpg'),
+    [indexfilename] = myparse(varargin,'indexfilename',0);
+    if ischar(indexfilename),
+      isindexedmjpg = true;
     end
-    %readframe = @(f) flipdim(read(readerobj,f),1);
-    headerinfo = get(readerobj);
-    headerinfo.type = 'avi';
-    headerinfo.nr = headerinfo.Height;
-    headerinfo.nc = headerinfo.Width;
-    if isfield(headerinfo,'NumberOfFrames'),
-      headerinfo.nframes = headerinfo.NumberOfFrames;
-    elseif isfield(headerinfo,'Duration') && isfield(headerinfo,'FrameRate'),
-      headerinfo.nframes = headerinfo.Duration*headerinfo.FrameRate;
-    end
-    readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
-    catch ME_videoreader,
-      
-      % try using aviread
-      try
-        headerinfo = aviinfo(filename); %#ok<FREMO>
-        nframes = headerinfo.NumFrames;
-        fps = headerinfo.FramesPerSecond;
-
-        readframe = @(f) aviread_helper(filename,f,fps);
-        headerinfo.type = 'avi';
-        fid = -1;
-      catch ME_aviread,
-        error('Could not open file %s with VideoReader (%s) or with aviread (%s)',...
-          filename,getReport(ME_videoreader),getReport(ME_aviread));
+  end
+  
+  if isindexedmjpg,
+    % get file names
+    if ispc && ~exist(filename,'file'),
+      [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+      if ~didfind,
+        error('Could not find movie file %s',filename);
       end
-      
-      
+      filename0 = filename;
+      % use actualfilename instead
+      filename = actualfilename;
+
+      [actualindexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+      if ~didfind,
+        error('Could not find index file %s',indexfilename);
+      end
+      indexfilename0 = indexfilename;
+      % use actualfilename instead
+      indexfilename = actualindexfilename;
+    end
+
+    headerinfo = ReadIndexedMJPGHeader(filename,indexfilename);
+    headerinfo.fid = 0;
+    nframes = headerinfo.nframes;
+    readframe = @(f) read_mjpg_frame(headerinfo,f);
+  
+  else
+  
+    
+    if CTRAX_ISVIDEOIO,
+      readerobj = videoReader(filename,'preciseFrames',30,'frameTimeoutMS',5000);
+      info = getinfo(readerobj);
+      nframes = info.numFrames;
+      seek(readerobj,0);
+      seek(readerobj,1);
+      readframe = @(f) videoioreadframe(readerobj,f);
+      headerinfo = info;
+      headerinfo.type = 'avi';
+    else
+      try
+        readerobj = VideoReader(filename);
+        nframes = get(readerobj,'NumberOfFrames');
+        if isempty(nframes),
+          % approximate nframes from duration
+          nframes = get(readerobj,'Duration')*get(readerobj,'FrameRate');
+        end
+        %readframe = @(f) flipdim(read(readerobj,f),1);
+        headerinfo = get(readerobj);
+        headerinfo.type = 'avi';
+        headerinfo.nr = headerinfo.Height;
+        headerinfo.nc = headerinfo.Width;
+        if isfield(headerinfo,'NumberOfFrames'),
+          headerinfo.nframes = headerinfo.NumberOfFrames;
+        elseif isfield(headerinfo,'Duration') && isfield(headerinfo,'FrameRate'),
+          headerinfo.nframes = headerinfo.Duration*headerinfo.FrameRate;
+        end
+        readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+      catch ME_videoreader,
+        
+        % try using aviread
+        try
+          headerinfo = aviinfo(filename); %#ok<FREMO>
+          nframes = headerinfo.NumFrames;
+          fps = headerinfo.FramesPerSecond;
+          
+          readframe = @(f) aviread_helper(filename,f,fps);
+          headerinfo.type = 'avi';
+          fid = -1;
+        catch ME_aviread,
+          error('Could not open file %s with VideoReader (%s) or with aviread (%s)',...
+            filename,getReport(ME_videoreader),getReport(ME_aviread));
+        end
+        
+        
+      end
     end
   end
 end

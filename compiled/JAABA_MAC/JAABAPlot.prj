@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Standalone Application" name="JAABAPlot" location="/Users/kabram/Documents/JAABA/compiled" file="/Users/kabram/Documents/JAABA/compiled/JAABAPlot.prj" build-checksum="409823490">
-    <param.project.name>/Users/kabram/Documents/JAABA/compiled/JAABAPlot.prj</param.project.name>
+  <configuration target="target.standalone" target-name="Standalone Application" name="JAABAPlot" location="/Users/kabram/Work/JAABA/compiled/JAABA_MAC" file="/Users/kabram/Work/JAABA/compiled/JAABA_MAC/JAABAPlot.prj" build-checksum="4286286301">
+    <param.project.name>/Users/kabram/Work/JAABA/compiled/JAABA_MAC/JAABAPlot.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>JAABAPlot</param.appname>
     <param.intermediate>${PROJECT_ROOT}/JAABAPlot/src</param.intermediate>
@@ -56,30 +56,23 @@
       <param.user.defined.mcr.options />
     </unset>
     <fileset.main>
-      <file>/Users/kabram/Documents/JAABA/perframe/JAABAPlot.m</file>
+      <file>/Users/kabram/Work/JAABA/perframe/JAABAPlot_compiled.m</file>
     </fileset.main>
     <fileset.resources>
-      <file>/Users/kabram/Documents/JAABA/filehandling</file>
-      <file>/Users/kabram/Documents/JAABA/misc</file>
-      <file>/Users/kabram/Documents/JAABA/misc/javasysmon-0.3.4.jar</file>
+      <file>/Users/kabram/Work/JAABA/filehandling</file>
+      <file>/Users/kabram/Work/JAABA/misc</file>
+      <file>/Users/kabram/Work/JAABA/misc/javasysmon-0.3.4.jar</file>
     </fileset.resources>
     <fileset.package />
     <build-deliverables>
-      <file name="JAABAPlot.app" location="${PROJECT_ROOT}/JAABAPlot/distrib" optional="false">/Users/kabram/Documents/JAABA/compiled/JAABAPlot/distrib/JAABAPlot.app</file>
-      <file name="run_JAABAPlot.sh" location="${PROJECT_ROOT}/JAABAPlot/distrib" optional="false">/Users/kabram/Documents/JAABA/compiled/JAABAPlot/distrib/run_JAABAPlot.sh</file>
-      <file name="readme.txt" location="${PROJECT_ROOT}/JAABAPlot/distrib" optional="true">/Users/kabram/Documents/JAABA/compiled/JAABAPlot/distrib/readme.txt</file>
+      <file name="readme.txt" location="${PROJECT_ROOT}/JAABAPlot/distrib" optional="true">/Users/kabram/Work/JAABA/compiled/JAABA_MAC/JAABAPlot/distrib/readme.txt</file>
+      <file name="JAABAPlot.app" location="${PROJECT_ROOT}/JAABAPlot/distrib" optional="false">/Users/kabram/Work/JAABA/compiled/JAABA_MAC/JAABAPlot/distrib/JAABAPlot.app</file>
+      <file name="run_JAABAPlot.sh" location="${PROJECT_ROOT}/JAABAPlot/distrib" optional="false">/Users/kabram/Work/JAABA/compiled/JAABA_MAC/JAABAPlot/distrib/run_JAABAPlot.sh</file>
     </build-deliverables>
     <workflow />
     <matlab>
       <root>/Applications/MATLAB_R2012a.app</root>
       <path>
-        <directory>/Users/kabram/Documents/JAABA/tests</directory>
-        <directory>/Users/kabram/Documents/JAABA/perframe/params</directory>
-        <directory>/Users/kabram/Documents/JAABA/perframe/larva_compute_perframe_features</directory>
-        <directory>/Users/kabram/Documents/JAABA/perframe/compute_perframe_features</directory>
-        <directory>/Users/kabram/Documents/JAABA/filehandling</directory>
-        <directory>/Users/kabram/Documents/JAABA/misc</directory>
-        <directory>/Users/kabram/Documents/JAABA/perframe</directory>
         <directory>/Users/kabram/Documents/MATLAB</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/demos</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/graph2d</directory>
