@@ -90,6 +90,10 @@ handles = UpdateGUIPrompts(handles);
 
 set(handles.radiobutton_useVideoWriter,'Value',handles.useVideoWriter);
 set(handles.radiobutton_useAviFile,'Value',~handles.useVideoWriter);
+if ~jlgd.mat_lt_8p4,
+  set(handles.radiobutton_useVideoWriter,'enable','off')
+  set(handles.radiobutton_useAviFile,'enable','off');
+end
 %i = find(strcmpi(handles.compression_format,handles.compression_formats),1);
 %set(handles.popupmenu_compression_profile,'Value',i);
 set(handles.edit_fps,'String',num2str(handles.fps));

@@ -306,6 +306,11 @@ classdef JLabelGUIData < handle
       else
         obj.mat_lt_8p5 = false;
       end
+      
+      if ~obj.mat_lt_8p4
+        obj.useVideoWriter = true;
+      end
+      
     end
    
     % ---------------------------------------------------------------------

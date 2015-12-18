@@ -3763,6 +3763,8 @@ classdef JLabelData < matlab.mixin.Copyable
           missingts = missingts(~toremove); % vectors, labeled frames for this classiifer which are not in this classifier's windowdata
           object = object(~toremove); % structs, dummy object for this exp/fly/classifier
          
+          if Nfliescurr==0, continue; end
+          
           for flyi = 1:Nfliescurr
             flies = flies_curr(flyi,:); 
             object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
@@ -4972,9 +4974,12 @@ classdef JLabelData < matlab.mixin.Copyable
               end
               
               obj.classifier_old{iCls} = obj.classifier{iCls};
-              [obj.windowdata(iCls).binVals] = findThresholds(...
-                obj.windowdata(iCls).X(islabeled,:),...
-                obj.classifier_params{iCls},'deterministic',obj.deterministic);
+              if checkThresholds(obj.windowdata(iCls).X(islabeled,:),...
+                  obj.classifier_params{iCls},obj.windowdata(iCls).binVals),
+                [obj.windowdata(iCls).binVals] = findThresholds(...
+                  obj.windowdata(iCls).X(islabeled,:),...
+                  obj.classifier_params{iCls},'deterministic',obj.deterministic);
+              end
               bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
                 obj.windowdata(iCls).binVals);
               
