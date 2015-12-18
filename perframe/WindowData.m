@@ -116,7 +116,7 @@ classdef WindowData
         wd(i).labelidx_imp(tfRm,:) = [];
         wd(i).labelidx_old(tfRm,:) = [];
         wd(i).distNdx = [];
-        wd(i).binVals = [];
+%        wd(i).binVals = [];
         wd(i).scores_validated(tfRm,:) = [];
         
 %         wd(i).isvalidprediction(idxcurr(1:numel(wd(i).isvalidprediction))) = [];
