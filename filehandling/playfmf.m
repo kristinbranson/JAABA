@@ -116,9 +116,12 @@ end
 
 % set callback for slider motion
 fcn = get(handles.slider_Frame,'Callback');
-handles.hslider_listener = handle.listener(handles.slider_Frame,...
-  'ActionEvent',fcn);
-set(handles.slider_Frame,'Callback','');
+
+if verLessThan('matlab','8.4.0')
+  handles.hslider_listener = handle.listener(handles.slider_Frame,...
+    'ActionEvent',fcn);
+  set(handles.slider_Frame,'Callback','');
+end
 
 % open video
 if numel(varargin) >= 2 && exist(varargin{2},'file'),
