@@ -17,6 +17,7 @@ classdef Macguffin < handle
     expDirNames
     gtExpDirNames
     classifierStuff
+    gtSuggestions
     extra=struct()  % a structure that stores additional information
     version=''
       % 0.5.0 : Original
@@ -121,6 +122,14 @@ classdef Macguffin < handle
       if isprop(jld,'usePastOnly'),
         self.extra.usePastOnly = jld.usePastOnly;
       end
+      
+      % save GTSuggestions by default
+      self.gtSuggestions.GTSuggestionMode = jld.GTSuggestionMode;
+      self.gtSuggestions.randomGTSuggestions = jld.randomGTSuggestions;
+      self.gtSuggestions.thresholdGTSuggestions = jld.thresholdGTSuggestions ;
+      self.gtSuggestions.loadedGTSuggestions = jld.loadedGTSuggestions;
+      self.gtSuggestions.balancedGTSuggestions = jld.balancedGTSuggestions ;
+
 
     end  % method
 
