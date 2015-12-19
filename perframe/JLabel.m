@@ -7095,7 +7095,7 @@ for i = 1:numel(handles.data.randomGTSuggestions),
 end
 
 handles = NavigateToGTSuggestion(handles,GTSuggestions);
-
+UpdateEnablementAndVisibilityOfControls(handles);
 UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',true,...
@@ -7103,6 +7103,7 @@ UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
   'refresh_timeline_hcurr',true,...
   'refresh_timeline_selection',true,...
   'refresh_curr_prop',true);
+
 return
 
 function handles = NavigateToGTSuggestion(handles,GTSuggestions)
@@ -7169,6 +7170,9 @@ set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','on');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 
+handles.data.GTSuggestionMode = '';
+handles.data.needsave = true;
+
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
@@ -7178,6 +7182,7 @@ UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+UpdateEnablementAndVisibilityOfControls(handles);
 return
 
 
@@ -7234,7 +7239,7 @@ UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
   'refresh_timeline_hcurr',true,...
   'refresh_timeline_selection',true,...
   'refresh_curr_prop',true);
-
+UpdateEnablementAndVisibilityOfControls(handles);
 return
 
 
@@ -7256,8 +7261,8 @@ handles.data.setGTSuggestionMode('Imported', ...
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 handles = UpdateTimelineImages(handles);
 
 if iscell(handles.data.loadedGTSuggestions),
@@ -7290,9 +7295,76 @@ UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
   'refresh_timeline_selection',true,...
   'refresh_curr_prop',true);
 
-
+UpdateEnablementAndVisibilityOfControls(handles)
 return
 
+function updateGTSuggestions(handles,hObject)
+
+set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
+set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
+
+GTSuggestions = [];
+switch handles.data.GTSuggestionMode,
+  case 'Random'
+    set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
+    set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+    GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
+    for i = 1:numel(handles.data.randomGTSuggestions),
+      for j = 1:numel(handles.data.randomGTSuggestions{i}),
+        for k = 1:numel(handles.data.randomGTSuggestions{i}(j).start),
+          GTSuggestions(end+1) = struct('start',handles.data.randomGTSuggestions{i}(j).start(k),...
+            'end',handles.data.randomGTSuggestions{i}(j).end(k),...
+            'exp',i,'flies',j);
+        end
+      end
+    end
+  case 'Balanced'
+    set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','on');
+    set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+    GTSuggestions = handles.data.balancedGTSuggestions;
+  case 'Imported'
+    set(handles.menu_view_suggest_gt_intervals_load,'Checked','on');
+    set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+    if iscell(handles.data.loadedGTSuggestions),
+      GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
+      for i = 1:numel(handles.data.loadedGTSuggestions),
+        for j = 1:numel(handles.data.loadedGTSuggestions{i}),
+          for k = 1:numel(handles.data.loadedGTSuggestions{i}(j).start),
+            if handles.data.loadedGTSuggestions{i}(j).start(k) > handles.data.loadedGTSuggestions{i}(j).end(k),
+              continue;
+            end
+            GTSuggestions(end+1) = struct('start',handles.data.loadedGTSuggestions{i}(j).start(k),...
+              'end',handles.data.loadedGTSuggestions{i}(j).end(k),...
+              'exp',i,'flies',j);
+          end
+        end
+      end
+    else
+      GTSuggestions = handles.data.loadedGTSuggestions;
+    end
+  case 'Threshold'
+  case ''
+    set(handles.menu_view_suggest_gt_intervals_none,'Checked','on');
+  otherwise
+    error('Undefined groun truth suggestion mode:%s',handles.data.GTSuggestionMode)
+end
+
+handles = UpdateTimelineImages(handles);
+if isempty(GTSuggestions),
+  handles = NavigateToGTSuggestion(handles,GTSuggestions);
+end
+guidata(hObject,handles);
+UpdatePlots(handles,'refreshim',true,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
+UpdateEnablementAndVisibilityOfControls(handles)
 
 % --------------------------------------------------------------------
 function menu_classifier_compute_gt_performance_Callback(hObject, eventdata, handles)
@@ -7990,6 +8062,10 @@ UpdateEnablementAndVisibilityOfControls(handles);
 
 % Done, set status message to cleared message, pointer to normal
 syncStatusBarTextWhenClear(handles);
+if groundTruthingMode
+  updateGTSuggestions(handles,figureJLabel);
+end
+
 ClearStatus(handles);
 
 % write the handles back to figure

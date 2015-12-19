@@ -1621,16 +1621,28 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      if ~isempty(obj.randomGTSuggestions)
-        assert(numel(obj.randomGTSuggestions)==origNExp);
-        obj.randomGTSuggestions(expi) = [];
+      if obj.gtMode,
+        if ~isempty(obj.randomGTSuggestions)
+          dirstoremove = expi;
+          dirstoremove(dirstoremove > numel(obj.randomGTSuggestions))=[];
+          obj.randomGTSuggestions(dirstoremove) = [];
+        end
+        
+        if ~isempty(obj.loadedGTSuggestions)
+          dirstoremove = expi;
+          dirstoremove(dirstoremove > numel(obj.loadedGTSuggestions))=[];
+          obj.loadedGTSuggestions(dirstoremove) = [];
+        end
+        
+        if ~isempty(obj.balancedGTSuggestions)
+          expidx = [obj.balancedGTSuggestions.exp];
+          toremove = ismember(expidx,expi);
+          obj.balancedGTSuggestions(toremove) = [];
+          for ndx = 1:numel(obj.balancedGTSuggestions)
+            obj.balancedGTSuggestions(ndx).exp = newExpNumbers(obj.balancedGTSuggestions(ndx).exp);
+          end
+        end
       end
-      
-      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi 
-        assert(numel(obj.loadedGTSuggestions)==origNExp);
-        obj.loadedGTSuggestions(expi) = [];
-      end
-
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 
         if ismember(obj.expi,expi), % The current experiment was removed.
@@ -6952,17 +6964,25 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       newExpDirNames = cell(1,0);
       newLabels = Labels.labels(0);
+      removedDirs = [];
+      newExpNumbers = []; count = 0;
       for i = 1:length(expDirNames)
         expDirName = expDirNames{i};
         j = whichstr(expDirName,originalExpDirs);
         if isempty(j)
           newExpDirNames{end+1} = expDirNames{i};  %#ok
           newLabels(end+1) = labels(i);  %#ok
+          count = count+1;
+          newExpNumbers(i) = count;
         else
           if ~isempty(substituteExpDirs{j})
             newExpDirNames{end+1} = substituteExpDirs{j};  %#ok
             newLabels(end+1) = labels(i);  %#ok
+            count = count+1;
+            newExpNumbers(i) = count;
           else
+            removedDirs(end+1) = i;
+            newExpNumbers(i) = 0;
             % Empty new name for this experiment; experiment will not be added
           end
           substitutionsMade = true;
@@ -6971,6 +6991,34 @@ classdef JLabelData < matlab.mixin.Copyable
       if groundTruthingMode
         macguffin.gtExpDirNames = newExpDirNames;
         macguffin.gtLabels = newLabels;
+        
+        % Update GTSuggestions
+        % Not tested -- Mayank Dec 18 2015
+        if numel(removedDirs)>0
+          if ~isempty(macguffin.gtSuggestions.randomGTSuggestions)
+            % only remove dirs on which there were random suggestions.
+            nexp_suggestions = length(macguffin.gtSuggestions.randomGTSuggestions);
+            curdirs = removedDirs;
+            curdirs(curdirs>nexp_suggestions) = [];
+            macguffin.gtSuggestions.randomGTSuggestions(curdirs) = [];
+          end
+          if ~isempty(macguffin.gtSuggestions.loadedGTSuggestions) 
+            nexp_suggestions = length(macguffin.gtSuggestions.loadedGTSuggestions);
+            curdirs = removedDirs;
+            curdirs(curdirs>nexp_suggestions) = [];
+            macguffin.gtSuggestions.loadedGTSuggestions(curdirs) = [];
+          end
+          if ~isempty(macguffin.gtSuggestions.balancedGTSuggestions)
+            expidx = [macguffin.gtSuggestions.balancedGTSuggestions.exp];
+            toremove = ismember(expidx,removedDirs);
+            macguffin.gtSuggestions.balancedGTSuggestions(toremove) = [];
+            for ndx = 1:numel(macguffin.gtSuggestions.balancedGTSuggestions)
+              macguffin.gtSuggestions.balancedGTSuggestions(ndx).exp = ...
+                newExpNumbers(macguffin.gtSuggestions.balancedGTSuggestions(ndx).exp);
+            end
+          end
+        end
+        
       else
         macguffin.expDirNames = newExpDirNames;
         macguffin.labels = newLabels;
@@ -6978,6 +7026,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Set the JLD to match the Macguffin
       self.setMacguffin(macguffin,true);
+      
       
       % Store file-related stuff
       self.thereIsAnOpenFile = true;
@@ -7481,6 +7530,13 @@ classdef JLabelData < matlab.mixin.Copyable
           obj.usePastOnly = everythingParams.extra.usePastOnly;
         end
 
+        if isprop(everythingParams,'gtSuggestions')
+          obj.GTSuggestionMode = everythingParams.gtSuggestions.GTSuggestionMode;
+          obj.randomGTSuggestions = everythingParams.gtSuggestions.randomGTSuggestions;
+          obj.thresholdGTSuggestions = everythingParams.gtSuggestions.thresholdGTSuggestions ;
+          obj.loadedGTSuggestions = everythingParams.gtSuggestions.loadedGTSuggestions;
+          obj.balancedGTSuggestions = everythingParams.gtSuggestions.balancedGTSuggestions ;
+        end
 
   %       if isfield(basicParams,'scoreFeatures') ,
   %         obj.scoreFeatures = basicParams.scoreFeatures;
@@ -8997,12 +9053,16 @@ classdef JLabelData < matlab.mixin.Copyable
       switch modeString,
         case 'Random'
           [success,msg] = obj.SuggestRandomGT(varargin{:});
+          obj.needsave = true;
         case 'Balanced'
           [success,msg] = obj.SuggestBalancedGT(varargin{:});
+          obj.needsave = true;
         case 'Imported'
           [success,msg] = obj.SuggestLoadedGT(varargin{:});
+          obj.needsave = true;
         case 'Threshold'
           [success,msg] = obj.SuggestThresholdGT(varargin{:});
+          obj.needsave = true;
         otherwise
           error('JLabelData:noSuchGTSuggestionMode', ...
                 'Internal error: No such ground-truth suggestion mode');
@@ -9350,6 +9410,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       success = true;
       obj.GTSuggestionMode = 'Random';
+      obj.needsave = true;
     end
     
     
@@ -9467,7 +9528,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       obj.GTSuggestionMode = 'Balanced';
-      
+      obj.needsave = true;
     end
     
     
@@ -9533,6 +9594,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       obj.GTSuggestionMode = 'Imported';
+      obj.needsave = true;
       success = true;
     end
 
