@@ -7892,9 +7892,9 @@ end
 fileNameAbs=fullfile(pathname,filename);
 
 % Call the function that does the real work
-openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
+successfullyOpened = openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode);
 
-if handles.data.nexps == 0,
+if successfullyOpened && handles.data.nexps == 0,
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);  
 end
@@ -7909,7 +7909,9 @@ return
 
 
 % -------------------------------------------------------------------------
-function openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode,macguffin)
+function successfullyOpened = openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode,macguffin)
+
+successfullyOpened=false;
 
 if exist('macguffin','var')==0
   macguffin = [];
@@ -7932,7 +7934,6 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 % load the file
 % This is a loop because we try, then if we fail b/c an exp dir is missing,
 % we prompt the user to locate it, then try again, etc, etc.
-successfullyOpened=false;
 openCancelled=false;
 keepTrying=true;
 findinrootdir = false;
@@ -7987,16 +7988,16 @@ while ~successfullyOpened && keepTrying ,
               uigetdir(handles.data.expdefaultpath, ...
               'Locate Root dir to find Experiment Directories');
             
-            if isempty(rootdir)
+            if isempty(rootdir) || isnumeric(rootdir)
               % means user hit Cancel button
               keepTrying=false;
+              message = 'Cannot locate missing dirs';
+            else
+              if ~isempty(findMatchingFolder(rootdir,originalExpName))
+                originalExpDirs{end+1} = originalExpDir; %#ok<AGROW>
+                substituteExpDirs{end+1} = findMatchingFolder(rootdir,originalExpName); %#ok<AGROW>
+              end
             end
-
-            if ~isempty(findMatchingFolder(rootdir,originalExpName))
-              originalExpDirs{end+1} = originalExpDir; %#ok<AGROW>
-              substituteExpDirs{end+1} = findMatchingFolder(rootdir,originalExpName); %#ok<AGROW>
-            end
-            
           else
             
             [~,dname,~] = fileparts(originalExpName);
@@ -8891,11 +8892,11 @@ while true,
     
     % remove extra computation threads
     if verLessThan('matlab','8.3.0.532'),
-      if matlabpool('size') > computation_threads,
+      if matlabpool('size') > computation_threads, %#ok<DPOOL>
         SetStatus(handles,sprintf('Shrinking matlab pool to %d workers',computation_threads));
         pause(2);
-        matlabpool close;
-        matlabpool('open',computation_threads);
+        matlabpool close;   %#ok<DPOOL>
+        matlabpool('open',computation_threads);%#ok<DPOOL>
       end
     else
       c = gcp('nocreate');
@@ -8920,13 +8921,13 @@ while true,
    
     % add extra computation threads
     if verLessThan('matlab','8.3.0.532'),
-      if matlabpool('size') < computation_threads,
+      if matlabpool('size') < computation_threads,%#ok<DPOOL>
         SetStatus(handles,sprintf('Growing matlab pool to %d workers',computation_threads));
-        if matlabpool('size') > 0,
-          matlabpool close;
+        if matlabpool('size') > 0,%#ok<DPOOL>
+          matlabpool close;%#ok<DPOOL>
         end
         pause(1);
-        matlabpool('open',computation_threads);
+        matlabpool('open',computation_threads);%#ok<DPOOL>
         pause(1);
       end
     else

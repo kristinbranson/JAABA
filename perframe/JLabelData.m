@@ -7530,7 +7530,8 @@ classdef JLabelData < matlab.mixin.Copyable
           obj.usePastOnly = everythingParams.extra.usePastOnly;
         end
 
-        if isprop(everythingParams,'gtSuggestions')
+        if isprop(everythingParams,'gtSuggestions') && ...
+            isfield(everythingParams.gtSuggestions,'GTSuggestionMode')
           obj.GTSuggestionMode = everythingParams.gtSuggestions.GTSuggestionMode;
           obj.randomGTSuggestions = everythingParams.gtSuggestions.randomGTSuggestions;
           obj.thresholdGTSuggestions = everythingParams.gtSuggestions.thresholdGTSuggestions ;
