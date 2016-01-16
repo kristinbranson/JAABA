@@ -47,11 +47,12 @@ if nargin<10
   else
     frames2read=randsample(frames2sel,1);
   end
-  tl = []; tr = []; bl = []; br = [];
   img = readframe(frames2read);
 else
   img = frame; movie_fid = 0;
 end
+
+tl = []; tr = []; bl = []; br = [];
 
 if strcmp(method,'auto'),
   
