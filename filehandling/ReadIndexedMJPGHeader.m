@@ -14,7 +14,7 @@ indexdata = reshape(indexdata,[4,numel(indexdata)/4]);
 assert(all(indexdata(1,:) == 0:size(indexdata,2)-1));
 headerinfo.timestamp = indexdata(2,:);
 headerinfo.frame2file = indexdata(3,:);
-headerinfo.nframes = size(indexdata,2)-1;
+headerinfo.nframes = size(indexdata,2);
 
 % t = 0;
 % while true,

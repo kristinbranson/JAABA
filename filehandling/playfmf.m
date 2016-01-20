@@ -177,9 +177,9 @@ while true,
         break;
       end
       drawnow;
-  else
-    drawnow;
-  end
+    else
+      drawnow;
+    end
   else
     fnext = f+1;
     drawnow;
