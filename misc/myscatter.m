@@ -62,7 +62,14 @@ if ~cmisfun,
     colors = cm;
   end
 else
-  colors = cm(ncenters);
+  if ncenters < ncolors,
+    colors = cm(ncolors);
+    colors = colors(round(linspace(1,ncolors,ncenters)),:);
+    newncolors = ncolors;
+  else  
+    colors = cm(ncenters);
+    newncolors = ncenters;
+  end
 end
 
 h = zeros(1,ncenters);
@@ -84,7 +91,7 @@ if ~holdstate,
 end
 
 if cmisfun
-  colormap(cm());
+  colormap(cm(newncolors));
 else
   colormap(cm);
 end
