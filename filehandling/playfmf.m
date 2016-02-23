@@ -52,6 +52,9 @@ function playfmf_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to playfmf (see VARARGIN)
 
+
+handles.MAXSLIDERRES = 10^6;
+
 % Choose default command line output for playfmf
 handles.output = hObject;
 
@@ -149,20 +152,36 @@ handles = guidata(hObject);
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 ISPLAYING = true;
 tic;
-for f = handles.f:handles.nframes,
+t0 = now;
+fnext = handles.f;
+f0 = handles.f;
+while true,
   handles = guidata(hObject);
   if ~ISPLAYING,
     break;
   end
+  f = fnext;
   handles.f = f;
   handles = update_frame(handles,hObject);
   guidata(hObject,handles);
   if handles.MaxFPS > 0,
     tmp = toc;
+    t1 = now;
     if tmp < handles.MinSPF
-      pause(handles.MinSPF - tmp);
+      pause(handles.MinSPF - t1);
+      fnext = f + 1;
+    elseif tmp > handles.MinSPF,
+      fnext = max(1,f0+round((t1-t0)*24*3600/handles.MinSPF));
+      %fprintf('setting fnext to %d\n',fnext);
+      if fnext > handles.nframes,
+        break;
+      end
+      drawnow;
+    else
+      drawnow;
     end
   else
+    fnext = f+1;
     drawnow;
   end
   tic;
@@ -217,7 +236,8 @@ if hObject ~= handles.edit_Frame,
   set(handles.edit_Frame,'String',num2str(handles.f));
 end
 if hObject ~= handles.slider_Frame,
-  set(handles.slider_Frame,'Value',(handles.f-1)/(handles.nframes-1));
+  %set(handles.slider_Frame,'Value',(handles.f-1)/(handles.nframes-1));
+  set(handles.slider_Frame,'Value',handles.f);
 end
 update_frame_f = [];
 
@@ -229,10 +249,26 @@ function slider_Frame_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
 v = get(hObject,'Value');
-handles.f = round(1 + v * (handles.nframes - 1));
-handles = update_frame(handles,hObject);
+roundv = round(v);
+if roundv == handles.f,
+  if v > handles.f,
+    handles.f = min(handles.nframes,handles.f+1);
+  elseif v < handles.f,
+    handles.f = max(1,handles.f-1);
+  end
+else
+  handles.f = roundv;
+end
+
+handles = update_frame(handles);
 guidata(hObject,handles);
+
+% v = get(hObject,'Value');
+% handles.f = round(1 + v * (handles.nframes - 1));
+% handles = update_frame(handles,hObject);
+% guidata(hObject,handles);
 
 % --- Executes during object creation, after setting all properties.
 function slider_Frame_CreateFcn(hObject, eventdata, handles)
@@ -370,7 +406,7 @@ if isfield(handles,'himage') && ishandle(handles.himage),
 end
 
 try
-  [handles.readframe,handles.nframes,handles.fid,handlies.headerinfo] = ...
+  [handles.readframe,handles.nframes,handles.fid,handles.headerinfo] = ...
     get_readframe_fcn(handles.filename,varargin{:});
 catch ME
   s = sprintf('Could not read video %s.',filename);
@@ -379,8 +415,15 @@ catch ME
 end
 
 % set slider steps
-sliderstep = [1/(handles.nframes-1),min(1,100/(handles.nframes-1))];
-set(handles.slider_Frame,'Value',0,'SliderStep',sliderstep);
+% this seems to be the limit to slider step resolution
+handles.stepsize = ceil(handles.nframes/handles.MAXSLIDERRES);
+step1 = handles.stepsize/(handles.nframes-1);
+sliderstep = [step1,min(1,100*step1)];
+set(handles.slider_Frame,'Value',0,'SliderStep',sliderstep,'Min',1,'Max',handles.nframes);
+
+% % set slider steps
+% sliderstep = [1/(handles.nframes-1),min(1,100/(handles.nframes-1))];
+% set(handles.slider_Frame,'Value',0,'SliderStep',sliderstep);
 
 % show first image
 handles.f = 1;
