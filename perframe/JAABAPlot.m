@@ -2350,6 +2350,8 @@ switch(style)
     hfront = get(ha,'Children');
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
+      % if data_dp and data_dn match, then patch acts weird. Add some
+      % jitter to make it sane.
       patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx)+0.0001 fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
       k=k+step+1;  m=m+1;
     end
