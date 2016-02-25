@@ -383,16 +383,14 @@ parfor ge=1:length(handlesexperimentlist)
   end
 
   if(sexdata)
-    fullfile(handlesexperimentlist{ge},handles.perframe_dir,'sex.mat');
-    if(exist(ans,'file'))
-      tmp=load(ans);
-      cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
-      handlessexdata(ge)={ans};
+    fname = fullfile(handlesexperimentlist{ge},handles.perframe_dir,'sex.mat');
+    if(exist(fname,'file'))
+      tmp=load(fname);
+      handlessexdata(ge)={cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false)};
     else
       tmp=dir(fullfile(handlesexperimentlist{ge},handles.perframe_dir,'*.mat'));
       tmp=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,tmp(1).name));
-      cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
-      handlessexdata(ge)={ans};
+      handlessexdata(ge)={cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false)};
     end
   end
 
@@ -1321,17 +1319,15 @@ parfor n=1:length(newexperiments)
     handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
   end
 
-  fullfile(newexperiments{n},handles.perframe_dir,'sex.mat');
-  if(exist(ans,'file'))
-    tmp=load(ans);
-    cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
-    handlessexdata(n)={ans};
+  fname = fullfile(newexperiments{n},handles.perframe_dir,'sex.mat');
+  if(exist(fname,'file'))
+    tmp=load(fname);
+    handlessexdata(n)={cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false)};
   else
     tmp=dir(fullfile(newexperiments{n},handles.perframe_dir,'*.mat'));
     if(~isempty(tmp))
       tmp=load(fullfile(newexperiments{n},handles.perframe_dir,tmp(1).name));
-      cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
-      handlessexdata(n)={ans};
+      handlessexdata(n)={cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false)};
     else
       idx_error(n)=true;
       continue;
@@ -2390,6 +2386,13 @@ if(isempty(feature_data.data))
   during=[];
   not_during=[];
   return;
+end
+
+% Fix sexdata to make sure that its length matches feature_data
+for ndx = 1:numel(sexdata)
+  if numel(sexdata{ndx})==1 && numel(sexdata{ndx})~= numel(feature_data.data{ndx})
+    sexdata{ndx}  = repmat(sexdata{ndx},1,numel(feature_data.data{ndx}));
+  end
 end
 
 if(iscell(feature_data.data{1}))
@@ -3514,6 +3517,12 @@ if(iscell(feature_data.data{1}))
   feature_data.data=cellfun(@(x) strcmp(x,vals{1}),feature_data.data,'uniformoutput',false);
 end
 
+for ndx = 1:numel(sexdata)
+  if numel(sexdata{ndx})==1 && numel(sexdata{ndx})~= numel(feature_data.data{ndx})
+    sexdata{ndx}  = repmat(sexdata{ndx},1,numel(feature_data.data{ndx}));
+  end
+end
+
 if(isempty(behavior_data))
   behavior_data.allScores.tStart=1;
   behavior_data.allScores.tEnd=max(cellfun(@length,feature_data.data))+1;
@@ -3546,6 +3555,12 @@ function triggered_data=calculate_triggeredtimeseries(behavior_data,behavior_log
     feature_data,sexdata,individual,timing,windowradius,subtractmean,behaviornot)
 
 timing=2+xor(timing-2,behaviornot);
+
+for ndx = 1:numel(sexdata)
+  if numel(sexdata{ndx})==1 && numel(sexdata{ndx})~= numel(feature_data.data{ndx})
+    sexdata{ndx}  = repmat(sexdata{ndx},1,numel(feature_data.data{ndx}));
+  end
+end
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
