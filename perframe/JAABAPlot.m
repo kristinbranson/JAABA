@@ -2350,7 +2350,7 @@ switch(style)
     hfront = get(ha,'Children');
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
-      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
+      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx)+0.0001 fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
       k=k+step+1;  m=m+1;
     end
     hback = setdiff(get(ha,'Children'),hfront);
