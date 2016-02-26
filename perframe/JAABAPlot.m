@@ -5956,10 +5956,16 @@ function MenuFile_Callback(hObject, eventdata, handles)
 function figure_stats_callback(src,evt)
 
 handles=guidata(src);
+if verLessThan('matlab','8.4.0')
+   fignum = num2str(gcbf);
+else
+  figHandle = gcbf;
+  fignum = figHandle.Number;
+end
 
 len=max(cellfun(@(x) length(regexprep(num2str(x),'<[^<]*>','*')),handles.statistics));
 hf=figure('menubar','none','toolbar','none','numbertitle','off',...
-    'name',['statistics for Figure ' num2str(gcbf)]);
+    'name',['statistics for Figure ' fignum]);
 ht=uitable('data',handles.statistics,'columnwidth',num2cell(8*len),...
     'rowname',[],'columnname',[],'rowstriping','off');
 extT=get(ht,'extent');
@@ -6036,8 +6042,15 @@ for g=1:length(handles.grouplist)
   tmp{end+1}='';
 end
 
+if verLessThan('matlab','8.4.0')
+   fignum = num2str(gcbf);
+else
+  figHandle = gcbf;
+  fignum = figHandle.Number;
+end
+
 hf=figure('menubar','none','toolbar','none','numbertitle','off',...
-    'name',['parameters for Figure ' num2str(gcbf)]);
+    'name',['parameters for Figure ' fignum]);
 ht=uitable('data',tmp','columnwidth',num2cell(8*max(cellfun(@length,tmp))),...
     'rowname',[],'columnname',[],'rowstriping','off');
 extT=get(ht,'extent');
