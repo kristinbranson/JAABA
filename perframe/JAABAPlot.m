@@ -2842,12 +2842,12 @@ for b=bb
     return;
   end
 
-  max(cellfun(@(x) size(x,2),during_data));
-  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during_data,'uniformoutput',false);
-  during_data=cat(1,ans{:});
-  max(cellfun(@(x) size(x,2),not_during_data));
-  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during_data,'uniformoutput',false);
-  not_during_data=cat(1,ans{:});
+  ttt = max(cellfun(@(x) size(x,2),during_data));
+  kkk = cellfun(@(x) [x nan(size(x,1),ttt-size(x,2))],during_data,'uniformoutput',false);
+  during_data=cat(1,kkk{:});
+  ttt = max(cellfun(@(x) size(x,2),not_during_data));
+  kkk = cellfun(@(x) [x nan(size(x,1),ttt-size(x,2))],not_during_data,'uniformoutput',false);
+  not_during_data=cat(1,kkk{:});
 
   tmp=[];
   if(~isempty(during_data))
