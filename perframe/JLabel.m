@@ -7342,7 +7342,7 @@ switch handles.data.GTSuggestionMode,
 end
 
 handles = UpdateTimelineImages(handles);
-if isempty(GTSuggestions),
+if ~isempty(GTSuggestions),
   handles = NavigateToGTSuggestion(handles,GTSuggestions);
 end
 guidata(hObject,handles);
