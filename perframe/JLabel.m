@@ -7061,7 +7061,7 @@ if any( handles.data.nflies_per_exp<perexp)
   return;
 end
 
-handles.data.SuggestRandomGT(perfly,perexp);
+% handles.data.SuggestRandomGT(perfly,perexp);
 handles.data.setGTSuggestionMode('Random',perfly,perexp);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
