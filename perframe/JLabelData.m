@@ -9183,6 +9183,10 @@ classdef JLabelData < matlab.mixin.Copyable
       
       switch obj.GTSuggestionMode,
         case 'Random'
+          if numel(obj.randomGTSuggestions)<expi || isempty(obj.randomGTSuggestions{expi}),
+            suggestedidx = false(1,n);
+            return;
+          end
           start = obj.randomGTSuggestions{expi}(flies).start;
           last = obj.randomGTSuggestions{expi}(flies).end;
           range = start+off:last+off;
