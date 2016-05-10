@@ -4555,7 +4555,7 @@ set(handles.figure_JLabel,'Units',originalUnits);
 labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
 select_pos = get(handles.panel_select,'Position');
 learn_pos = get(handles.panel_learn,'Position');
-similar_pos = get(handles.panel_similar,'Position');
+% similar_pos = get(handles.panel_similar,'Position');
 info_pos = get(handles.panel_selection_info,'Position');
 
 width_leftpanels = figpos(3) - handles.guidata.guipos.leftborder_leftpanels - ...
@@ -4589,23 +4589,12 @@ set(handles.panel_select,'Position',new_select_pos);
 % if ~handles.guidata.GUIAdvancedMode || ...
 %     ( isnonempty(handles.data) && ...
 %       handles.data.IsGTMode() ) ,
-if ~handles.guidata.GUIAdvancedMode || ...
-    ( handles.data.thereIsAnOpenFile && handles.data.IsGTMode() ) ,
-  set(handles.panel_similar,'Visible','off');
-  new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+set(handles.panel_similar,'Visible','off'); 
+% panel_similar isn't used anymore. keeping visibility off just in case.
+new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
     new_select_pos(2) - info_pos(4) - dy_label_select,...
     info_pos(3:4)];
-  set(handles.panel_selection_info,'Position',new_info_pos);
-else
-  new_similar_pos = [figpos(3) - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-    new_select_pos(2) - similar_pos(4) - dy_label_select,...
-    similar_pos(3:4)];
-  set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
-  new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-    new_similar_pos(2) - info_pos(4) - dy_label_select,...
-    info_pos(3:4)];
-  set(handles.panel_selection_info,'Position',new_info_pos);
-end
+set(handles.panel_selection_info,'Position',new_info_pos);
 
 
 new_learn_pos = [figpos(3) - learn_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
@@ -7072,7 +7061,7 @@ if any( handles.data.nflies_per_exp<perexp)
   return;
 end
 
-%handles.data.SuggestRandomGT(perfly,perexp);
+% handles.data.SuggestRandomGT(perfly,perexp);
 handles.data.setGTSuggestionMode('Random',perfly,perexp);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
@@ -7353,7 +7342,7 @@ switch handles.data.GTSuggestionMode,
 end
 
 handles = UpdateTimelineImages(handles);
-if isempty(GTSuggestions),
+if ~isempty(GTSuggestions),
   handles = NavigateToGTSuggestion(handles,GTSuggestions);
 end
 guidata(hObject,handles);
