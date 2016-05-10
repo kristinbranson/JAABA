@@ -28,6 +28,7 @@ if header.version < 2,
 end
 
 % index location: 8
+header.indexlocloc = ftell(fp);
 header.indexloc = fread(fp,1,'uint64');
 
 % this is somewhat backwards for faster reading
