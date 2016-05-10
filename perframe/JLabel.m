@@ -2419,11 +2419,6 @@ atLeastOneNormalLabelOfEachClassExists= ...
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 savewindowdata = handles.data.savewindowdata;
-if classifierExists,
-  usefeatureselection = handles.data.selFeatures(1).use;
-else
-  usefeatureselection = false;
-end
 
 %                      
 % Update the File menu items.
@@ -2546,7 +2541,7 @@ set(handles.menu_classifier_evaluate_on_new_labels, ...
 set(handles.menu_classifier_visualize, ...
     'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
 set(handles.menu_classifier_useopt, ...
-    'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
+    'Enable',onIff(someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compute_gt_performance, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_post_processing, ...
@@ -2621,11 +2616,19 @@ else
   set(handles.menu_file_savewindowdata,'checked','off');  
 end
 
-if usefeatureselection,
+useselfeatureschecked = handles.data.selFeatures(1).use && ...
+   someExperimentIsCurrent&& ...
+   ~inGroundTruthingMode;
+if useselfeatureschecked,
   set(handles.menu_classifier_useopt,'checked','on');
+else
+  set(handles.menu_classifier_useopt,'checked','off');
+end
+
+
+if useselfeatureschecked && atLeastOneNormalLabelOfEachClassExists,
   set(handles.menu_classifier_doopt,'enable','on');  
 else
-  set(handles.menu_classifier_useopt,'checked','off');  
   set(handles.menu_classifier_doopt,'enable','off');  
 end
 

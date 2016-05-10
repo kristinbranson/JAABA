@@ -3707,6 +3707,14 @@ classdef JLabelData < matlab.mixin.Copyable
       %MERGESTUPDATED
 
       obj.windowdata = WindowData.windowdata(obj.nclassifiers);
+      useselfeatures = obj.selFeatures(1).use;
+      for ndx = 1:obj.nclassifiers
+        obj.selFeatures(ndx) = SelFeatures.createEmpty();
+      end
+      obj.selFeatures(:).use = useselfeatures;
+      if useselfeatures,
+        obj.selFeatures(:).do = true;
+      end
       obj.predictblocks = Predict.predictblocks(obj.nclassifiers);      
       obj.UpdatePredictedIdx();
     end
@@ -7382,7 +7390,9 @@ classdef JLabelData < matlab.mixin.Copyable
             'scoreNorm',self.windowdata(iCls).scoreNorm, ...
             'postProcessParams',self.postprocessparams{iCls}, ...
             'featureNames',self.windowdata(iCls).featurenames,...
-            'savewindowdata',self.savewindowdata(iCls)};
+            'savewindowdata',self.savewindowdata(iCls),...
+            'selFeatures',self.selFeatures(iCls),...
+            };
         if self.savewindowdata(iCls) && ~self.IsGTMode()
           csArgs(end+1:end+2) = {'windowdata',self.windowdata(iCls)};
         end          
