@@ -295,7 +295,8 @@ classdef Macguffin < handle
       
       %%% Check all fields that must be the same for all input jabs 
       % (otherwise we don't know how to merge)
-      FIELDS_ALLOWED_TO_DIFFER = {'behaviors' 'file' 'trxGraphicParams' 'windowFeaturesParams' 'labels' 'expDirNames' 'classifierStuff' 'version'};
+      FIELDS_ALLOWED_TO_DIFFER = {'behaviors' 'file' 'trxGraphicParams' ...
+        'windowFeaturesParams' 'labels' 'expDirNames' 'classifierStuff' 'version'};
       fieldsMustBeSame = setdiff(flds,FIELDS_ALLOWED_TO_DIFFER);
       for f = fieldsMustBeSame(:)', f=f{1}; %#ok<FXSET>
         vals = {m.(f)};
@@ -459,7 +460,7 @@ classdef Macguffin < handle
           csNew.(f) = val{1};
         end
         
-        CSFIELDS_CLEAR = {'params' 'timeStamp' 'windowdata' 'savewindowdata'};
+        CSFIELDS_CLEAR = {'params' 'timeStamp' 'windowdata' 'savewindowdata','selFeatures'};
         for f = CSFIELDS_CLEAR,f=f{1}; %#ok<FXSET>
           val = {csBeh.(f)};
           val{1,end+1} = csNew.(f); %#ok<AGROW> csNew contains default/new value of field f
@@ -712,7 +713,7 @@ classdef Macguffin < handle
         nCls = numel(obj.classifierStuff);
         assert(isequal(nCls,numel(obj.file.scorefilename),...
                        numel(obj.windowFeaturesParams)));
-        
+                             
         tfmod = tfmodlbl || tfmodGTlbl || tfmodcls; % || tfmodtags;
         if dowarn && tfmod
           warningNoTrace('Macguffin:modernized','Jab contents modernized. Opening and resaving jabfiles in JAABA will update them and eliminate this warning.');

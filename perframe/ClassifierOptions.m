@@ -22,7 +22,7 @@ function varargout = ClassifierOptions(varargin)
 
 % Edit the above text to modify the response to help ClassifierOptions
 
-% Last Modified by GUIDE v2.5 28-Nov-2012 18:45:22
+% Last Modified by GUIDE v2.5 09-May-2016 17:18:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -69,6 +69,7 @@ set(handles.iter_updates,'String',num2str(params.iter_updates));
 set(handles.edit_sample,'String',num2str(params.numSample));
 set(handles.edit_bins,'String',num2str(params.numBins));
 set(handles.folds,'String',num2str(params.CVfolds));
+set(handles.edit_nftrs,'String',num2str(params.nselfeatures));
 set(handles.popup_baseclassifier,'String',params.baseClassifierTypes);
 
 % Choose default command line output for ClassifierOptions
@@ -304,3 +305,34 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % Hint: delete(hObject) closes the figure
 uiresume(hObject);
 % delete(hObject);
+
+
+
+function edit_nftrs_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_nftrs (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_nftrs as text
+%        str2double(get(hObject,'String')) returns contents of edit_nftrs as a double
+val = str2double(get(hObject,'String'));
+if isempty(val) || double(uint64(val))~=val 
+  warndlg('Enter positive integer value for number of sample points');
+  set(hObject,'String',sprintf('%d',handles.classifier_params.numSample));
+  return;
+end;
+handles.classifier_params.nselfeatures = val;
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_nftrs_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_nftrs (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
