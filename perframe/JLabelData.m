@@ -85,6 +85,11 @@ classdef JLabelData < matlab.mixin.Copyable
     % Future optimization: window data computation for multiple
     % classifiers 
     windowdata
+    
+    
+    % selFeatures keeps track of features selected when the user trains a
+    % full classifier.
+    selFeatures
 
     % predictdata stores predictions.  It is cell array, with as many
     % elements as there are experiments.  Each element holds another cell
@@ -731,7 +736,8 @@ classdef JLabelData < matlab.mixin.Copyable
         'windowfeaturescellparams' 
         'curperframefns' 
         'savewindowdata' 
-        'loadwindowdata'}';
+        'loadwindowdata'
+        }';
       for f = FLDS,f=f{1}; %#ok<FXSET>
         val = obj.(f);
         if iscell(val)
@@ -765,6 +771,18 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.savewindowdata(1,end+1) = cs.savewindowdata; % set this above
       % obj.loadwindowdata % see above      
       obj.trainstats{1,end+1} = [];
+      obj.selFeatures(end+1) = cs.selFeatures;
+      FLDS = {
+        'dofeatureselection' 
+        'usefeatureselection' 
+        }';
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        val = [obj.selFeatures.(f)];
+        assert(all(val(1)==val));
+      end
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        obj.selFeatures(end+1).(f) = obj.selFeatures(1).(f);
+      end
       
       if ~obj.isST
         obj.FindFastPredictParams();
@@ -848,6 +866,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.classifier_params(tfRm) = [];
       obj.postprocessparams(tfRm) = [];
       obj.confThresholds(tfRm,:) = [];
+      obj.selFeatures(tfRm) = [];
       
       obj.needsave = true;
     end
@@ -4964,7 +4983,15 @@ classdef JLabelData < matlab.mixin.Copyable
             %reset(stream);
 
             if true % obj.DoFullTraining
-              pstr = sprintf('Training %s classifier from %d examples...',obj.labelnames{iCls},nnz(islabeled)); 
+              if obj.selFeatures.use 
+                if obj.selFeatures.do,
+                  pstr = sprintf('Optimizing window features used for %s classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
+                else
+                  pstr = sprintf('Training %s optimized classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
+                end
+              else
+                pstr = sprintf('Training %s classifier from %d examples...',obj.labelnames{iCls},nnz(islabeled)); 
+              end
               obj.SetStatus(pstr);
 
               % form label vec that has 1 for 'behavior present'
@@ -4992,21 +5019,52 @@ classdef JLabelData < matlab.mixin.Copyable
                   obj.windowdata(iCls).X(islabeled,:),...
                   obj.classifier_params{iCls},'deterministic',obj.deterministic);
               end
-              bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
-                obj.windowdata(iCls).binVals);
               
               %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
               %stream = RandStream.getGlobalStream;
               %reset(stream);
-
-             if strcmp(obj.classifiertype,'boosting'),
-                [obj.classifier{iCls},~,trainstats] =...
-                  boostingWrapper(obj.windowdata(iCls).X(islabeled,:), ...
+              
+              % Do feature selection.
+             if obj.selFeatures(iCls).use && obj.selFeatures(iCls).do,
+                bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
+                  obj.windowdata(iCls).binVals);
+                obj.selFeatures(iCls) =...
+                  SelFeatures.select(obj.selFeatures(iCls),obj.windowdata(iCls).X(islabeled,:), ...
                                   labels12,obj,...
                                   obj.windowdata(iCls).binVals,...
                                   bins, ...
                                   obj.classifier_params{iCls},pstr);
+                 
+             end
+
+             if strcmp(obj.classifiertype,'boosting') 
+                 if obj.selFeatures(iCls).use,
+                   obj.selFeatures(iCls) = SelFeatures.checkForOpt(obj.selFeatures(iCls),labels12);
+
+                   curD = obj.windowdata(iCls).X(islabeled,obj.selFeatures(iCls).f);
+                   binVals = obj.windowdata(iCls).binVals(:,obj.selFeatures(iCls).f);
+                   bins = findThresholdBins(curD, binVals);
+                   [curcls,~,trainstats] =...
+                     boostingWrapper(curD, ...
+                     labels12,obj,...
+                     binVals,...
+                     bins, ...
+                     obj.classifier_params{iCls},pstr);
+                   obj.classifier{iCls} = SelFeatures.convertClassifier(curcls,obj.selFeatures(iCls));
+                 else
+                   curD = obj.windowdata(iCls).X(islabeled,:);
+                  bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
+                    obj.windowdata(iCls).binVals);
+                  [obj.classifier{iCls},~,trainstats] =...
+                    boostingWrapper(curD, ...
+                                    labels12,obj,...
+                                    obj.windowdata(iCls).binVals,...
+                                    bins, ...
+                                    obj.classifier_params{iCls},pstr);
+                 end
               else
+                bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
+                  obj.windowdata(iCls).binVals);
                 [obj.classifier{iCls}] = ...
                   fastBag(obj.windowdata(iCls).X(islabeled,:),...
                           labels12,...
@@ -7363,6 +7421,7 @@ classdef JLabelData < matlab.mixin.Copyable
         self.windowdata(iBeh).scoreNorm = cs.scoreNorm;
         self.postprocessparams{iBeh} = cs.postProcessParams;
         self.savewindowdata(iBeh) = cs.savewindowdata;
+        self.selFeatures(iBeh) = cs.selFeatures;
       end
             
       % AL20141122: Why are we setting windowfeaturenames? This only
@@ -7602,7 +7661,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function basicParams = getBasicParamsStruct(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
-      basicParams.scoreFeatures=obj.scoreFeatures;
+        basicParams.scoreFeatures=obj.scoreFeatures;
       subdialectPFNames=obj.allperframefns;
       nScoreFeaturess=length(obj.scoreFeatures);
       sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);  
@@ -7630,7 +7689,21 @@ classdef JLabelData < matlab.mixin.Copyable
       self.needsave = true;      
     end
   
+    function setdofeatureselection(self)
+      assert(numel(self.selFeatures)==self.nclassifiers);
+      self.selFeatures(:).do = true;
+    end
      
+    function setusefeatureselection(self,value)
+      assert(numel(self.selFeatures)==self.nclassifiers);
+      assert(isscalar(value) || numel(value)==self.nclassifiers);
+      self.selFeatures(:).use = value;
+      if value,
+        self.selFeatures(:).do = true;
+      end
+      self.needsave = true;      
+    end
+    
     function setClassifierParams(self,params)
       %MERGESTUPDATED
       
@@ -9894,6 +9967,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.featureLexiconName='';
       self.featureLexicon=[];
       self.windowdata = WindowData.windowdata(0);
+      self.selFeatures = SelFeatures.createEmpty();
       self.predictdata = {};
       self.predictblocks = Predict.predictblocks(0);
       self.fastPredict = Predict.fastPredict(0);
@@ -9975,6 +10049,7 @@ classdef JLabelData < matlab.mixin.Copyable
                'trainDist',[]);
       self.confThresholds = zeros(0,2);
       self.doUpdate = true;
+
       self.gtMode = [];
       self.randomGTSuggestions = {};
       self.thresholdGTSuggestions = [];
