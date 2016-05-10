@@ -70,19 +70,25 @@ end
 set(handles.edit_OutputFPS,'String',num2str(handles.output.OutputFPS));
 
 % Compression
-switch handles.archstr,
-  case 'win32',
-    handles.Compressions = {'None','MSVC','RLE','Cinepak','Indeo5'};
-  case 'win64',
-    handles.Compressions = {'None','MSVC','RLE','IYUV'};
-  otherwise
-    handles.Compressions = {'None'};
+if length(varargin) >= 2 && ~isempty(varargin{2}),
+  handles.Compressions = varargin{2};
+else
+  switch handles.archstr,
+    case 'win32',
+      handles.Compressions = {'None','MSVC','RLE','Cinepak','Indeo5'};
+    case 'win64',
+      handles.Compressions = {'None','MSVC','RLE','IYUV'};
+    otherwise
+      handles.Compressions = {'None'};
+  end
 end
 if isfield(handles.previous_values,'Compression') && ...
     ismember(handles.previous_values.Compression,handles.Compressions),
   handles.output.Compression = handles.previous_values.Compression;
-else
+elseif ismember('None',handles.Compressions'),
   handles.output.Compression = 'None';
+else
+  handles.output.Compression = 'Uncompressed AVI';
 end
 
 set(handles.popupmenu_Compression,'String',handles.Compressions,...

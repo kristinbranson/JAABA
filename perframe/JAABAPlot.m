@@ -383,16 +383,14 @@ parfor ge=1:length(handlesexperimentlist)
   end
 
   if(sexdata)
-    fullfile(handlesexperimentlist{ge},handles.perframe_dir,'sex.mat');
-    if(exist(ans,'file'))
-      tmp=load(ans);
-      cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
-      handlessexdata(ge)={ans};
+    fname = fullfile(handlesexperimentlist{ge},handles.perframe_dir,'sex.mat');
+    if(exist(fname,'file'))
+      tmp=load(fname);
+      handlessexdata(ge)={cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false)};
     else
       tmp=dir(fullfile(handlesexperimentlist{ge},handles.perframe_dir,'*.mat'));
       tmp=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,tmp(1).name));
-      cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
-      handlessexdata(ge)={ans};
+      handlessexdata(ge)={cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false)};
     end
   end
 
@@ -1321,17 +1319,15 @@ parfor n=1:length(newexperiments)
     handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
   end
 
-  fullfile(newexperiments{n},handles.perframe_dir,'sex.mat');
-  if(exist(ans,'file'))
-    tmp=load(ans);
-    cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
-    handlessexdata(n)={ans};
+  fname = fullfile(newexperiments{n},handles.perframe_dir,'sex.mat');
+  if(exist(fname,'file'))
+    tmp=load(fname);
+    handlessexdata(n)={cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false)};
   else
     tmp=dir(fullfile(newexperiments{n},handles.perframe_dir,'*.mat'));
     if(~isempty(tmp))
       tmp=load(fullfile(newexperiments{n},handles.perframe_dir,tmp(1).name));
-      cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
-      handlessexdata(n)={ans};
+      handlessexdata(n)={cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false)};
     else
       idx_error(n)=true;
       continue;
@@ -2354,7 +2350,10 @@ switch(style)
     hfront = get(ha,'Children');
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
-      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
+      % if data_dp and data_dn match, then patch acts weird. Add some
+      % jitter to make it sane.
+      jitter = (max(data_dp(idx))-min(data_dp(idx)))/1000;
+      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx)+jitter fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
       k=k+step+1;  m=m+1;
     end
     hback = setdiff(get(ha,'Children'),hfront);
@@ -2390,6 +2389,13 @@ if(isempty(feature_data.data))
   during=[];
   not_during=[];
   return;
+end
+
+% Fix sexdata to make sure that its length matches feature_data
+for ndx = 1:numel(sexdata)
+  if numel(sexdata{ndx})==1 && numel(sexdata{ndx})~= numel(feature_data.data{ndx})
+    sexdata{ndx}  = repmat(sexdata{ndx},1,numel(feature_data.data{ndx}));
+  end
 end
 
 if(iscell(feature_data.data{1}))
@@ -2440,8 +2446,13 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
   end
 
   if(perwhat==1)  % per frame
-    during{i}=feature_data.data{i}(partition_idx & sexdata{i}(1:length(partition_idx)));
-    not_during{i}=feature_data.data{i}((~partition_idx) & sexdata{i}(1:length(partition_idx)));
+    if numel(sexdata{i})==1,
+      during{i}=feature_data.data{i}(partition_idx & sexdata{i});
+      not_during{i}=feature_data.data{i}((~partition_idx) & sexdata{i});
+    else
+      during{i}=feature_data.data{i}(partition_idx & sexdata{i}(1:length(partition_idx)));
+      not_during{i}=feature_data.data{i}((~partition_idx) & sexdata{i}(1:length(partition_idx)));
+    end
   else  % per bout
     partition_idx=[0 partition_idx 0];
     start=find(~partition_idx(1:(end-1)) &  partition_idx(2:end));
@@ -2831,12 +2842,12 @@ for b=bb
     return;
   end
 
-  max(cellfun(@(x) size(x,2),during_data));
-  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during_data,'uniformoutput',false);
-  during_data=cat(1,ans{:});
-  max(cellfun(@(x) size(x,2),not_during_data));
-  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during_data,'uniformoutput',false);
-  not_during_data=cat(1,ans{:});
+  ttt = max(cellfun(@(x) size(x,2),during_data));
+  kkk = cellfun(@(x) [x nan(size(x,1),ttt-size(x,2))],during_data,'uniformoutput',false);
+  during_data=cat(1,kkk{:});
+  ttt = max(cellfun(@(x) size(x,2),not_during_data));
+  kkk = cellfun(@(x) [x nan(size(x,1),ttt-size(x,2))],not_during_data,'uniformoutput',false);
+  not_during_data=cat(1,kkk{:});
 
   tmp=[];
   if(~isempty(during_data))
@@ -3245,25 +3256,25 @@ if(handles.comparison2==0)
     if(nbehaviors>0)
       tmp2=[tmp2; ...
           repmat(g,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,7),1)),nbehaviors*nfeatures,1) ...
           repmat(-2,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,8),1)),nbehaviors*nfeatures,1) ...
           reshape(repmat((1:nbehaviors)',1,nfeatures),nbehaviors*nfeatures,1) ...
           reshape(repmat(1:nfeatures,nbehaviors,1),nbehaviors*nfeatures,1) ...
-          reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
-            sqrt((std(table_data(gg,:,:,1)).^2+std(table_data(gg,:,:,2)).^2)/2)), ...
+          reshape(squeeze((mean(table_data(gg,:,:,1),1)-mean(table_data(gg,:,:,2),1))./ ...
+            sqrt((std(table_data(gg,:,:,1),0,1).^2+std(table_data(gg,:,:,2),0,1).^2)/2)), ...
             nbehaviors*nfeatures,1) ...
           nan(nbehaviors*nfeatures,1)];
 %             sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,5).^2))/2)), ...
       tmp2=[tmp2; ...
           repmat(g,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,7),1)),nbehaviors*nfeatures,1) ...
           repmat(-1,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,9))),nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,9),1)),nbehaviors*nfeatures,1) ...
           reshape(repmat((1:nbehaviors)',1,nfeatures),nbehaviors*nfeatures,1) ...
           reshape(repmat(1:nfeatures,nbehaviors,1),nbehaviors*nfeatures,1) ...
-          reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,3)))./ ...
-            sqrt((std(table_data(gg,:,:,1)).^2+std(table_data(gg,:,:,3)).^2)/2)), ...
+          reshape(squeeze((mean(table_data(gg,:,:,1),1)-mean(table_data(gg,:,:,3),1))./ ...
+            sqrt((std(table_data(gg,:,:,1),0,1).^2+std(table_data(gg,:,:,3),0,1).^2)/2)), ...
             nbehaviors*nfeatures,1) ...
           nan(nbehaviors*nfeatures,1)];
 %             sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,6).^2))/2)), ...
@@ -3275,43 +3286,43 @@ if(handles.comparison2==0)
       if(nbehaviors>0)
         tmp2=[tmp2; ...
             repmat(g,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg,:,:,7),1)),nbehaviors*nfeatures,1) ...
             repmat(g2,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg2,:,:,7))),nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg2,:,:,7),1)),nbehaviors*nfeatures,1) ...
             reshape(repmat((1:nbehaviors)',1,nfeatures),nbehaviors*nfeatures,1) ...
             reshape(repmat(1:nfeatures,nbehaviors,1),nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
-              sqrt((std(table_data(gg,:,:,1)).^2+std(table_data(gg2,:,:,1)).^2)/2)), ...
+            reshape(squeeze((mean(table_data(gg,:,:,1),1)-mean(table_data(gg2,:,:,1),1))./ ...
+              sqrt((std(table_data(gg,:,:,1),0,1).^2+std(table_data(gg2,:,:,1),0,1).^2)/2)), ...
               nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
-              sqrt((std(table_data(gg,:,:,3)).^2+std(table_data(gg2,:,:,3)).^2)/2)), ...
+            reshape(squeeze((mean(table_data(gg,:,:,3),1)-mean(table_data(gg2,:,:,3),1))./ ...
+              sqrt((std(table_data(gg,:,:,3),0,1).^2+std(table_data(gg2,:,:,3),0,1).^2)/2)), ...
               nbehaviors*nfeatures,1)];
 %               sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg2,:,:,4).^2))/2)), ...
 %               sqrt((mean(table_data(gg,:,:,6).^2)+mean(table_data(gg2,:,:,6).^2))/2)), ...
         tmp2=[tmp2; ...
             repmat(g,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg,:,:,8),1)),nbehaviors*nfeatures,1) ...
             repmat(g2,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg2,:,:,8))),nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg2,:,:,8),1)),nbehaviors*nfeatures,1) ...
             reshape(repmat(-(1:nbehaviors)',1,nfeatures),nbehaviors*nfeatures,1) ...
             reshape(repmat(1:nfeatures,nbehaviors,1),nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,2))-mean(table_data(gg2,:,:,2)))./ ...
-              sqrt((std(table_data(gg,:,:,2)).^2+std(table_data(gg2,:,:,2)).^2)/2)), ...
+            reshape(squeeze((mean(table_data(gg,:,:,2),1)-mean(table_data(gg2,:,:,2),1))./ ...
+              sqrt((std(table_data(gg,:,:,2),0,1).^2+std(table_data(gg2,:,:,2),0,1).^2)/2)), ...
               nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
-              sqrt((mean(table_data(gg,:,:,6)).^2+mean(table_data(gg2,:,:,6)).^2)/2)), ...
+            reshape(squeeze((mean(table_data(gg,:,:,3),1)-mean(table_data(gg2,:,:,3),1))./ ...
+              sqrt((mean(table_data(gg,:,:,6),1).^2+mean(table_data(gg2,:,:,6),0,1).^2)/2)), ...
               nbehaviors*nfeatures,1)];
 %               sqrt((mean(table_data(gg,:,:,5).^2)+mean(table_data(gg2,:,:,5).^2))/2)), ...
       end
       tmp2=[tmp2; ...
           repmat(g,nfeatures,1) ...
-          squeeze(sum(table_data(gg,1,:,9))) ...
+          squeeze(sum(table_data(gg,1,:,9),1)) ...
           repmat(g2,nfeatures,1) ...
-          squeeze(sum(table_data(gg2,1,:,9))) ...
+          squeeze(sum(table_data(gg2,1,:,9),1)) ...
           zeros(nfeatures,1) ...
           (1:nfeatures)' ...
-          squeeze((mean(table_data(gg,1,:,3))-mean(table_data(gg2,1,:,3)))./ ...
-            sqrt((std(table_data(gg,1,:,3)).^2+std(table_data(gg2,1,:,3)).^2)/2)), ...
+          squeeze((mean(table_data(gg,1,:,3),1)-mean(table_data(gg2,1,:,3),1))./ ...
+            sqrt((std(table_data(gg,1,:,3),0,1).^2+std(table_data(gg2,1,:,3),0,1).^2)/2)), ...
           nan(nfeatures,1)];
 %             sqrt((mean(table_data(gg,1,:,6).^2)+mean(table_data(gg2,1,:,6).^2))/2)), ...
     end
@@ -3509,6 +3520,12 @@ if(iscell(feature_data.data{1}))
   feature_data.data=cellfun(@(x) strcmp(x,vals{1}),feature_data.data,'uniformoutput',false);
 end
 
+for ndx = 1:numel(sexdata)
+  if numel(sexdata{ndx})==1 && numel(sexdata{ndx})~= numel(feature_data.data{ndx})
+    sexdata{ndx}  = repmat(sexdata{ndx},1,numel(feature_data.data{ndx}));
+  end
+end
+
 if(isempty(behavior_data))
   behavior_data.allScores.tStart=1;
   behavior_data.allScores.tEnd=max(cellfun(@length,feature_data.data))+1;
@@ -3541,6 +3558,12 @@ function triggered_data=calculate_triggeredtimeseries(behavior_data,behavior_log
     feature_data,sexdata,individual,timing,windowradius,subtractmean,behaviornot)
 
 timing=2+xor(timing-2,behaviornot);
+
+for ndx = 1:numel(sexdata)
+  if numel(sexdata{ndx})==1 && numel(sexdata{ndx})~= numel(feature_data.data{ndx})
+    sexdata{ndx}  = repmat(sexdata{ndx},1,numel(feature_data.data{ndx}));
+  end
+end
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -4315,7 +4338,11 @@ for b=bb
           partition_idx=tmp1 | ~tmp2;
       end
 
-      sex(i)=sum(sex_data{i}(1:length(partition_idx))) > (length(partition_idx)/2);
+      if numel(sex_data{i})==1,
+        sex(i) = sex_data{i};
+      else
+        sex(i)=sum(sex_data{i}(1:length(partition_idx))) > (length(partition_idx)/2);
+      end
       frames_labelled(i)=sum(partition_idx);
       if(handles.behaviorvalue3==1)
         frames_total(i)=length(partition_idx);
@@ -4949,13 +4976,21 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     bout_lengths{i}=stop-start+1;
     sex{i}=zeros(1,length(bout_lengths{i}));
     for j=1:length(bout_lengths{i})
-      sex{i}(j)=sum(sexdata{i}(start(j):stop(j))) > (bout_lengths{i}(j)/2);
+      if numel(sexdata{i})==1,
+        sex{i}(j) = sexdata{i};
+      else
+        sex{i}(j)=sum(sexdata{i}(start(j):stop(j))) > (bout_lengths{i}(j)/2);
+      end
     end
     if(length(start)>1)
       inter_bout_lengths{i}=start(2:end)-stop(1:(end-1));
       inter_sex{i}=zeros(1,length(inter_bout_lengths{i}));
       for j=1:length(inter_bout_lengths{i})
-        inter_sex{i}(j)=sum(sexdata{i}(stop(j):start(j+1))) > (inter_bout_lengths{i}(j)/2);
+        if numel(sexdata{i})==1,
+          inter_sex{i}(j)=sexdata{i};
+        else
+          inter_sex{i}(j)=sum(sexdata{i}(stop(j):start(j+1))) > (inter_bout_lengths{i}(j)/2);
+        end
       end
     end
   end
@@ -5921,10 +5956,16 @@ function MenuFile_Callback(hObject, eventdata, handles)
 function figure_stats_callback(src,evt)
 
 handles=guidata(src);
+if verLessThan('matlab','8.4.0')
+   fignum = num2str(gcbf);
+else
+  figHandle = gcbf;
+  fignum = figHandle.Number;
+end
 
 len=max(cellfun(@(x) length(regexprep(num2str(x),'<[^<]*>','*')),handles.statistics));
 hf=figure('menubar','none','toolbar','none','numbertitle','off',...
-    'name',['statistics for Figure ' num2str(gcbf)]);
+    'name',['statistics for Figure ' fignum]);
 ht=uitable('data',handles.statistics,'columnwidth',num2cell(8*len),...
     'rowname',[],'columnname',[],'rowstriping','off');
 extT=get(ht,'extent');
@@ -6001,8 +6042,15 @@ for g=1:length(handles.grouplist)
   tmp{end+1}='';
 end
 
+if verLessThan('matlab','8.4.0')
+   fignum = num2str(gcbf);
+else
+  figHandle = gcbf;
+  fignum = figHandle.Number;
+end
+
 hf=figure('menubar','none','toolbar','none','numbertitle','off',...
-    'name',['parameters for Figure ' num2str(gcbf)]);
+    'name',['parameters for Figure ' fignum]);
 ht=uitable('data',tmp','columnwidth',num2cell(8*max(cellfun(@length,tmp))),...
     'rowname',[],'columnname',[],'rowstriping','off');
 extT=get(ht,'extent');
