@@ -750,6 +750,7 @@ classdef JLabelData < matlab.mixin.Copyable
         val = obj.(f);
         obj.(f)(end+1) = val(1); % works for both cells and arrs
       end
+      
       obj.SetWindowFeatureNames();
             
       % predictions
@@ -773,15 +774,20 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.trainstats{1,end+1} = [];
       obj.selFeatures(end+1) = cs.selFeatures;
       FLDS = {
-        'dofeatureselection' 
-        'usefeatureselection' 
+        'do' 
+        'use' 
         }';
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        obj.selFeatures(end).(f) = obj.selFeatures(1).(f);
+      end
       for f = FLDS,f=f{1}; %#ok<FXSET>
         val = [obj.selFeatures.(f)];
         assert(all(val(1)==val));
       end
-      for f = FLDS,f=f{1}; %#ok<FXSET>
-        obj.selFeatures(end+1).(f) = obj.selFeatures(1).(f);
+      if obj.selFeatures(1).use,
+        for ndx = 1:numel(obj.selFeatures),
+          obj.selFeatures(ndx).do = true;
+        end
       end
       
       if ~obj.isST
@@ -867,6 +873,11 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.postprocessparams(tfRm) = [];
       obj.confThresholds(tfRm,:) = [];
       obj.selFeatures(tfRm) = [];
+      if obj.selFeatures(1).use,
+        for ndx = 1:numel(obj.selFeatures),
+          obj.selFeatures(ndx).do = true;
+        end
+      end
       
       obj.needsave = true;
     end
@@ -4978,9 +4989,10 @@ classdef JLabelData < matlab.mixin.Copyable
       cls2IdxBeh = obj.iCls2iLbl;
       assert(numel(cls2IdxBeh)==obj.nclassifiers);
       assert(iscell(obj.trainstats) && numel(obj.trainstats)==obj.nclassifiers);
+      didwarnopt = false;
       for iCls = 1:obj.nclassifiers
         islabeled = obj.windowdata(iCls).labelidx_new~=0 & obj.windowdata(iCls).labelidx_imp;
-        if ~any(islabeled)
+        if ~any(islabeled) && ~obj.selFeatures(iCls).do
           continue;
         end
 
@@ -4991,11 +5003,11 @@ classdef JLabelData < matlab.mixin.Copyable
             %reset(stream);
 
             if true % obj.DoFullTraining
-              if obj.selFeatures.use 
-                if obj.selFeatures.do,
+              if obj.selFeatures(iCls).use 
+                if obj.selFeatures(iCls).do,
                   pstr = sprintf('Optimizing window features used for %s classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
                 else
-                  pstr = sprintf('Training %s optimized classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
+                  pstr = sprintf('Training optimized %s classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
                 end
               else
                 pstr = sprintf('Training %s classifier from %d examples...',obj.labelnames{iCls},nnz(islabeled)); 
@@ -5047,7 +5059,9 @@ classdef JLabelData < matlab.mixin.Copyable
 
              if strcmp(obj.classifiertype,'boosting') 
                  if obj.selFeatures(iCls).use,
-                   obj.selFeatures(iCls) = SelFeatures.checkForOpt(obj.selFeatures(iCls),labels12);
+                   if ~didwarnopt % Warn about the optimization only once.
+                    [obj.selFeatures(iCls),didwarnopt] = SelFeatures.checkForOpt(obj.selFeatures(iCls),labels12);
+                   end
 
                    curD = obj.windowdata(iCls).X(islabeled,obj.selFeatures(iCls).f);
                    binVals = obj.windowdata(iCls).binVals(:,obj.selFeatures(iCls).f);
@@ -7701,15 +7715,19 @@ classdef JLabelData < matlab.mixin.Copyable
   
     function setdofeatureselection(self)
       assert(numel(self.selFeatures)==self.nclassifiers);
-      self.selFeatures(:).do = true;
+      for ndx = 1:numel(self.selFeatures),
+        self.selFeatures(ndx).do = true;
+      end
     end
      
     function setusefeatureselection(self,value)
       assert(numel(self.selFeatures)==self.nclassifiers);
       assert(isscalar(value) || numel(value)==self.nclassifiers);
-      self.selFeatures(:).use = value;
-      if value,
-        self.selFeatures(:).do = true;
+      for ndx = 1:numel(self.selFeatures),
+        self.selFeatures(ndx).use = value;
+        if value,
+          self.selFeatures(ndx).do = true;
+        end
       end
       self.needsave = true;      
     end

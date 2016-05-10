@@ -63,16 +63,18 @@ classdef SelFeatures
       
     end
     
-    function newsf = checkForOpt(sf,labels)
+    function [newsf,didwarn] = checkForOpt(sf,labels)
       newsf = sf;
       modLabels = sign( (labels==1)-0.5);
       nneg = nnz(modLabels<0);
       npos = nnz(modLabels>0);
+      didwarn = false;
       wstr = {'Parameters optimized for training classifiers may',
               'be outdated. Please run optimization again'};
       if abs(sf.npos-npos)/(sf.npos+1) > 0.1 || ...
          abs(sf.nneg-nneg)/(sf.nneg+1) > 0.1 || ...
          sf.count > 20
+        didwarn = true;
         warndlg(wstr,'Optimize again..');
       end
       newsf.count = newsf.count+1;
