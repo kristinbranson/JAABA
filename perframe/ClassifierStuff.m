@@ -13,6 +13,7 @@ classdef ClassifierStuff < handle
     featureNames
     windowdata 
     savewindowdata
+    selFeatures
   end
   
   methods
@@ -40,10 +41,12 @@ classdef ClassifierStuff < handle
                'numBins',30, ...
                'CVfolds',7, ...
                'baseClassifierTypes','Decision Stumps', ...
-               'baseClassifierSelected',1);
+               'baseClassifierSelected',1,...
+               'nselfeatures',1000);
       self.featureNames = {};
       self.windowdata = WindowData.windowdata(0);
       self.savewindowdata = false;
+      self.selFeatures =  SelFeatures.createEmpty();
       
       % varargin should be key-value pairs
       % Keys should be property names, values should be initialization
@@ -76,6 +79,25 @@ classdef ClassifierStuff < handle
           tfmodified = true;
         end
       end
+      if ~isprop(self,'selFeatures') || isempty(self.selFeatures),
+        tfmodified = true;
+        for i = 1:numel(self)
+          self(i).selFeatures = SelFeatures.createEmpty();
+        end
+      else
+        [self.selFeatures,sfmod] = SelFeatures.modernize(self.selFeatures);
+        if sfmod,
+          tmodified = true; %#ok<NASGU>
+        end
+      end
+      
+      if ~isfield(self.trainingParams,'nselfeatures'),
+        tfmodified = true;
+        for i = 1:numel(self)
+          self(i).trainingParams.nselfeatures = 1000;
+        end
+      end
+
     end
         
   end 

@@ -5,6 +5,10 @@ if nargin<8,
   obj = [];
 end
 
+if nargin<9,
+  str = '';
+end
+
 numEx = size(data,1);
 wt = initWt;
 model = struct('dim',{},'error',{},'dir',{},'tr',{},'alpha',{});

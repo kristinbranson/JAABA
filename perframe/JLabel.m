@@ -2419,6 +2419,12 @@ atLeastOneNormalLabelOfEachClassExists= ...
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 savewindowdata = handles.data.savewindowdata;
+if classifierExists,
+  usefeatureselection = handles.data.selFeatures(1).use;
+else
+  usefeatureselection = false;
+end
+
 %                      
 % Update the File menu items.
 %
@@ -2539,6 +2545,8 @@ set(handles.menu_classifier_evaluate_on_new_labels, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_visualize, ...
     'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
+set(handles.menu_classifier_useopt, ...
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compute_gt_performance, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_post_processing, ...
@@ -2612,7 +2620,15 @@ if savewindowdata,
 else
   set(handles.menu_file_savewindowdata,'checked','off');  
 end
-  
+
+if usefeatureselection,
+  set(handles.menu_classifier_useopt,'checked','on');
+  set(handles.menu_classifier_doopt,'enable','on');  
+else
+  set(handles.menu_classifier_useopt,'checked','off');  
+  set(handles.menu_classifier_doopt,'enable','off');  
+end
+
 return
 
 
@@ -9286,3 +9302,23 @@ end
 
 % --------------------------------------------------------------------
 function menu_file_reorder_classifiers_Callback(hObject, eventdata, handles)
+
+
+% --------------------------------------------------------------------
+function menu_classifier_useopt_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_useopt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+curval =   ~(handles.data.selFeatures(1).use);
+handles.data.setusefeatureselection(curval);
+UpdateEnablementAndVisibilityOfControls(handles);
+
+
+
+% --------------------------------------------------------------------
+function menu_classifier_doopt_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_doopt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.data.setdofeatureselection()
+pushbutton_train_Callback(hObject,eventdata,handles);
