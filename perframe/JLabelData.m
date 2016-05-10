@@ -899,6 +899,21 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~isfield(obj.perframe_params,'nflies_close')
         obj.perframe_params.nflies_close = [];
       end
+      if ~isfield(obj.perframe_params,'fov'),
+        %warning('fov not set, initializing to pi');
+        obj.perframe_params.fov = pi;
+      end
+      if ~isfield(obj.perframe_params,'max_dnose2ell_anglerange')
+        %warning('max_dnose2ell_anglerange not set, initializing to 127');
+        obj.perframe_params.max_dnose2ell_anglerange = 127;
+      end
+      if ~isfield(obj.perframe_params,'nbodylengths_near')
+        %warning('nbodylengths_near not set, initializing to 2.5');
+        obj.perframe_params.nbodylengths_near = 2.5000;
+      end
+      if ~isfield(obj.perframe_params,'thetafil'),
+        obj.perframe_params.thetafil = [0.0625 0.2500 0.3750 0.2500 0.0625];
+      end
       
       obj.isST = isfield(featureLexicon,'st');
 
@@ -2102,6 +2117,15 @@ classdef JLabelData < matlab.mixin.Copyable
       OUT.units = struct();
       OUT.units.num = {'scores'};
       OUT.units.den = {''};
+      % TODO: Allen, figure out how to handle this correctly in the
+      % multi-class case
+      if iscell(Q.allScores),
+        if numel(Q.allScores) > 1,
+          error('Not implemented: do not how to do this with multiple classifiers.');
+        else
+          Q.allScores = Q.allScores{1};
+        end
+      end
       for ndx = 1:numel(Q.allScores.scores)
         t0 = Q.allScores.tStart(ndx);
         t1 = Q.allScores.tEnd(ndx);
