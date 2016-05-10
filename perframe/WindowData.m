@@ -106,7 +106,8 @@ classdef WindowData
         if n == 0, continue ; end
         tfRm = predFcn(wd(i));
         assert(islogical(tfRm)&&isvector(tfRm)&&numel(tfRm)==n);
-        
+        % MAYANK MAY9 2016  don't trim if there is nothing to trim.
+        if nnz(tfRm)<1, continue ;end 
         wd(i).X(tfRm,:) = [];
         wd(i).exp(tfRm,:) = [];
         wd(i).flies(tfRm,:) = [];
