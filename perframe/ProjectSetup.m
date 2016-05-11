@@ -695,7 +695,10 @@ if ismember('Classifier Settings',sellist),
   clf_params_specific = {'classifierStuff.type'
     'classifierStuff.postProcessParams'
     'classifierStuff.trainingParams'
-    'classifierStuff.savewindowdata'};
+    'classifierStuff.savewindowdata'
+    'classifierStuff.selFeatures'
+    'classifierStuff.predictOnlyCurrentFly'
+    };
   
   for str = clf_params_specific(:)',
     try %#ok<TRYNC>

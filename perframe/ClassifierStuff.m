@@ -13,6 +13,7 @@ classdef ClassifierStuff < handle
     featureNames
     windowdata 
     savewindowdata
+    predictOnlyCurrentFly
     selFeatures
   end
   
@@ -46,6 +47,7 @@ classdef ClassifierStuff < handle
       self.featureNames = {};
       self.windowdata = WindowData.windowdata(0);
       self.savewindowdata = false;
+      self.predictOnlyCurrentFly = false;
       self.selFeatures =  SelFeatures.createEmpty();
       
       % varargin should be key-value pairs
@@ -95,6 +97,13 @@ classdef ClassifierStuff < handle
         tfmodified = true;
         for i = 1:numel(self)
           self(i).trainingParams.nselfeatures = 1000;
+        end
+      end
+      
+      if ~isfield(self,'predictOnlyCurrentFly'),
+        tfmodified = true;
+        for i = 1:numel(self)
+          self(i).predictOnlyCurrentFly = false;
         end
       end
 
