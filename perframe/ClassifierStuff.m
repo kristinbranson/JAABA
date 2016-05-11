@@ -81,6 +81,8 @@ classdef ClassifierStuff < handle
           tfmodified = true;
         end
       end
+      
+      % MK: May 09 2016
       if ~isprop(self,'selFeatures') || isempty(self.selFeatures),
         tfmodified = true;
         for i = 1:numel(self)
@@ -89,10 +91,11 @@ classdef ClassifierStuff < handle
       else
         [self.selFeatures,sfmod] = SelFeatures.modernize(self.selFeatures);
         if sfmod,
-          tmodified = true; %#ok<NASGU>
+          tfmodified = true; %#ok<NASGU>
         end
       end
       
+      % MK: May 09 2016
       if ~isfield(self.trainingParams,'nselfeatures'),
         tfmodified = true;
         for i = 1:numel(self)
@@ -100,11 +103,24 @@ classdef ClassifierStuff < handle
         end
       end
       
+      % MK: May 09 2016
       if ~isfield(self,'predictOnlyCurrentFly'),
         tfmodified = true;
         for i = 1:numel(self)
           self(i).predictOnlyCurrentFly = false;
         end
+      end
+      
+      % MK: modernize window data.
+      wdmodified = false;
+      for i = 1:numel(self)
+        [ self.windowdata(i),wdm] =  WindowData.modernize(self.windowdata(i));
+        if wdm,
+          wdmodified = true;
+        end
+      end
+      if wdmodified,
+        tfmodified = true;
       end
 
     end

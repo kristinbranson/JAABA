@@ -167,6 +167,16 @@ classdef WindowData
         wd(iCls) = w;
       end
     end
+    
+    % MK: Add thresholded bins to window data. May 10 2016
+    function [wd,wdmodified ] = modernize(wd)
+      wdmodified = false;
+      if ~isfield(wd,'bins'),
+        wd.bins = [];
+        wdmodified = true;
+      end
+      
+    end
       
   end
   
