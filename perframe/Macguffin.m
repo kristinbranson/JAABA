@@ -460,7 +460,7 @@ classdef Macguffin < handle
           csNew.(f) = val{1};
         end
         
-        CSFIELDS_CLEAR = {'params' 'timeStamp' 'windowdata' 'savewindowdata','selFeatures'};
+        CSFIELDS_CLEAR = {'params' 'timeStamp' 'windowdata' 'savewindowdata','selFeatures','predictOnlyCurrentFly'};
         for f = CSFIELDS_CLEAR,f=f{1}; %#ok<FXSET>
           val = {csBeh.(f)};
           val{1,end+1} = csNew.(f); %#ok<AGROW> csNew contains default/new value of field f
