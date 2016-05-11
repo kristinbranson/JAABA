@@ -2419,6 +2419,7 @@ atLeastOneNormalLabelOfEachClassExists= ...
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 savewindowdata = handles.data.savewindowdata;
+predictOnlyCurFly = handles.data.getPredictOnlyCurFly();
 
 %                      
 % Update the File menu items.
@@ -2547,7 +2548,7 @@ set(handles.menu_classifier_evaluate_on_new_labels, ...
 set(handles.menu_classifier_visualize, ...
     'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
 set(handles.menu_classifier_useopt, ...
-    'Enable',onIff(someExperimentIsCurrent&&~inGroundTruthingMode));  
+    'Enable',onIff(~inGroundTruthingMode));  
 set(handles.menu_classifier_compute_gt_performance, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode&&~data.isST));
 set(handles.menu_classifier_post_processing, ...
@@ -2559,8 +2560,14 @@ set(handles.menu_classifier_ethogram, ...
 set(handles.menu_classifier_labelgram, ...
     'Enable',onIff(classifierExists&&~inGroundTruthingMode)); 
 set(handles.menu_classifier_clear, ...
-    'Enable',onIff(classifierExists));  
-
+    'Enable',onIff(classifierExists)); 
+set(handles.menu_classifier_predictOnlyCurrentFly,...
+  'Enable',onIff(~inGroundTruthingMode));
+if ~inGroundTruthingMode && someExperimentIsCurrent && predictOnlyCurFly,
+  set(handles.menu_classifier_predictOnlyCurrentFly,'checked','on');
+else
+  set(handles.menu_classifier_predictOnlyCurrentFly,'checked','off');
+end
 % These controls require a movie to currently be open, and should be
 % disabled if there's no movie.
 grobjectsEnabledIffMovie = ...
@@ -9334,3 +9341,14 @@ function menu_classifier_doopt_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.data.setdofeatureselection()
 pushbutton_train_Callback(hObject,eventdata,handles);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_predictOnlyCurrentFly_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_predictOnlyCurrentFly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+curval = handles.data.getPredictOnlyCurFly();
+handles.data.setPredictOnlyCurFly(~curval);
+UpdateEnablementAndVisibilityOfControls(handles);

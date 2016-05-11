@@ -383,6 +383,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
     confThresholds % nclassifiers-by-2 array
     
+    predictOnlyCurrentFly % will predict only for current fly.
+    
     % Retrain properly
     doUpdate % ALTODO: does not appear to be used
     
@@ -737,6 +739,7 @@ classdef JLabelData < matlab.mixin.Copyable
         'curperframefns' 
         'savewindowdata' 
         'loadwindowdata'
+        'predictOnlyCurrentFly'
         }';
       for f = FLDS,f=f{1}; %#ok<FXSET>
         val = obj.(f);
@@ -772,6 +775,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.savewindowdata(1,end+1) = cs.savewindowdata; % set this above
       % obj.loadwindowdata % see above      
       obj.trainstats{1,end+1} = [];
+      obj.predictOnlyCurrentFly = cs.predictOnlyCurrentFly;
       obj.selFeatures(end+1) = cs.selFeatures;
       FLDS = {
         'do' 
@@ -846,6 +850,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.curperframefns(tfRm) = [];
       obj.savewindowdata(tfRm) = [];
       obj.loadwindowdata(tfRm) = [];
+      obj.predictOnlyCurrentFly(tfRm) = [];
       
       % predictions
       nExp = numel(obj.predictdata);
@@ -5151,7 +5156,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.PredictDataMoveCurToOld();
       obj.FindFastPredictParams();
-      obj.PredictLoaded();
+      obj.PredictLoaded(obj.predictOnlyCurrentFly);
  
       obj.needsave = true;
       obj.ClearStatus();      
@@ -5682,12 +5687,15 @@ classdef JLabelData < matlab.mixin.Copyable
    
     
     % ---------------------------------------------------------------------
-    function PredictLoaded(obj)
+    function PredictLoaded(obj,predictOnlyCurrentFly)
     % PredictLoaded(obj)
     % Runs the classifier on all preloaded window data.
             
     %MERGESTUPDATED
     
+      if nargin < 2,
+        predictOnlyCurrentFly = false;
+      end
       if isempty(obj.classifier),
         return;
       end
@@ -5700,6 +5708,10 @@ classdef JLabelData < matlab.mixin.Copyable
             for ndx = 1:numel(pbs.t0)
               curex = pbs.expi(ndx);
               flies = pbs.flies(ndx);
+              if predictOnlyCurrentFly && ~IsCurFly(obj,curex,flies),
+                continue;
+              end
+              
               numcurex = nnz(pbs.expi(:)==curex & pbs.flies(:)==flies);
               numcurexdone = nnz(pbs.expi(1:ndx)==curex & pbs.flies(1:ndx)==flies);
               obj.SetStatus('Predicting for %s: exp %s fly %d ... %d%% done',...
@@ -7405,6 +7417,7 @@ classdef JLabelData < matlab.mixin.Copyable
             'postProcessParams',self.postprocessparams{iCls}, ...
             'featureNames',self.windowdata(iCls).featurenames,...
             'savewindowdata',self.savewindowdata(iCls),...
+            'predictOnlyCurrentFly',self.predictOnlyCurrentFly(iCls),...
             'selFeatures',self.selFeatures(iCls),...
             };
         if self.savewindowdata(iCls) && ~self.IsGTMode()
@@ -7446,6 +7459,7 @@ classdef JLabelData < matlab.mixin.Copyable
         self.postprocessparams{iBeh} = cs.postProcessParams;
         self.savewindowdata(iBeh) = cs.savewindowdata;
         self.selFeatures(iBeh) = cs.selFeatures;
+        self.predictOnlyCurrentFly = cs.predictOnlyCurrentFly;
       end
             
       % AL20141122: Why are we setting windowfeaturenames? This only
@@ -7730,6 +7744,15 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       self.needsave = true;      
+    end
+    
+    function setPredictOnlyCurFly(self,value)
+      self.predictOnlyCurrentFly = value;
+      self.needsave = true;
+    end
+    
+    function value = getPredictOnlyCurFly(self)
+      value = self.predictOnlyCurrentFly;
     end
     
     function setClassifierParams(self,params)
@@ -10077,6 +10100,7 @@ classdef JLabelData < matlab.mixin.Copyable
                'trainDist',[]);
       self.confThresholds = zeros(0,2);
       self.doUpdate = true;
+      self.predictOnlyCurrentFly = false(1,0);
 
       self.gtMode = [];
       self.randomGTSuggestions = {};
