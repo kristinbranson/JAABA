@@ -34,6 +34,7 @@ classdef WindowData
         'scores',[], ... % NUA
         'scoreNorm',[], ... 
         'binVals',[], ... 
+        'bins',[], ...
         'scores_old',[], ... % NUA
         'scores_validated',[], ...
         'postprocessed',[]); % NUA?
@@ -52,6 +53,9 @@ classdef WindowData
           isempty(w.labelidx_old) && isempty(w.labelidx_imp));
         
         assert(numel(w.featurenames)==nftr);
+        if ~isempty(w.binVals) && ~isempty(w.bins),
+          assert(size(w.bins,1) == nftr && size(w.bins,2) == n);
+        end
 
         % scoreNorm?
         % binVals?
@@ -77,6 +81,7 @@ classdef WindowData
         wd(iCls).scores = [];
         wd(iCls).scoreNorm = [];
         wd(iCls).binVals = [];
+        wd(iCls).bins = uint8([]);
         wd(iCls).scores_old = [];
         wd(iCls).scores_validated = [];
         wd(iCls).postprocessed  = [];
@@ -112,6 +117,7 @@ classdef WindowData
         wd(i).exp(tfRm,:) = [];
         wd(i).flies(tfRm,:) = [];
         wd(i).t(tfRm,:) = [];
+        wd(i).bins(:,tfRm) = [];
         wd(i).labelidx_cur(tfRm,:) = [];
         wd(i).labelidx_new(tfRm,:) = [];
         wd(i).labelidx_imp(tfRm,:) = [];

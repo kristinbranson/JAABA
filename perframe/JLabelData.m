@@ -3918,6 +3918,12 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.windowdata(iCls).labelidx_imp = [obj.windowdata(iCls).labelidx_imp; tmp(1).labelidx_imp];
             obj.windowdata(iCls).labelidx_old = [obj.windowdata(iCls).labelidx_old; zeros(nframes,1)];
             obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
+            if ~isempty(obj.windowdata(iCls).binVals),
+              tmpbins = findThresholdBins([tmp.X], obj.windowdata(iCls).binVals);
+            else
+              tmpbins = [];
+            end
+            obj.windowdata(iCls).bins = [obj.windowdata(iCls).bins tmpbins];
 %             obj.windowdata(iCls).predicted = [obj.windowdata(iCls).predicted; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores = [obj.windowdata(iCls).scores; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores_old = [obj.windowdata(iCls).scores_old; zeros(nframes,1)];
@@ -3928,9 +3934,13 @@ classdef JLabelData < matlab.mixin.Copyable
         end % iCls
 
         % AL: Move outside exp loop?
-        obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
-          @(x)x.labelidx_new==0);        
+%         obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
+%           @(x)x.labelidx_new==0);        
       end % expi
+      
+      % MK: Moved this out of exp loop as per AL's suggestion
+      obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
+        @(x)x.labelidx_new==0);        
       
       success = true;
       msg = '';
@@ -3945,6 +3955,8 @@ classdef JLabelData < matlab.mixin.Copyable
       islabeled = obj.windowdata(iCls).labelidx_new~=0;
       obj.windowdata(iCls).binVals = findThresholds(obj.windowdata(iCls).X(islabeled,:),...
         obj.classifier_params{iCls},'deterministic',obj.deterministic);
+      obj.windowdata(iCls).bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),obj.windowdata(iCls).binVals );
+      
     end
     
     
@@ -5043,16 +5055,18 @@ classdef JLabelData < matlab.mixin.Copyable
                 [obj.windowdata(iCls).binVals] = findThresholds(...
                   obj.windowdata(iCls).X(islabeled,:),...
                   obj.classifier_params{iCls},'deterministic',obj.deterministic);
+                obj.windowdata(iCls).bins = findThresholdBins(obj.windowdata(iCls).X,...
+                  obj.windowdata(iCls).binVals);
               end
               
               %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
               %stream = RandStream.getGlobalStream;
               %reset(stream);
+              assert(~isempty(obj.windowdata(iCls).bins));
               
               % Do feature selection.
              if obj.selFeatures(iCls).use && obj.selFeatures(iCls).do,
-                bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
-                  obj.windowdata(iCls).binVals);
+               bins = obj.windowdata(iCls).bins(:,islabeled);
                 obj.selFeatures(iCls) =...
                   SelFeatures.select(obj.selFeatures(iCls),obj.windowdata(iCls).X(islabeled,:), ...
                                   labels12,obj,...
@@ -5070,7 +5084,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
                    curD = obj.windowdata(iCls).X(islabeled,obj.selFeatures(iCls).f);
                    binVals = obj.windowdata(iCls).binVals(:,obj.selFeatures(iCls).f);
-                   bins = findThresholdBins(curD, binVals);
+                   bins = obj.windowdata(iCls).bins(obj.selFeatures(iCls).f,islabeled);
                    [curcls,~,trainstats] =...
                      boostingWrapper(curD, ...
                      labels12,obj,...
@@ -5080,8 +5094,7 @@ classdef JLabelData < matlab.mixin.Copyable
                    obj.classifier{iCls} = SelFeatures.convertClassifier(curcls,obj.selFeatures(iCls));
                  else
                    curD = obj.windowdata(iCls).X(islabeled,:);
-                  bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
-                    obj.windowdata(iCls).binVals);
+                  bins = obj.windowdata(iCls).bins(:,islabeled);
                   [obj.classifier{iCls},~,trainstats] =...
                     boostingWrapper(curD, ...
                                     labels12,obj,...
@@ -5090,13 +5103,11 @@ classdef JLabelData < matlab.mixin.Copyable
                                     obj.classifier_params{iCls},pstr);
                  end
               else
-                bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
-                  obj.windowdata(iCls).binVals);
                 [obj.classifier{iCls}] = ...
                   fastBag(obj.windowdata(iCls).X(islabeled,:),...
                           labels12,...
                           obj.windowdata(iCls).binVals,...
-                          bins, ...
+                          obj.windowdata.bins(:,islabeled), ...
                           obj.classifier_params{iCls});
                 trainstats = struct;
               end
@@ -8176,6 +8187,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       data = obj.windowdata(iCls).X;
       binVals = obj.windowdata(iCls).binVals;
+      bins = obj.windowdata(iCls).bins;
       params = obj.classifier_params{iCls};
       
       [nsamp,nftrs] = size(data);
@@ -8236,7 +8248,6 @@ classdef JLabelData < matlab.mixin.Copyable
         nnz(labels==1),nnz(labels==2),numel(labels));
       
       scores = zeros(1,nsamp);
-      bins = findThresholdBins(data,binVals);
       for bno = 1:k
         curTestNdx = setidx==bno;
         curTrainNdx = setidx~=bno;
@@ -8454,10 +8465,10 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.windowdata(ICLS).binVals = findThresholds(...
           obj.windowdata(ICLS).X(islabeled,:),...
           obj.classifier_params{ICLS},'deterministic',obj.deterministic);
+        obj.windowdata(ICLS).bins = findThresholdBins(obj.windowdata(ICLS).X(islabeled,:),...
+          obj.windowdata(ICLS).binVals);
       end
-      
-      bins = findThresholdBins(obj.windowdata(ICLS).X(islabeled,:),...
-        obj.windowdata(ICLS).binVals);
+      bins = obj.windowdata(ICLS).bins;
 
       bmodel = fastBag(obj.windowdata(ICLS).X(islabeled,:),...
         obj.windowdata(ICLS).labelidx_new(islabeled),...
@@ -8820,6 +8831,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.windowdata(ICLS).binVals = ...
         findThresholds(obj.windowdata(ICLS).X(islabeled,:),obj.classifier_params{ICLS},'deterministic',obj.deterministic);
+      obj.windowdata(ICLS).bins = findThresholdBins(obj.windowdata(ICLS).X,obj.windowdata(ICLS).binVals);
       
       [obj.bagModels,obj.distMat] = ...
         doBaggingBouts(obj.windowdata(ICLS).X, ...
