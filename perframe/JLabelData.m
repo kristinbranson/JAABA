@@ -6701,7 +6701,7 @@ classdef JLabelData < matlab.mixin.Copyable
         flyStats(iCls).one2two = [];
         flyStats(iCls).two2one = [];
         if ~isempty(obj.classifier_old{iCls})
-          curNdx = pd.old_valid;
+          curNdx = pd.old_valid & pd.cur_valid;
           if nnz(curNdx)
             flyStats(iCls).one2two = nnz(pd.cur(curNdx)<0 & pd.old(curNdx)>0);
             flyStats(iCls).two2one = nnz(pd.cur(curNdx)>0 & pd.old(curNdx)<0);
