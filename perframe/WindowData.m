@@ -34,13 +34,13 @@ classdef WindowData
         'scores',[], ... % NUA
         'scoreNorm',[], ... 
         'binVals',[], ... 
-        'bins',[], ...
         'scores_old',[], ... % NUA
         'scores_validated',[], ...
-        'postprocessed',[]); % NUA?
+        'postprocessed',[],... % NUA?
+        'bins',[]);
     end
     
-    function wd = windowdataVerify(wd)
+    function windowdataVerify(wd)
       for iCls = 1:numel(wd)        
         w = wd(iCls);        
         [n,nftr] = size(w.X);
@@ -53,7 +53,7 @@ classdef WindowData
           isempty(w.labelidx_old) && isempty(w.labelidx_imp));
         
         assert(numel(w.featurenames)==nftr);
-        if ~isempty(w.binVals) && ~isempty(w.bins),
+        if ~isempty(w.binVals),
           assert(size(w.bins,1) == nftr && size(w.bins,2) == n);
         end
 
@@ -172,7 +172,11 @@ classdef WindowData
     function [wd,wdmodified ] = modernize(wd)
       wdmodified = false;
       if ~isfield(wd,'bins'),
-        wd.bins = [];
+        if ~isempty(wd.binVals),
+          wd.bins = findThresholdBins(wd.X,wd.binVals);
+        else
+          wd.bins = uint8([]);
+        end
         wdmodified = true;
       end
       

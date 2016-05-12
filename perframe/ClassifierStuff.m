@@ -114,7 +114,7 @@ classdef ClassifierStuff < handle
       % MK: modernize window data.
       wdmodified = false;
       for i = 1:numel(self)
-        [ self.windowdata(i),wdm] =  WindowData.modernize(self.windowdata(i));
+        [ self(i).windowdata,wdm] =  WindowData.modernize(self(i).windowdata);
         if wdm,
           wdmodified = true;
         end
