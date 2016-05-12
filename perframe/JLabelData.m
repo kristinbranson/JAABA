@@ -3851,6 +3851,9 @@ classdef JLabelData < matlab.mixin.Copyable
           end
           cacheperframedata = obj.perframedata;
           
+          [~,pfidx] = ismember(curperframefns,allperframefns);
+          tmp_cacheperframedata = cacheperframedata(pfidx);
+          
           parfor perframei = 1:Ncpff
             perframefn = curperframefns{perframei};
             ndx = find(strcmp(perframefn,allperframefns));
@@ -3859,7 +3862,7 @@ classdef JLabelData < matlab.mixin.Copyable
             % loading in per-frame data            
             if Nfliescurr > 0,
               if usecacheperframe
-                parperframedata = cacheperframedata(ndx);
+                parperframedata = tmp_cacheperframedata(perframei);
               else
                 parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr);
               end
@@ -3867,17 +3870,10 @@ classdef JLabelData < matlab.mixin.Copyable
               parperframedata = [];
             end
 
-%             if usecacheperframe
-%               tmp = readPFData(obj_getperframefiles{ndx},flies_curr);
-%               assert(isequal(tmp,parperframedata));
-%             end
-%             perframedata = load(obj_getperframefiles{ndx}); %#ok
-%             perframedata = perframedata.data;
             parfor_predictblocks{perframei} = cell(1,Nfliescurr);
             parfor_windowdata{perframei} = cell(1,Nfliescurr);
             
             for flyi = 1:Nfliescurr
-              flies = flies_curr(flyi,:); %#ok<PFBNS>
 %               assert(isequal(perframedata{flies},parperframedata{flyi}));
               [tmpsuccess,~,predictblocks,windowdata] = ...
                 PreLoadWindowData(object{flyi},perframefn,parperframedata{flyi},...
@@ -3893,7 +3889,7 @@ classdef JLabelData < matlab.mixin.Copyable
               parfor_windowdata{perframei}{flyi}.labelidx_new = windowdata.labelidx_new;
               parfor_windowdata{perframei}{flyi}.labelidx_imp = windowdata.labelidx_imp;
             end
-          end % perframei
+          end % parfor perframei
           
           for flyi = 1:Nfliescurr
             flies = flies_curr(flyi,:);
@@ -5075,6 +5071,8 @@ classdef JLabelData < matlab.mixin.Copyable
                                   obj.classifier_params{iCls},pstr);
                  
              end
+             
+             WindowData.windowdataVerify(obj.windowdata(iCls));
 
              if strcmp(obj.classifiertype,'boosting') 
                  if obj.selFeatures(iCls).use,
@@ -5979,20 +5977,23 @@ classdef JLabelData < matlab.mixin.Copyable
         feature_names_list = cell(1,numel(pffs));
         x_curr_all = cell(1,numel(pffs));
         
+        [~,pfidx] = ismember(pffs,obj.allperframefns);
+        tmp_perframedata_cur = perframedata_cur(pfidx);
         try
           parfor j = 1:numel(pffs),
             
             fn = pffs{j};
             
-            ndx = find(strcmp(fn,allperframefns));
+            ndx = find(strcmp(fn,allperframefns)); %#ok<PROPLC>
             if perframeInMemory,
-              perframedata = perframedata_cur{ndx};  %#ok
+%               perframedata = perframedata_cur{ndx};  %#ok
+              perframedata = tmp_perframedata_cur{j}; %#ok<PROPLC>
             else
               perframedata = readPFData(perframefile{ndx},flies(1));  %#ok
               perframedata = perframedata{1};  %#ok
             end
             
-            i11 = min(i1,numel(perframedata));
+            i11 = min(i1,numel(perframedata)); %#ok<PROPLC>
             [x_curr,cur_f] = ...
               ComputeWindowFeatures(perframedata,...
               windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
