@@ -96,7 +96,7 @@ mencoder_maxnframes = inf;
   'classifierparamsfiles',{},...
   'behaviors',{},...
   'scorefns',{},...
-  'score_norm_prctile',80,...
+  'score_norm_prctile',[],...
   'behaviorweight',[],...
   'printnone',false,...
   'debug',false,...
@@ -206,6 +206,7 @@ T1 = max(trxendframes);
 endframes = min(T1,firstframes+maxnframes-1);
 
 scores = cell(1,nids);
+score_norms = nan(1,nbehaviors);
 for j = 1:nids,
   scores{j} = nan(nbehaviors,trx(j).nframes);
 end
@@ -218,6 +219,7 @@ for i = 1:nbehaviors,
   end
   isscore(i) = true;
   tmp = load(scorefilename);
+  score_norms(i) = tmp.allScores.scoreNorm;
   for j = 1:nids,
     scores{j}(i,:) = tmp.allScores.scores{j}(trxfirstframes(j):trxendframes(j));
   end
@@ -387,13 +389,15 @@ end
 
 %% get the score normalizations
 
-score_norms = nan(nbehaviors,1);
-for i = 1:nbehaviors,
-  tmp = [];
-  for j = 1:nids,
-    tmp = [tmp,scores{j}(i,:)]; %#ok<AGROW>
+if ~isempty(score_norm_prctile),
+  %   score_norms = nan(nbehaviors,1);
+  for i = 1:nbehaviors,
+    tmp = [];
+    for j = 1:nids,
+      tmp = [tmp,scores{j}(i,:)]; %#ok<AGROW>
+    end
+    score_norms(i) = prctile(abs(tmp),score_norm_prctile);
   end
-  score_norms(i) = prctile(abs(tmp),score_norm_prctile);
 end
 
 for fly = 1:nids,
@@ -459,13 +463,13 @@ end
 % initialize plots
 him = image([1,nc],[1,nr],zeros([nr,nc,3]));
 axis image;
+axis tight; 
 
 if nzoom >0
   axis([.5,x1(end)+.5,.5,y1(end)+.5]);
 else
   axis([.5,nc+.5,.5,nr+.5]);
 end
-axis tight; 
 axis off;
 
 if titletext && isdisplay,
@@ -954,12 +958,12 @@ if useVideoWriter,
 else
   aviobj = close(aviobj); %#ok<NASGU>
 end
+fprintf('Cleanup...\n');
+getframe_cleanup(gfdata);
 end
 if fid > 0,
   fclose(fid);
 end
 
-fprintf('Cleanup...\n');
-getframe_cleanup(gfdata);
 
 succeeded = true;
