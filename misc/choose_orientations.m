@@ -30,6 +30,7 @@ inputsz = size(x);
 x = x(:);
 y = y(:);
 theta = theta(:);
+max_velocity_angle_weight = max_velocity_angle_weight(:);
 
 % number of frames
 N = length(x);
