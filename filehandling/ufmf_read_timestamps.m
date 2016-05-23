@@ -8,7 +8,7 @@ if nargin < 2,
   t0 = 1;
 end
 if nargin < 3,
-  t1 = headerinfo.nframes;
+  t1 = header.nframes;
 end
 
 timestamps = nan(1,t1-t0+1);
