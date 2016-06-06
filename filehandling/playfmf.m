@@ -157,7 +157,7 @@ fnext = handles.f;
 f0 = handles.f;
 while true,
   handles = guidata(hObject);
-  if ~ISPLAYING,
+  if ~ISPLAYING || fnext > handles.nframes,
     break;
   end
   f = fnext;
