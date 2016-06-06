@@ -172,10 +172,16 @@ classdef WindowData
     function [wd,wdmodified ] = modernize(wd)
       wdmodified = false;
       if ~isfield(wd,'bins'),
-        if ~isempty(wd.binVals),
-          wd.bins = findThresholdBins(wd.X,wd.binVals);
+        if numel(wd)>0,
+          for ndx = 1:numel(wd),
+            if ~isempty(wd(ndx).binVals),
+              wd(ndx).bins = findThresholdBins(wd(ndx).X,wd(ndx).binVals);
+            else
+              wd(ndx).bins = uint8([]);
+            end
+          end
         else
-          wd.bins = uint8([]);
+          tmp=cell(size(wd)); [wd(:).bins]=deal(tmp{:});
         end
         wdmodified = true;
       end
