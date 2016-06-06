@@ -75,7 +75,6 @@ elseif strcmpi(ext,'.mmf'),
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
 elseif strcmpi(ext,'.tif'),
-
   info = imfinfo(filename);
   isimseq = false;
   if numel(info) == 1,
@@ -100,7 +99,6 @@ elseif strcmpi(ext,'.tif'),
     fid = -1;
   end
 elseif strcmpi(ext,'.mat'),
-
   videofiletype = load(filename,'videofiletype');
   switch videofiletype,
     
@@ -115,7 +113,6 @@ elseif strcmpi(ext,'.mat'),
     otherwise
       error('Do not know how to parse mat file of type %s',videofiletype);
   end
-  
 else
   fid = 0;
   
@@ -252,6 +249,3 @@ else
 end
 im = flipdim(cat(4,M.cdata),1);
 stamp = f / fps;
-    
-    
-    

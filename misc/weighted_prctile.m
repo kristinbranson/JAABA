@@ -1,6 +1,6 @@
 function y = weighted_prctile(x,p,w,dim,issorted)
+% y = weighted_prctile(x,p,w,dim,issorted)
 % similar to MATLAB's prctile, but takes weights
-
 
 if ~isvector(p) || numel(p) == 0
     error('stats:prctile:BadPercents', ...
@@ -88,9 +88,16 @@ else
     cw = cw / cw(end);
     
     for i = 1:numel(p),
-      % find the frame where cumsum of weight is at least p
-      isbigger = [false(1,ncols);cw >= p(i)/100];
-      ind = find(isbigger(1:end-1,:)==false & isbigger(2:end,:)==true);
+      
+      if p(i) == 0,
+        ind = find(cw > 0,1);
+      elseif p(i) == 100,
+        ind = find(cw > 0,1,'last');
+      else      
+        % find the frame where cumsum of weight is at least p
+        isbigger = [false(1,ncols);cw >= p(i)/100];
+        ind = find(isbigger(1:end-1,:)==false & isbigger(2:end,:)==true);
+      end
       % check for border
       isexact = cw(ind) == p(i)/100 && ind < numel(cw);
       if isexact,
