@@ -104,7 +104,7 @@ classdef ClassifierStuff < handle
       end
       
       % MK: May 09 2016
-      if ~isfield(self,'predictOnlyCurrentFly'),
+      if ~isprop(self,'predictOnlyCurrentFly'),
         tfmodified = true;
         for i = 1:numel(self)
           self(i).predictOnlyCurrentFly = false;
