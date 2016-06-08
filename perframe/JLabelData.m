@@ -7092,10 +7092,12 @@ classdef JLabelData < matlab.mixin.Copyable
       if macgufProvided
         assert(isa(macguffin,'Macguffin'));
       else
+        self.SetStatus('Loading %s',fileNameAbs);
         macguffin = loadAnonymous(fileNameAbs);
         if isstruct(macguffin)
           macguffin = Macguffin(macguffin);
         end
+        self.ClearStatus();
       end
       macguffin.modernize(true);
       
@@ -7808,7 +7810,14 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     function value = getPredictOnlyCurFly(self)
-      value = self.predictOnlyCurrentFly;
+      if ~all(self.predictOnlyCurrentFly==self.predictOnlyCurrentFly(1))
+        warndlg('Flag for Predicting only on current fly should be same for all classifiers','Flag mismatch');
+      end
+      if self.nclassifiers >= 1
+        value = self.predictOnlyCurrentFly(1);
+      else
+        value = false;
+      end
     end
     
     function setClassifierParams(self,params)
