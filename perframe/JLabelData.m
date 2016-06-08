@@ -7810,10 +7810,10 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     function value = getPredictOnlyCurFly(self)
-      if ~all(self.predictOnlyCurrentFly==self.predictOnlyCurrentFly(1))
-        warndlg('Flag for Predicting only on current fly should be same for all classifiers','Flag mismatch');
-      end
       if self.nclassifiers >= 1
+        if ~all(self.predictOnlyCurrentFly==self.predictOnlyCurrentFly(1))
+          warndlg('Flag for Predicting only on current fly should be same for all classifiers','Flag mismatch');
+        end
         value = self.predictOnlyCurrentFly(1);
       else
         value = false;
