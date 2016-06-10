@@ -11,7 +11,8 @@ end
 % speed up reading
 indexdata = fscanf(fid,'%f %f %f %f\n');
 indexdata = reshape(indexdata,[4,numel(indexdata)/4]);
-assert(all(indexdata(1,:) == 0:size(indexdata,2)-1));
+assert(all(diff(indexdata(1,:))==1));
+%assert(all(indexdata(1,:) == 0:size(indexdata,2)-1));
 headerinfo.timestamp = indexdata(2,:);
 headerinfo.frame2file = indexdata(3,:);
 headerinfo.frameend2file = indexdata(4,:);
