@@ -85,6 +85,11 @@ classdef JLabelData < matlab.mixin.Copyable
     % Future optimization: window data computation for multiple
     % classifiers 
     windowdata
+    
+    
+    % selFeatures keeps track of features selected when the user trains a
+    % full classifier.
+    selFeatures
 
     % predictdata stores predictions.  It is cell array, with as many
     % elements as there are experiments.  Each element holds another cell
@@ -378,6 +383,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
     confThresholds % nclassifiers-by-2 array
     
+    predictOnlyCurrentFly % will predict only for current fly.
+    
     % Retrain properly
     doUpdate % ALTODO: does not appear to be used
     
@@ -443,6 +450,9 @@ classdef JLabelData < matlab.mixin.Copyable
     usePastOnly % whether to only use past information when predicting the current frame
     
     deterministic = false; % scalar logical or double, for testing purposes. If nonzero, may be used as RNG seed
+    
+    trainWarnCount = 0; % number of training iterations since we warned the user about increasing the iterations.
+    trainWarn = true;
   end
 
  
@@ -731,7 +741,9 @@ classdef JLabelData < matlab.mixin.Copyable
         'windowfeaturescellparams' 
         'curperframefns' 
         'savewindowdata' 
-        'loadwindowdata'}';
+        'loadwindowdata'
+        'predictOnlyCurrentFly'
+        }';
       for f = FLDS,f=f{1}; %#ok<FXSET>
         val = obj.(f);
         if iscell(val)
@@ -744,6 +756,7 @@ classdef JLabelData < matlab.mixin.Copyable
         val = obj.(f);
         obj.(f)(end+1) = val(1); % works for both cells and arrs
       end
+      
       obj.SetWindowFeatureNames();
             
       % predictions
@@ -765,6 +778,24 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.savewindowdata(1,end+1) = cs.savewindowdata; % set this above
       % obj.loadwindowdata % see above      
       obj.trainstats{1,end+1} = [];
+      obj.predictOnlyCurrentFly = cs.predictOnlyCurrentFly;
+      obj.selFeatures(end+1) = cs.selFeatures;
+      FLDS = {
+        'do' 
+        'use' 
+        }';
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        obj.selFeatures(end).(f) = obj.selFeatures(1).(f);
+      end
+      for f = FLDS,f=f{1}; %#ok<FXSET>
+        val = [obj.selFeatures.(f)];
+        assert(all(val(1)==val));
+      end
+      if obj.selFeatures(1).use,
+        for ndx = 1:numel(obj.selFeatures),
+          obj.selFeatures(ndx).do = true;
+        end
+      end
       
       if ~obj.isST
         obj.FindFastPredictParams();
@@ -822,6 +853,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.curperframefns(tfRm) = [];
       obj.savewindowdata(tfRm) = [];
       obj.loadwindowdata(tfRm) = [];
+      obj.predictOnlyCurrentFly(tfRm) = [];
       
       % predictions
       nExp = numel(obj.predictdata);
@@ -848,6 +880,12 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.classifier_params(tfRm) = [];
       obj.postprocessparams(tfRm) = [];
       obj.confThresholds(tfRm,:) = [];
+      obj.selFeatures(tfRm) = [];
+      if obj.selFeatures(1).use,
+        for ndx = 1:numel(obj.selFeatures),
+          obj.selFeatures(ndx).do = true;
+        end
+      end
       
       obj.needsave = true;
     end
@@ -3712,6 +3750,14 @@ classdef JLabelData < matlab.mixin.Copyable
       %MERGESTUPDATED
 
       obj.windowdata = WindowData.windowdata(obj.nclassifiers);
+      useselfeatures = obj.selFeatures(1).use;
+      for ndx = 1:obj.nclassifiers
+        obj.selFeatures(ndx) = SelFeatures.createEmpty();
+      end
+      obj.selFeatures(:).use = useselfeatures;
+      if useselfeatures,
+        obj.selFeatures(:).do = true;
+      end
       obj.predictblocks = Predict.predictblocks(obj.nclassifiers);      
       obj.UpdatePredictedIdx();
     end
@@ -3832,6 +3878,9 @@ classdef JLabelData < matlab.mixin.Copyable
           end
           cacheperframedata = obj.perframedata;
           
+          [~,pfidx] = ismember(curperframefns,allperframefns);
+          tmp_cacheperframedata = cacheperframedata(pfidx);
+          
           parfor perframei = 1:Ncpff
             perframefn = curperframefns{perframei};
             ndx = find(strcmp(perframefn,allperframefns));
@@ -3840,7 +3889,7 @@ classdef JLabelData < matlab.mixin.Copyable
             % loading in per-frame data            
             if Nfliescurr > 0,
               if usecacheperframe
-                parperframedata = cacheperframedata(ndx);
+                parperframedata = tmp_cacheperframedata(perframei);
               else
                 parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr);
               end
@@ -3848,17 +3897,10 @@ classdef JLabelData < matlab.mixin.Copyable
               parperframedata = [];
             end
 
-%             if usecacheperframe
-%               tmp = readPFData(obj_getperframefiles{ndx},flies_curr);
-%               assert(isequal(tmp,parperframedata));
-%             end
-%             perframedata = load(obj_getperframefiles{ndx}); %#ok
-%             perframedata = perframedata.data;
             parfor_predictblocks{perframei} = cell(1,Nfliescurr);
             parfor_windowdata{perframei} = cell(1,Nfliescurr);
             
             for flyi = 1:Nfliescurr
-              flies = flies_curr(flyi,:); %#ok<PFBNS>
 %               assert(isequal(perframedata{flies},parperframedata{flyi}));
               [tmpsuccess,~,predictblocks,windowdata] = ...
                 PreLoadWindowData(object{flyi},perframefn,parperframedata{flyi},...
@@ -3874,7 +3916,7 @@ classdef JLabelData < matlab.mixin.Copyable
               parfor_windowdata{perframei}{flyi}.labelidx_new = windowdata.labelidx_new;
               parfor_windowdata{perframei}{flyi}.labelidx_imp = windowdata.labelidx_imp;
             end
-          end % perframei
+          end % parfor perframei
           
           for flyi = 1:Nfliescurr
             flies = flies_curr(flyi,:);
@@ -3899,6 +3941,12 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.windowdata(iCls).labelidx_imp = [obj.windowdata(iCls).labelidx_imp; tmp(1).labelidx_imp];
             obj.windowdata(iCls).labelidx_old = [obj.windowdata(iCls).labelidx_old; zeros(nframes,1)];
             obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
+            if ~isempty(obj.windowdata(iCls).binVals),
+              tmpbins = findThresholdBins([tmp.X], obj.windowdata(iCls).binVals);
+            else
+              tmpbins = [];
+            end
+            obj.windowdata(iCls).bins = [obj.windowdata(iCls).bins tmpbins];
 %             obj.windowdata(iCls).predicted = [obj.windowdata(iCls).predicted; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores = [obj.windowdata(iCls).scores; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores_old = [obj.windowdata(iCls).scores_old; zeros(nframes,1)];
@@ -3909,9 +3957,13 @@ classdef JLabelData < matlab.mixin.Copyable
         end % iCls
 
         % AL: Move outside exp loop?
-        obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
-          @(x)x.labelidx_new==0);        
+%         obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
+%           @(x)x.labelidx_new==0);        
       end % expi
+      
+      % MK: Moved this out of exp loop as per AL's suggestion
+      obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
+        @(x)x.labelidx_new==0);        
       
       success = true;
       msg = '';
@@ -3926,6 +3978,8 @@ classdef JLabelData < matlab.mixin.Copyable
       islabeled = obj.windowdata(iCls).labelidx_new~=0;
       obj.windowdata(iCls).binVals = findThresholds(obj.windowdata(iCls).X(islabeled,:),...
         obj.classifier_params{iCls},'deterministic',obj.deterministic);
+      obj.windowdata(iCls).bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),obj.windowdata(iCls).binVals );
+      
     end
     
     
@@ -4975,9 +5029,10 @@ classdef JLabelData < matlab.mixin.Copyable
       cls2IdxBeh = obj.iCls2iLbl;
       assert(numel(cls2IdxBeh)==obj.nclassifiers);
       assert(iscell(obj.trainstats) && numel(obj.trainstats)==obj.nclassifiers);
+      didwarnopt = false;
       for iCls = 1:obj.nclassifiers
         islabeled = obj.windowdata(iCls).labelidx_new~=0 & obj.windowdata(iCls).labelidx_imp;
-        if ~any(islabeled)
+        if ~any(islabeled) && ~obj.selFeatures(iCls).do
           continue;
         end
 
@@ -4988,7 +5043,15 @@ classdef JLabelData < matlab.mixin.Copyable
             %reset(stream);
 
             if true % obj.DoFullTraining
-              pstr = sprintf('Training %s classifier from %d examples...',obj.labelnames{iCls},nnz(islabeled)); 
+              if obj.selFeatures(iCls).use 
+                if obj.selFeatures(iCls).do,
+                  pstr = sprintf('Optimizing window features used for %s classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
+                else
+                  pstr = sprintf('Training optimized %s classifier from %d examples ...',obj.labelnames{iCls},nnz(islabeled)); 
+                end
+              else
+                pstr = sprintf('Training %s classifier from %d examples...',obj.labelnames{iCls},nnz(islabeled)); 
+              end
               obj.SetStatus(pstr);
 
               % form label vec that has 1 for 'behavior present'
@@ -5015,27 +5078,78 @@ classdef JLabelData < matlab.mixin.Copyable
                 [obj.windowdata(iCls).binVals] = findThresholds(...
                   obj.windowdata(iCls).X(islabeled,:),...
                   obj.classifier_params{iCls},'deterministic',obj.deterministic);
+                obj.windowdata(iCls).bins = findThresholdBins(obj.windowdata(iCls).X,...
+                  obj.windowdata(iCls).binVals);
               end
-              bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
-                obj.windowdata(iCls).binVals);
               
               %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
               %stream = RandStream.getGlobalStream;
               %reset(stream);
-
-             if strcmp(obj.classifiertype,'boosting'),
-                [obj.classifier{iCls},~,trainstats] =...
-                  boostingWrapper(obj.windowdata(iCls).X(islabeled,:), ...
+              assert(~isempty(obj.windowdata(iCls).bins));
+              
+              % Do feature selection.
+             if obj.selFeatures(iCls).use && obj.selFeatures(iCls).do,
+               bins = obj.windowdata(iCls).bins(:,islabeled);
+                obj.selFeatures(iCls) =...
+                  SelFeatures.select(obj.selFeatures(iCls),obj.windowdata(iCls).X(islabeled,:), ...
                                   labels12,obj,...
                                   obj.windowdata(iCls).binVals,...
                                   bins, ...
                                   obj.classifier_params{iCls},pstr);
+                 
+             end
+             
+             WindowData.windowdataVerify(obj.windowdata(iCls));
+
+             if strcmp(obj.classifiertype,'boosting') 
+                 if obj.selFeatures(iCls).use,
+                   if ~didwarnopt % Warn about the optimization only once.
+                    [obj.selFeatures(iCls),didwarnopt] = SelFeatures.checkForOpt(obj.selFeatures(iCls),labels12);
+                   end
+
+                   curD = obj.windowdata(iCls).X(islabeled,obj.selFeatures(iCls).f);
+                   binVals = obj.windowdata(iCls).binVals(:,obj.selFeatures(iCls).f);
+                   bins = obj.windowdata(iCls).bins(obj.selFeatures(iCls).f,islabeled);
+                   [curcls,outscores,trainstats] =...
+                     boostingWrapper(curD, ...
+                     labels12,obj,...
+                     binVals,...
+                     bins, ...
+                     obj.classifier_params{iCls},pstr);
+                   obj.classifier{iCls} = SelFeatures.convertClassifier(curcls,obj.selFeatures(iCls));
+                 else
+                   curD = obj.windowdata(iCls).X(islabeled,:);
+                  bins = obj.windowdata(iCls).bins(:,islabeled);
+                  [obj.classifier{iCls},outscores,trainstats] =...
+                    boostingWrapper(curD, ...
+                                    labels12,obj,...
+                                    obj.windowdata(iCls).binVals,...
+                                    bins, ...
+                                    obj.classifier_params{iCls},pstr);
+                 end
+                 perr = nnz( outscores<0 & labels12==1);
+                 nerr = nnz( outscores>0 & labels12~=1);
+                 if ((perr+nerr)>0) 
+                   obj.trainWarnCount = obj.trainWarnCount + 1;
+                   if obj.trainWarn && obj.trainWarnCount>5,
+                     wstr = {sprintf('The current trained classifier made %d errors on the %d labeled frames',perr+nerr,nnz(labels12)),...
+                             'Consider increasing the number of training iteratoins,',...
+                             '(Using Iterations field from Menu -> Classifier -> Training Parameters).',...
+                             'You might also want to review labels for inconsistencies.'
+                             };
+                     warndlg(wstr,'Increase training iterations');
+                     obj.trainWarnCount = 0;
+                   end
+                 else % reset if there is no training error..
+                   obj.trainWarnCount = 0;
+                 end
+                 
               else
                 [obj.classifier{iCls}] = ...
                   fastBag(obj.windowdata(iCls).X(islabeled,:),...
                           labels12,...
                           obj.windowdata(iCls).binVals,...
-                          bins, ...
+                          obj.windowdata.bins(:,islabeled), ...
                           obj.classifier_params{iCls});
                 trainstats = struct;
               end
@@ -5095,7 +5209,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.PredictDataMoveCurToOld();
       obj.FindFastPredictParams();
-      obj.PredictLoaded();
+      obj.PredictLoaded(obj.predictOnlyCurrentFly);
  
       obj.needsave = true;
       obj.ClearStatus();      
@@ -5626,12 +5740,15 @@ classdef JLabelData < matlab.mixin.Copyable
    
     
     % ---------------------------------------------------------------------
-    function PredictLoaded(obj)
+    function PredictLoaded(obj,predictOnlyCurrentFly)
     % PredictLoaded(obj)
     % Runs the classifier on all preloaded window data.
             
     %MERGESTUPDATED
     
+      if nargin < 2,
+        predictOnlyCurrentFly = false;
+      end
       if isempty(obj.classifier),
         return;
       end
@@ -5644,6 +5761,10 @@ classdef JLabelData < matlab.mixin.Copyable
             for ndx = 1:numel(pbs.t0)
               curex = pbs.expi(ndx);
               flies = pbs.flies(ndx);
+              if predictOnlyCurrentFly && ~IsCurFly(obj,curex,flies),
+                continue;
+              end
+              
               numcurex = nnz(pbs.expi(:)==curex & pbs.flies(:)==flies);
               numcurexdone = nnz(pbs.expi(1:ndx)==curex & pbs.flies(1:ndx)==flies);
               obj.SetStatus('Predicting for %s: exp %s fly %d ... %d%% done',...
@@ -5900,20 +6021,23 @@ classdef JLabelData < matlab.mixin.Copyable
         feature_names_list = cell(1,numel(pffs));
         x_curr_all = cell(1,numel(pffs));
         
+        [~,pfidx] = ismember(pffs,obj.allperframefns);
+        tmp_perframedata_cur = perframedata_cur(pfidx);
         try
           parfor j = 1:numel(pffs),
             
             fn = pffs{j};
             
-            ndx = find(strcmp(fn,allperframefns));
+            ndx = find(strcmp(fn,allperframefns)); %#ok<PROPLC>
             if perframeInMemory,
-              perframedata = perframedata_cur{ndx};  %#ok
+%               perframedata = perframedata_cur{ndx};  %#ok
+              perframedata = tmp_perframedata_cur{j}; %#ok<PROPLC>
             else
               perframedata = readPFData(perframefile{ndx},flies(1));  %#ok
               perframedata = perframedata{1};  %#ok
             end
             
-            i11 = min(i1,numel(perframedata));
+            i11 = min(i1,numel(perframedata)); %#ok<PROPLC>
             [x_curr,cur_f] = ...
               ComputeWindowFeatures(perframedata,...
               windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
@@ -6622,7 +6746,7 @@ classdef JLabelData < matlab.mixin.Copyable
         flyStats(iCls).one2two = [];
         flyStats(iCls).two2one = [];
         if ~isempty(obj.classifier_old{iCls})
-          curNdx = pd.old_valid;
+          curNdx = pd.old_valid & pd.cur_valid;
           if nnz(curNdx)
             flyStats(iCls).one2two = nnz(pd.cur(curNdx)<0 & pd.old(curNdx)>0);
             flyStats(iCls).two2one = nnz(pd.cur(curNdx)>0 & pd.old(curNdx)<0);
@@ -6968,10 +7092,12 @@ classdef JLabelData < matlab.mixin.Copyable
       if macgufProvided
         assert(isa(macguffin,'Macguffin'));
       else
+        self.SetStatus('Loading %s',fileNameAbs);
         macguffin = loadAnonymous(fileNameAbs);
         if isstruct(macguffin)
           macguffin = Macguffin(macguffin);
         end
+        self.ClearStatus();
       end
       macguffin.modernize(true);
       
@@ -7348,7 +7474,10 @@ classdef JLabelData < matlab.mixin.Copyable
             'scoreNorm',self.windowdata(iCls).scoreNorm, ...
             'postProcessParams',self.postprocessparams{iCls}, ...
             'featureNames',self.windowdata(iCls).featurenames,...
-            'savewindowdata',self.savewindowdata(iCls)};
+            'savewindowdata',self.savewindowdata(iCls),...
+            'predictOnlyCurrentFly',self.predictOnlyCurrentFly(iCls),...
+            'selFeatures',self.selFeatures(iCls),...
+            };
         if self.savewindowdata(iCls) && ~self.IsGTMode()
           csArgs(end+1:end+2) = {'windowdata',self.windowdata(iCls)};
         end          
@@ -7387,6 +7516,8 @@ classdef JLabelData < matlab.mixin.Copyable
         self.windowdata(iBeh).scoreNorm = cs.scoreNorm;
         self.postprocessparams{iBeh} = cs.postProcessParams;
         self.savewindowdata(iBeh) = cs.savewindowdata;
+        self.selFeatures(iBeh) = cs.selFeatures;
+        self.predictOnlyCurrentFly = cs.predictOnlyCurrentFly;
       end
             
       % AL20141122: Why are we setting windowfeaturenames? This only
@@ -7626,7 +7757,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function basicParams = getBasicParamsStruct(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
-      basicParams.scoreFeatures=obj.scoreFeatures;
+        basicParams.scoreFeatures=obj.scoreFeatures;
       subdialectPFNames=obj.allperframefns;
       nScoreFeaturess=length(obj.scoreFeatures);
       sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);  
@@ -7654,7 +7785,41 @@ classdef JLabelData < matlab.mixin.Copyable
       self.needsave = true;      
     end
   
+    function setdofeatureselection(self)
+      assert(numel(self.selFeatures)==self.nclassifiers);
+      for ndx = 1:numel(self.selFeatures),
+        self.selFeatures(ndx).do = true;
+      end
+    end
      
+    function setusefeatureselection(self,value)
+      assert(numel(self.selFeatures)==self.nclassifiers);
+      assert(isscalar(value) || numel(value)==self.nclassifiers);
+      for ndx = 1:numel(self.selFeatures),
+        self.selFeatures(ndx).use = value;
+        if value,
+          self.selFeatures(ndx).do = true;
+        end
+      end
+      self.needsave = true;      
+    end
+    
+    function setPredictOnlyCurFly(self,value)
+      self.predictOnlyCurrentFly = value;
+      self.needsave = true;
+    end
+    
+    function value = getPredictOnlyCurFly(self)
+      if self.nclassifiers >= 1
+        if ~all(self.predictOnlyCurrentFly==self.predictOnlyCurrentFly(1))
+          warndlg('Flag for Predicting only on current fly should be same for all classifiers','Flag mismatch');
+        end
+        value = self.predictOnlyCurrentFly(1);
+      else
+        value = false;
+      end
+    end
+    
     function setClassifierParams(self,params)
       %MERGESTUPDATED
       
@@ -8076,6 +8241,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       data = obj.windowdata(iCls).X;
       binVals = obj.windowdata(iCls).binVals;
+      bins = obj.windowdata(iCls).bins;
       params = obj.classifier_params{iCls};
       
       [nsamp,nftrs] = size(data);
@@ -8136,7 +8302,6 @@ classdef JLabelData < matlab.mixin.Copyable
         nnz(labels==1),nnz(labels==2),numel(labels));
       
       scores = zeros(1,nsamp);
-      bins = findThresholdBins(data,binVals);
       for bno = 1:k
         curTestNdx = setidx==bno;
         curTrainNdx = setidx~=bno;
@@ -8354,10 +8519,10 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.windowdata(ICLS).binVals = findThresholds(...
           obj.windowdata(ICLS).X(islabeled,:),...
           obj.classifier_params{ICLS},'deterministic',obj.deterministic);
+        obj.windowdata(ICLS).bins = findThresholdBins(obj.windowdata(ICLS).X(islabeled,:),...
+          obj.windowdata(ICLS).binVals);
       end
-      
-      bins = findThresholdBins(obj.windowdata(ICLS).X(islabeled,:),...
-        obj.windowdata(ICLS).binVals);
+      bins = obj.windowdata(ICLS).bins;
 
       bmodel = fastBag(obj.windowdata(ICLS).X(islabeled,:),...
         obj.windowdata(ICLS).labelidx_new(islabeled),...
@@ -8720,6 +8885,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.windowdata(ICLS).binVals = ...
         findThresholds(obj.windowdata(ICLS).X(islabeled,:),obj.classifier_params{ICLS},'deterministic',obj.deterministic);
+      obj.windowdata(ICLS).bins = findThresholdBins(obj.windowdata(ICLS).X,obj.windowdata(ICLS).binVals);
       
       [obj.bagModels,obj.distMat] = ...
         doBaggingBouts(obj.windowdata(ICLS).X, ...
@@ -9918,6 +10084,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.featureLexiconName='';
       self.featureLexicon=[];
       self.windowdata = WindowData.windowdata(0);
+      self.selFeatures = SelFeatures.createEmpty();
       self.predictdata = {};
       self.predictblocks = Predict.predictblocks(0);
       self.fastPredict = Predict.fastPredict(0);
@@ -9999,6 +10166,8 @@ classdef JLabelData < matlab.mixin.Copyable
                'trainDist',[]);
       self.confThresholds = zeros(0,2);
       self.doUpdate = true;
+      self.predictOnlyCurrentFly = false(1,0);
+
       self.gtMode = [];
       self.randomGTSuggestions = {};
       self.thresholdGTSuggestions = [];
