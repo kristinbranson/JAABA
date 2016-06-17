@@ -5752,8 +5752,20 @@ classdef JLabelData < matlab.mixin.Copyable
       if isempty(obj.classifier),
         return;
       end
-
+      
       nCls = obj.nclassifiers;
+      
+      % Always predict on labeled data. Mayank June 17 2016
+      for iCls = 1:nCls
+        for expi = 1:obj.nexps
+          for flyNum = 1:obj.nflies_per_exp(expi)
+            obj.WindowDataPredictFast(expi,flyNum,iCls,...
+              obj.firstframes_per_exp{expi}(flyNum),...
+              obj.endframes_per_exp{expi}(flyNum));
+          end
+        end
+      end
+      
       for iCls = 1:nCls
         pbs = obj.predictblocks(iCls);
         switch obj.classifiertype{iCls},
