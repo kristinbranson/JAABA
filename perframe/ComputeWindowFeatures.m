@@ -283,7 +283,7 @@ prcBins = 0:resolution:100;
 nsamples = 5000;
 nx = x(~isnan(x));
 if numel(nx)>nsamples,
-  sx = randsample(numel(nx),5000);
+  sx = round(linspace(1,numel(nx),nsamples));
   relativeBins = prctile(nx(sx),prcBins);
 else
   relativeBins = prctile(nx,prcBins);

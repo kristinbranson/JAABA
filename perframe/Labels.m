@@ -739,7 +739,7 @@ classdef Labels
       assert(isscalar(labels));
       assert(isscalar(fly));
           
-      [tffly,ifly] = ismember(fly,labels.flies,'rows');
+      [tffly,ifly] = ismember(fly,labels.flies,'rows','legacy');
       if tffly
         labelsShort.t0s = labels.t0s{ifly};
         labelsShort.t1s = labels.t1s{ifly};
