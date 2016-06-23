@@ -44,6 +44,7 @@ classdef Macguffin < handle
       self.file.scorefilename = '';
       self.file.trxfilename = '';
       self.file.moviefilename = '';
+      self.file.movieindexfilename = 0;
       self.scoreFeatures = Macguffin.ScoreFeatures;
       self.featureLexicon=featureLexicon;
       featureLexiconPFNames = fieldnames(featureLexicon.perframe);
@@ -92,6 +93,7 @@ classdef Macguffin < handle
       % timelines vs behaviors naming
       self.behaviors.nbeh = Labels.determineNumTimelines(jld.labelnames); 
       self.file.moviefilename=jld.moviefilename;
+      self.file.movieindexfilename=jld.movieindexfilename;
       self.file.trxfilename=jld.trxfilename;
       self.file.scorefilename=jld.scorefilename;
       self.file.clipsdir=jld.clipsdir;                  
@@ -658,6 +660,11 @@ classdef Macguffin < handle
     function setMovieFileName(self,movieFileName)
       self.file.moviefilename = movieFileName;
     end
+
+    function setMovieIndexFileName(self,movieIndexFileName)
+      self.file.movieindexfilename = movieIndexFileName;
+    end
+
     
     function addversion(self)
         vid = fopen('version.txt','r');
