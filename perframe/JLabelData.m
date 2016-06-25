@@ -8349,6 +8349,10 @@ classdef JLabelData < matlab.mixin.Copyable
       
       clsfr = obj.classifier{iCls};
       windata = obj.windowdata(iCls);
+      if isempty(windata.X),
+        error('JLabelData:noWindowData',...
+              'No window data exists for the current classifier. Please retrain the classifier');
+      end
       labels = windata.labelidx_new;
       iLbls = obj.iCls2iLbl{iCls};
       
