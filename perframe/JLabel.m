@@ -1274,7 +1274,7 @@ if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
     SetStatus(handles,'Opening movie...');
     %if 1,
     [handles.guidata.readframe,handles.guidata.nframes,handles.guidata.movie_fid,handles.guidata.movieheaderinfo] = ...
-      get_readframe_fcn(moviefilename);
+      handles.data.get_readframe_fcn(expi);
     %else
     %  fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
     %  global JLABEL__READFRAME;

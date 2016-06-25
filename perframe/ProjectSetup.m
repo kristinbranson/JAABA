@@ -73,12 +73,14 @@ handles.output = hObject;
 [figureJLabel, ...
  basicParamsStruct,...
  defaultmoviefilename,...
+ defaultmovieindexfilename,...
  defaulttrxfilename,...
  handles.handleobj] = ...
    myparse(varargin,...
            'figureJLabel',[],...
            'basicParamsStruct',[],...
            'defaultmoviefilename',0,...
+           'defaultmovieindexfilename',0,...
            'defaulttrxfilename',0,...
            'handleobj',[]);
 
@@ -112,6 +114,9 @@ if isempty(basicParamsStruct)
   warning(warnst);
   if ischar(defaultmoviefilename)
     handles.basicParamsStruct.file.moviefilename = defaultmoviefilename;
+  end
+  if ischar(defaultmovieindexfilename)
+    handles.basicParamsStruct.file.movieindexfilename = defaultmovieindexfilename;
   end
   if ischar(defaulttrxfilename)
     handles.basicParamsStruct.file.trxfilename = defaulttrxfilename;
@@ -478,6 +483,7 @@ featureLexiconNameNew = handles.featureLexiconNameList{iFeatureLexicon};
 % (Note that any changes in the advanced part of the window will be lost.)
 behaviorName=handles.basicParamsStruct.behaviors.names;
 movieFileName=handles.basicParamsStruct.file.moviefilename;
+movieIndexFileName=handles.basicParamsStruct.file.movieindexfilename;
 trackFileName=handles.basicParamsStruct.file.trxfilename;
 scoreFileName=handles.basicParamsStruct.file.scorefilename;
 % Replace basicParamsStruct with one appropriate to the new feature lexicon
@@ -489,6 +495,7 @@ warning(old);  % restore annoying warning
 % Now restore fields from the old basicParamsStruct
 handles.basicParamsStruct.behaviors.names=behaviorName;
 handles.basicParamsStruct.file.moviefilename=movieFileName;
+handles.basicParamsStruct.file.movieindexfilename=movieIndexFileName;
 handles.basicParamsStruct.file.trxfilename=trackFileName;
 handles.basicParamsStruct.file.scorefilename=scoreFileName;
 guidata(hObject,handles);
@@ -592,6 +599,32 @@ if nbehavior~=nscorefile
                   'Invalid score file names', ...
                   'modal'));
   return
+end
+
+% if movie is an mjpg, ask for an index file
+[~,~,ext] = fileparts(handles.basicParamsStruct.file.moviefilename);
+if ismember(lower(ext),{'.mjpg','.mjpeg'}),
+  
+  res = questdlg('Is this an indexed MJPG file? If so, you will be prompted to select the corresponding index file location.');
+  if strcmpi(res,'Yes'),    
+    if isfield(handles.basicParamsStruct.file,'movieindexfilename') && ...
+        ischar(handles.basicParamsStruct.file.movieindexfilename),
+      defaultindexfile = handles.basicParamsStruct.file.movieindexfilename;
+    else
+      defaultindexfile = 'index.txt';
+    end
+    res = inputdlg({'MJPG index file name: '},'MJPG index file name',1,{defaultindexfile});
+    % cancel
+    if isempty(res),
+      return;
+    end
+    handles.basicParamsStruct.file.movieindexfilename = res{1};
+  else
+    handles.basicParamsStruct.file.movieindexfilename = 0;
+  end
+  
+else
+  handles.basicParamsStruct.file.movieindexfilename = 0;
 end
 
 % Finish initialization of basicParamsStruct and return as Macguffin in handleobj

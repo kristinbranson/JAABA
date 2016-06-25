@@ -234,6 +234,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % locations of files within experiment directories
     moviefilename
+    movieindexfilename
     trxfilename
     scorefilename % cellstr
     perframedir
@@ -1783,6 +1784,8 @@ classdef JLabelData < matlab.mixin.Copyable
       switch fileType,
         case 'movie',
           res = obj.moviefilename;
+        case 'movieindex'
+          res = obj.movieindexfilename;
         case 'trx',
           res = obj.trxfilename;
         case {'perframedir','perframe'},
@@ -2271,6 +2274,31 @@ classdef JLabelData < matlab.mixin.Copyable
       ft = obj.filetimestamps(expi,filei);
     end  % method
     
+    % ---------------------------------------------------------------------
+    function varargout = get_readframe_fcn(obj,expi)
+    % [readframe,nframes,fid,headerinfo] = get_readframe_fcn(obj,expi)
+    % Calls get_readframe_fcn with the appropriate arguments for experiment
+    % expi. This function does not do any checks for existence of video,
+    % etc. 
+    
+      moviefilename = obj.GetFile('movie',expi);
+      [~,~,ext] = fileparts(moviefilename);
+      ismaybeindexedfile = ismember(lower(ext),{'.mjpg','.mjpeg'});
+      if ismaybeindexedfile,
+        movieindexfilename = obj.GetFile('movieindex',expi);
+      end
+      
+      varargout = cell(1,nargout);
+      if ismaybeindexedfile && ischar(movieindexfilename),
+        [varargout{:}] = get_readframe_fcn(moviefilename,'indexfilename',movieindexfilename);
+      else
+        [varargout{:}] = get_readframe_fcn(moviefilename);
+      end
+      
+
+    end % method
+    
+    
     
     % ---------------------------------------------------------------------
     function [successes,msg] = CheckMovies(obj,expis)
@@ -2296,6 +2324,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       for i = 1:numel(expis),
         moviefilename = obj.GetFile('movie',expis(i));
+        movieindexfilename = obj.GetFile('movieindex',expis(i));
         obj.SetStatus('Checking movie %s...',moviefilename);
         
         % check for file existence
@@ -2309,25 +2338,37 @@ classdef JLabelData < matlab.mixin.Copyable
           end
         else
           
-          % try reading a frame
-%           try
+          if ischar(movieindexfilename) && ~exist(movieindexfilename,'file'),
+            successes(i) = false;
+            msg1 = sprintf('File %s missing',movieindexfilename);
+            if isempty(msg),
+              msg = msg1;
+            else
+              msg = sprintf('%s\n%s',msg,msg1);
+            end
+            
+          else
+            
+            % try reading a frame
+            %           try
             [readframe,~,movie_fid] = ...
-              get_readframe_fcn(moviefilename);
+              obj.get_readframe_fcn(expis(i));
             if movie_fid <= 0,
               error('Could not open movie %s for reading',moviefilename);
             end
             readframe(1);
             fclose(movie_fid);
-%           catch ME,
-%             successes(i) = false;
-%             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
-%             if isempty(msg),
-%               msg = msg1;
-%             else
-%               msg = sprintf('%s\n%s',msg,msg1);
-%             end
-%           end
-          
+            %           catch ME,
+            %             successes(i) = false;
+            %             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
+            %             if isempty(msg),
+            %               msg = msg1;
+            %             else
+            %               msg = sprintf('%s\n%s',msg,msg1);
+            %             end
+            %           end
+            
+          end
         end
       end
       
@@ -2455,24 +2496,35 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = SetMovieFileName(obj,moviefilename)
+    function [success,msg] = SetMovieFileName(obj,moviefilename,movieindexfilename)
     % change/set the name of the movie within the experiment directory
     % will fail if movie files don't exist for any of the current
     % experiment directories (checked by CheckMovies)
 
+      if nargin < 3,
+        movieindexfilename = 0;
+      end
+    
       success = false; msg = '';
+      
+      indexfilesmatch = (ischar(movieindexfilename) && ischar(obj.movieindexfilename) && ...
+          strcmp(movieindexfilename,obj.movieindexfilename)) || ...
+          (~ischar(movieindexfilename) && ~ischar(obj.movieindexfilename));
 
       if ischar(moviefilename),
-        if ischar(obj.moviefilename) && strcmp(moviefilename,obj.moviefilename),
+        if indexfilesmatch && ischar(obj.moviefilename) && strcmp(moviefilename,obj.moviefilename),
           success = true;
           return;
         end
+        oldmovieindexfilename = obj.movieindexfilename;
         oldmoviefilename = obj.moviefilename;
         obj.moviefilename = moviefilename;
+        obj.movieindexfilename = movieindexfilename;
         %obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
         [success1,msg] = obj.CheckMovies();
         if ~success1,
           obj.moviefilename = oldmoviefilename;
+          obj.movieindexfilename = oldmovieindexfilename;
           return;
         end
         [success,msg] = obj.UpdateStatusTable('movie');
@@ -7649,7 +7701,13 @@ classdef JLabelData < matlab.mixin.Copyable
         [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
                 
         if isfield(everythingParams.file,'moviefilename'),
-          [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
+          if isfield(everythingParams.file,'movieindexfilename'),
+            [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename,...
+              everythingParams.file.movieindexfilename);
+          else
+            [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
+          end
+            
           if ~success1,
             error('JLabelData:unableToSetMovieFileName', ...
                   msg);
