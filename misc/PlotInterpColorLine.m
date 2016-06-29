@@ -1,7 +1,7 @@
 % h = PlotInterpColorLine(x,y,colors,alphas,...)
 function h = PlotInterpColorLine(x,y,colors,alphas,varargin)
 
-if nargin <= 4,
+if nargin < 4,
   alphas = [];
 end
 if ischar(alphas),
