@@ -6452,6 +6452,9 @@ catch excp
   if isequal(excp.identifier,'JLabelData:noClassifier')
     uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
     return
+  elseif isequal(excp.identifier,'JLabelData:noWindowData')
+    uiwait(warndlg('No windowdata is available to set the confidence thresholds. Train a classifier to generate windowdata.'));
+    return
   else
     uiwait(errordlg('Some sort of error has occurred.'));
     return
