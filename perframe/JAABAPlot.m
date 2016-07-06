@@ -335,7 +335,7 @@ end
 function [fps,trxfile]=get_fps(expdir,trxfile)
 
 filename=fullfile(expdir,trxfile);
-if(~exist(filename) || isempty(trxfile))
+if(~exist(filename,'file') || isempty(trxfile))
   [trxfile,~,~]=uigetfile(fullfile(expdir,'*.mat'),...
       sprintf('Select trx file for %s',expdir));
   if(isnumeric(trxfile) && (trxfile==0))
@@ -793,7 +793,7 @@ else
   handles.rcfilename = 'most_recent_config.mat';
 end
 
-if(exist(handles.rcfilename)==2)
+if(exist(handles.rcfilename,'file')==2)
   try
     handles=load_configuration_file(handles.rcfilename,hObject,eventdata,handles);
   catch ME
@@ -1910,7 +1910,7 @@ parfor ge=1:length(handlesexperimentlist)
     if(~isfield(tmp,'jabFileNameAbs'))
       continue;
     end
-    if(exist(tmp.jabFileNameAbs)==2)
+    if(exist(tmp.jabFileNameAbs,'file'))
       classifiers_found{ge}{end+1}=tmp.jabFileNameAbs;
     else
       classifiers_notfound{ge}{end+1}=tmp.jabFileNameAbs;
@@ -3188,7 +3188,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     bad{ge}={};
     parfor_tmp=zeros(nbehaviors,nfeatures,9);
     for f=1:nfeatures
-      if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+      if(exist(fullfile(tempdir,'cancel.txt'),'file'))  break;  end
       feature_data=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,...
           [handles.featurelist{f} '.mat']));
       [~,~,~,fdata,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
@@ -3198,7 +3198,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       %  sexdata{s}=ones(1,length(fdata.data{s}));
       %end
       for b=1:nbehaviors
-        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+        if(exist(fullfile(tempdir,'cancel.txt'),'file')),  break;  end
 
         [during not_during]=calculate_feature_histogram(bdata{b},1,[],...
             fdata,sexdata,nan,handles.featurehistogram_style2,0);
@@ -3207,7 +3207,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
             length(during) length(not_during) length([during not_during])];
       end
       if(nbehaviors==0)
-        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+        if(exist(fullfile(tempdir,'cancel.txt'),'file')),  break;  end
 
         [during not_during]=calculate_feature_histogram([],1,[],...
             fdata,sexdata,nan,handles.featurehistogram_style2,0);
@@ -3225,7 +3225,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   delete(h);
   delete(fullfile(tempdir,'progressbar.txt'));
 
-  if(exist(fullfile(tempdir,'cancel.txt')))
+  if(exist(fullfile(tempdir,'cancel.txt'),'file'))
     delete(fullfile(tempdir,'cancel.txt'));
     set(handles.Status,'string','Ready.','foregroundcolor','g');
     set(handles.figure1,'pointer','arrow');
