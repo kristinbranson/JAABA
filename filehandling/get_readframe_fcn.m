@@ -98,6 +98,17 @@ elseif strcmpi(ext,'.tif'),
     nframes = headerinfo.nframes;
     fid = -1;
   end
+elseif strcmpi(ext,'.klb'),
+  tfKLBLib = exist('readKLBslice','file')>0;
+  if ~tfKLBLib
+    error('get_readframe_fcn:klb','Cannot find readKLBslice function. Make sure KLB matlab library is installed.');
+  end
+  
+  dim = myparse(varargin,'dim',3);
+  headerinfo = readKLBheader(filename);
+  readframe = klb_get_readframe_fcn(filename,varargin{:});
+  nframes = headerinfo.xyzct(dim); % AL 201507: KLB doc a little unclear here but this seems right
+  fid = 0;
 elseif strcmpi(ext,'.mat'),
   videofiletype = load(filename,'videofiletype');
   switch videofiletype,
@@ -113,13 +124,114 @@ elseif strcmpi(ext,'.mat'),
     otherwise
       error('Do not know how to parse mat file of type %s',videofiletype);
   end
+
+elseif strcmpi(ext,'.seq'),
+  [indexfilename,seqtype] = myparse(varargin,'indexfilename',0,'seqtype',0);
+  
+  if ischar(indexfilename),
+    seqtype = 'shay';
+  end
+  
+  % get file names
+  if ispc && ~exist(filename,'file'),
+      
+    [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+    if ~didfind,
+      error('Could not find movie file %s',filename);
+    end
+    filename0 = filename;
+    % use actualfilename instead
+    filename = actualfilename;
+      
+    % try the index file using the original filename
+    if ~ischar(indexfilename),
+      indexfilename = regexprep(filename0,'seq$','mat');
+      [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+      if ~didfind && ~strcmp(filename0,filename),
+        % try to find the index file using the source filename
+        indexfilename = regexprep(filename,'seq$','mat');
+        [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+        % if didn't find index file, then maybe this is a piotr seq file
+        if ~didfind,
+          if ischar(seqtype) && strcmpi(seqtype,'shay'),
+            error('Could not find index file for %s',filename);
+          else
+            seqtype = 'piotr';
+          end
+        end
+      end
+    end
+    
+  else
+    
+    % set seqtype to piotr if indexfilename doesn't exist
+    if ~ischar(seqtype) && ~ischar(indexfilename),
+      indexfilename = regexprep(filename,'seq$','mat');
+      if ~exist(indexfilename,'file'),
+        seqtype = 'piotr';
+      end
+    end
+    
+  end
+    
+  % get actual filename for shortcuts
+  if strcmpi(seqtype,'piotr'),
+    warning('Closing file currently not implemented for Piotr''s seq files...');
+    headerinfo = seqIo(filename,'getinfo');
+    headerinfo.nr = headerinfo.height;
+    headerinfo.nc = headerinfo.width;
+    headerinfo.nframes = headerinfo.numFrames;
+    headerinfo.type = 'seq_piotr';
+    fid = 0;
+    nframes = headerinfo.numFrames;
+    sr = seqIo(filename,'r');
+    readframe = @(f) seq_read_frame_piotr(f,sr);
+  else
+    
+    if ischar(indexfilename),
+      headerinfo = r_readseqinfo(filename,indexfilename);
+    else
+      headerinfo = r_readseqinfo(filename);
+    end
+    if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
+      headerinfo.m_iNumFrames = numel(headerinfo.m_aiSeekPos);
+    end
+    headerinfo.nr = headerinfo.m_iHeight;
+    headerinfo.nc = headerinfo.m_iWidth;
+    headerinfo.nframes = headerinfo.m_iNumFrames;
+    headerinfo.type = 'seq';
+    fid = 0;
+    nframes = headerinfo.m_iNumFrames;
+    readframe = @(f) read_seq_frame(headerinfo,f);
+  end
+
 else
   fid = 0;
   
   isindexedmjpg = false;
   if strcmpi(ext,'.mjpg'),
-    [indexfilename] = myparse(varargin,'indexfilename',0);
-    if ischar(indexfilename),
+    [indexfilename] = myparse(varargin,'indexfilename',[]);
+    if isempty(indexfilename),
+      % see if this looks like an indexed mjpg file
+      [p,n] = fileparts(filename);
+      indexfilename = fullfile(p,[n,'.txt']);
+      if ~exist(indexfilename,'file') && ispc,
+        [actualindexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+        if didfind,
+          indexfilename = actualindexfilename;
+        end
+      end
+      if exist(indexfilename,'file'),
+        try
+          ReadIndexedMJPGHeader(filename,indexfilename);
+          isindexedmjpg = true;
+        catch
+          indexfilename = 0;
+        end
+      else
+        indexfilename = 0;
+      end
+    elseif ischar(indexfilename),
       isindexedmjpg = true;
     end
   end
@@ -174,11 +286,7 @@ else
         headerinfo.type = 'avi';
         headerinfo.nr = headerinfo.Height;
         headerinfo.nc = headerinfo.Width;
-        if isfield(headerinfo,'NumberOfFrames'),
-          headerinfo.nframes = headerinfo.NumberOfFrames;
-        elseif isfield(headerinfo,'Duration') && isfield(headerinfo,'FrameRate'),
-          headerinfo.nframes = headerinfo.Duration*headerinfo.FrameRate;
-        end
+    headerinfo.nframes = nframes;
         readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
       catch ME_videoreader,
         
