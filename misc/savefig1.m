@@ -1,6 +1,6 @@
-function savefig(fname, varargin)
+function savefig1(fname, varargin)
 	
-% Usage: savefig(filename, fighdl, format, options)
+% Usage: savefig1(filename, fighdl, format, options)
 %
 % Saves a pdf, eps, png, jpeg, and/or tiff of the contents of the fighandle's (or current) figure.
 % It saves an eps of the figure and the uses Ghostscript to convert to the other formats.

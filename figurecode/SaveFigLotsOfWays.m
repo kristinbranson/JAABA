@@ -1,5 +1,11 @@
 function outfilenames = SaveFigLotsOfWays(hfig,basename)
 
+if exist('savefig1','var'),
+  savefigfun = @savefig1;
+else
+  savefigfun = @savefig;
+end
+
 % formats = {'pdf','tiff','svg','fig','eps'};
 formats = {'pdf','tiff','png','fig','eps'};
 [path,basename] = myfileparts(basename);
@@ -32,7 +38,7 @@ for i = 1:numel(formats),
   filename = [basename,'.',formats{i}];
   tmpfilename = [tmpbasename,'.',formats{i}];
   try
-    savefig(tmpfilename,hfig,formats{i});
+    savefigfun(tmpfilename,hfig,formats{i});
     if ~isempty(path),
       movefile(tmpfilename,fullfile(path,filename));
     end

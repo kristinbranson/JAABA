@@ -124,6 +124,10 @@ if verLessThan('matlab','8.4.0')
   handles.hslider_listener = handle.listener(handles.slider_Frame,...
     'ActionEvent',fcn);
   set(handles.slider_Frame,'Callback','');
+else
+  handles.hslider_listener = addlistener(handles.slider_Frame,...
+    'ContinuousValueChange',fcn);
+  set(handles.slider_Frame,'Callback','');
 end
 
 % open video
