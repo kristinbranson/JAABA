@@ -1,7 +1,7 @@
-function [path, name, ext] = fileparts(file)
+function [path, name, ext] = fileparts_platind(file)
 %
-%  WARNING: Overriding Matlab fileparts method for the following fix:
-%
+%    parses paths as in windows, regardless of the os
+%    renamed by KB 20160803
 %    experiments directories pathes in .jab files created on windows machines 
 %    are not parsed correctly
 %    on unix based system because '\' is not a proper delimiter, so this
