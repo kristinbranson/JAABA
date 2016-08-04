@@ -10,7 +10,7 @@ if s(end) == '/' || ispc && s(end) == '\',
   s = s(1:end-1);
 end
 
-[path,name,ext] = fileparts(s);
+[path,name,ext] = fileparts_platind(s);
 if nargout < 3,
   name = [name,ext];
 end

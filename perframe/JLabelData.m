@@ -2919,7 +2919,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function result = isValidScoreFileName(scoreFileName)
-      [path,baseName,ext]=fileparts(scoreFileName);
+      [path,baseName,ext]=fileparts_platind(scoreFileName);
       if ~isempty(path) ,
         result=false;
       elseif ~isequal(ext,'.mat')
