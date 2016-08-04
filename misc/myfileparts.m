@@ -13,7 +13,7 @@ if nargin >= 1 && numel(name) > 2 && ...
   name = name(1:end-1);
 end
 
-[path,fname,extension] = fileparts(name);
+[path,fname,extension] = fileparts_platind(name);
 varargout{1} = path;
 if nargout > 2,
   varargout{2} = fname;

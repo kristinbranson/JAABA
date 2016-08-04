@@ -8032,7 +8032,7 @@ while ~successfullyOpened && keepTrying ,
             end
           else
             
-            [~,dname,~] = fileparts(originalExpName);
+            [~,dname,~] = fileparts_platind(originalExpName);
             substituteExpDir= ...
               uigetdir(handles.data.expdefaultpath, ...
               sprintf('Locate Experiment Directory %s',dname));
