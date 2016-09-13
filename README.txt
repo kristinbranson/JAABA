@@ -56,7 +56,7 @@ JAABA contains code from the following sources:
   http://www1.aston.ac.uk/eas/research/groups/ncrg/resources/netlab/
 * ellipsedraw.m by Lei Wang: 
   http://www.mathworks.com/matlabcentral/fileexchange/3224-ellipsedraw1-0/content/ellipsedraw.m
-* savefig.m and eps2pdf.m by Peder Axensten: 
+* savefig_pa.m and eps2pdf.m by Peder Axensten: 
   http://www.mathworks.com/matlabcentral/fileexchange/10889-savefig
 * MATLAB and Octave Functions for Computer Vision and Image Processing by Peter Kovesi:
   http://www.csse.uwa.edu.au/~pk/research/matlabfns/

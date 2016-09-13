@@ -33,7 +33,7 @@ for i = 1:numel(formats),
   filename = [basename,'.',formats{i}];
   tmpfilename = [tmpbasename,'.',formats{i}];
   try
-    savefig(tmpfilename,hfig,formats{i});
+    savefig_pa(tmpfilename,hfig,formats{i});
     if ~isempty(path),
       movefile(tmpfilename,fullfile(path,filename));
     end
