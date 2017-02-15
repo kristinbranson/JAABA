@@ -9,7 +9,7 @@ if nargin < 3,
 end
 
 
-for i1 = 1:nflies,
+parfor i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('fly1 = %d\n',fly1);
   data{i1} = zeros(1,trx(fly1).nframes);
