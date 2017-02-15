@@ -16,7 +16,7 @@ mind = cell(1,nflies);
 anglerange1 = anglerange(1);
 anglerange2 = modrange(anglerange(2),anglerange(1),anglerange(1)+2*pi);
 
-for i1 = 1:nflies,
+parfor i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('fly1 = %d\n',fly1);
 

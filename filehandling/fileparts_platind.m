@@ -39,13 +39,19 @@ function [path, name, ext] = fileparts_platind(file)
 %   $Revision: 1.18.4.15.2.1 $ $Date: 2012/01/05 22:06:22 $
 
 % Nothing but a row vector should be operated on.
-if ~ischar(file) || size(file, 1) > 1
-    error(message('MATLAB:fileparts:MustBeChar'));
-end
 
 path = '';
 name = '';
 ext = '';
+
+if ~ischar(file) 
+    error(message('MATLAB:fileparts:MustBeChar'));
+elseif isempty(file) % isrow('') returns false, do this check first
+    return;
+elseif ~isrow(file)
+    error(message('MATLAB:fileparts:MustBeChar'));
+end
+
 
 if isempty(file)
     return;
