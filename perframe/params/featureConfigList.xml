@@ -2,6 +2,7 @@
 <params>
 <flies file="params/featureConfig.xml" animal="fly"/>
 <flies_wing file="params/featureConfigWings.xml" animal="wingedfly"/>
+<flies_rect file="params/featureConfig_rect.xml" animal="fly"/>
 <eyrun_flies file="params/featureConfigEyrun.xml" animal="wingedfly"/>
 <mice file="params/featureConfig_mice.xml" animal="fly"/>
 <eric_flies file="params/featureConfigEric.xml" animal="fly"/>
@@ -16,8 +17,12 @@
 <spacetime_mice file="params/featureConfig_spacetime_mice.xml" animal="fly"/>
 <larva_highres file="params/featureConfigLarvaehighres.xml" animal="larvacontour"/>
 <flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
-<flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
-<flies_hoghofplus file="params/featureConfigHoghofplus.xml" animal="fly"/>
+<!--flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
+<flies_hoghofplus file="params/featureConfigHoghofplus_modernNames.xml" animal="fly"/>
+<flies_hoghofstationary file="params/featureConfigHoghofplusStationary_modernNames_hsflow.xml" animal="fly"/-->
+<flies_hoghof_hs_aligned file="params/featureConfigHoghofplusStationary_modernNames_hsflow_bkgsup.xml" animal="wingedfly"/>
+<flies_hoghof_hs_notaligned file="params/featureConfigHoghofplus_hsflow.xml" animal="wingedfly"/>
+<flies_hoghof_deep_aligned file="params/featureConfigHoghofDeepStationary.xml" animal="wingedfly"/>
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
 <adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
 </params>

@@ -1,4 +1,6 @@
 function anytoavi(inmoviename,outmoviename,varargin)
+% function anytoavi(inmoviename,outmoviename[,'firstframe',1][,'endframe',nframes])
+% pairs in [] are optional and the default value are as shown above.
 
 [readframe,nframes,fid] = get_readframe_fcn(inmoviename);
 [firstframe,endframe,aviparams] = myparse(varargin,'firstframe',1,'endframe',nframes,...
@@ -21,7 +23,14 @@ h = waitbar(0,sprintf('Converting %s to %s: Frame %d / %d',...
 im = readframe(firstframe);
 im2rgbuint8_fun = get_im2rgbuint8_fun(im,inext);
 
-aviobj = avifile(outmoviename,aviparams{:});
+mat_lt84 = verLessThan('matlab','8.4.0');
+
+if mat_lt84,
+  aviobj = avifile(outmoviename,aviparams{:});
+else
+  aviobj = VideoWriter(outmoviename);
+  open(aviobj);
+end
 
 for t = firstframe:endframe,
   if mod(t,UPDATEWAITBARINTERVAL) == 0
@@ -33,12 +42,16 @@ for t = firstframe:endframe,
     end
   end
   im = im2rgbuint8_fun(readframe(t));
-  aviobj = addframe(aviobj,uint8(im));
+  if mat_lt84,
+    aviobj = addframe(aviobj,uint8(im));
+  else
+    writeVideo(aviobj,uint8(im));
+  end
 end
 
-aviobj = close(aviobj); %#ok<NASGU>
+close(aviobj); %#ok<NASGU>
 fclose(fid);
-if ishandle(h),
+if ishandle(h) || isgraphics(h),
   delete(h);
 end
 

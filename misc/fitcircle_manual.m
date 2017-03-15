@@ -10,6 +10,10 @@ if nargin < 1,
 end
 hold on;
 
+if nargin < 2,
+  color = 'm';
+end
+
 if nargin < 3,
   ti = 'Click points on circle';
 end

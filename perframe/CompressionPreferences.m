@@ -44,7 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before CompressionPreferences is made visible.
+% CompressionPreferences(jlabelGuiData)
 function CompressionPreferences_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
@@ -52,8 +52,8 @@ function CompressionPreferences_OpeningFcn(hObject, eventdata, handles, varargin
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to CompressionPreferences (see VARARGIN)
 
-% Choose default command line output for CompressionPreferences
-handles.parent_figure = varargin{1};
+assert(isa(varargin{1},'JLabelGUIData'));
+handles.guidata = varargin{1};
 
 handles = Initialize(handles);
 
@@ -73,35 +73,16 @@ function handles = Initialize(handles)
 % outavi_quality -> quality: Quality (VideoWriter + Motion JPEG AVI) or
 % Compression Ratio and LosslessCompression (VideoWriter + !Motion JPEG AVI
 % or quality (avifile)
-parent_handles = guidata(handles.parent_figure);
 
-if isfield(parent_handles,'useVideoWriter'),
-  if exist('VideoWriter','file'),
-    handles.useVideoWriter = parent_handles.useVideoWriter;
-  else
-    handles.useVideoWriter = true;
-  end
+jlgd = handles.guidata;
+if exist('VideoWriter','file')>0
+  handles.useVideoWriter = jlgd.useVideoWriter;
 else
-  handles.useVideoWriter = exist('VideoWriter','file') > 0;
+  handles.useVideoWriter = true;
 end
-
-if isfield(parent_handles,'outavi_compression'),
-  handles.compression_format = parent_handles.outavi_compression;
-else
-  handles.compression_format = 'None';
-end
-
-if isfield(parent_handles,'outavi_fps'),
-  handles.fps = parent_handles.outavi_fps;
-else
-  handles.fps = 15;
-end
-
-if isfield(parent_handles,'outavi_quality'),
-  handles.quality = parent_handles.outavi_quality;
-else
-  handles.quality = 100;
-end
+handles.compression_format = jlgd.outavi_compression;
+handles.fps = jlgd.outavi_fps;
+handles.quality = jlgd.outavi_quality;
 
 handles = SetCompressionFormats(handles);
 
@@ -109,6 +90,10 @@ handles = UpdateGUIPrompts(handles);
 
 set(handles.radiobutton_useVideoWriter,'Value',handles.useVideoWriter);
 set(handles.radiobutton_useAviFile,'Value',~handles.useVideoWriter);
+if ~jlgd.mat_lt_8p4,
+  set(handles.radiobutton_useVideoWriter,'enable','off')
+  set(handles.radiobutton_useAviFile,'enable','off');
+end
 %i = find(strcmpi(handles.compression_format,handles.compression_formats),1);
 %set(handles.popupmenu_compression_profile,'Value',i);
 set(handles.edit_fps,'String',num2str(handles.fps));
@@ -328,12 +313,12 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % store current configuration
-parent_handles = guidata(handles.parent_figure);
-parent_handles.outavi_fps = handles.fps;
-parent_handles.outavi_compression = handles.compression_format;
-parent_handles.useVideoWriter = handles.useVideoWriter;
-parent_handles.outavi_quality = handles.quality;
-guidata(handles.parent_figure,parent_handles);
+jlgd = handles.guidata;
+jlgd.outavi_fps = handles.fps;
+jlgd.outavi_compression = handles.compression_format;
+jlgd.useVideoWriter = handles.useVideoWriter;
+jlgd.outavi_quality = handles.quality;
+
 delete(handles.figure_CompressionPreferences);
 
 % --- Executes during object creation, after setting all properties.

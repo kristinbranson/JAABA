@@ -34,7 +34,7 @@ if numel(hax) < 2,
       clf(hfig);
     end
   end
-  hax = [0,0];
+  hax = initGHandles([1,2]);
   axes_width = .275;
   axes_border = .025;
   border = .025;

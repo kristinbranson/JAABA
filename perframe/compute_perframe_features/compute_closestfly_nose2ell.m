@@ -11,7 +11,7 @@ closestfly = cell(1,nflies);
 mind = cell(1,nflies);
 angle = cell(1,nflies);
 
-for i1 = 1:nflies,
+parfor i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('target 1 = %d\n',fly1);
 

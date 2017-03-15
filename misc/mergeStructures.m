@@ -1,5 +1,7 @@
 function sout = mergeStructures(varargin)
-   
+
+% AL20150827: Probable dup, see structmerge 
+
 % Start with collecting fieldnames, checking implicitly 
 % that inputs are structures.
 fn = [];

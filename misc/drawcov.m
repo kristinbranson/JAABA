@@ -1,13 +1,13 @@
 % h = drawcov(mu,S)
 function varargout = drawcov(varargin)
-if nargin == 1,
+if isstruct(varargin{1}),
   mu = varargin{1}.centres;
   S = varargin{1}.covars;
-elseif nargin == 2,
+  rest = varargin(2:end);
+else
   mu = varargin{1};
   S = varargin{2};
-else,
-  error('Usage: drawcov(mix) or drawcov(mu,S)');
+  rest = varargin(3:end);
 end;
 K = size(mu,1);
 
@@ -19,7 +19,7 @@ h = zeros(1,K);
 for k = 1:K,
     if ~any(isnan(S)),
       [a,b,theta] = cov2ell(S(:,:,k));
-      h(k) = ellipsedraw(a,b,mu(k,1),mu(k,2),theta,colors(k));
+      h(k) = ellipsedraw(a,b,mu(k,1),mu(k,2),theta,colors(k),rest{:});
     end;
 end;
 

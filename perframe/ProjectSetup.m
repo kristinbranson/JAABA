@@ -68,21 +68,19 @@ function ProjectSetup_OpeningFcn(hObject, ~, handles, varargin)
 % then we are creating a new project.
 % * handleobj: A HandleObj. 
 
-% AL 20141222. This file seems bigger than it should be given what it
-% represents: a vanilla editable view into a struct, with a few custom 
-% methods.
-
 handles.output = hObject;
 
 [figureJLabel, ...
  basicParamsStruct,...
  defaultmoviefilename,...
+ defaultmovieindexfilename,...
  defaulttrxfilename,...
  handles.handleobj] = ...
    myparse(varargin,...
            'figureJLabel',[],...
            'basicParamsStruct',[],...
            'defaultmoviefilename',0,...
+           'defaultmovieindexfilename',0,...
            'defaulttrxfilename',0,...
            'handleobj',[]);
 
@@ -90,18 +88,15 @@ handles.new = isempty(basicParamsStruct);
 handles.figureJLabel = figureJLabel;
 handles.basicParamsStruct = basicParamsStruct;
 
-% Change a few things so they still work well on Mac
 adjustColorsIfMac(hObject);
 
 % Need to derive the basic and advanced sizes (part of the model) from
 % the current figure dimensions
 handles = setBasicAndAdvancedSizesToMatchFigure(handles);
 
-% Set to basic mode, update the figure
 handles.mode = 'basic';
 handles = updateFigurePosition(handles);
 
-% Center the window on the JLabel figure
 centerOnParentFigure(hObject,figureJLabel);
 
 % Initialize the list of possible feature lexicon names
@@ -119,6 +114,9 @@ if isempty(basicParamsStruct)
   warning(warnst);
   if ischar(defaultmoviefilename)
     handles.basicParamsStruct.file.moviefilename = defaultmoviefilename;
+  end
+  if ischar(defaultmovieindexfilename)
+    handles.basicParamsStruct.file.movieindexfilename = defaultmovieindexfilename;
   end
   if ischar(defaulttrxfilename)
     handles.basicParamsStruct.file.trxfilename = defaulttrxfilename;
@@ -150,22 +148,18 @@ end
 % Update the configuration table in the GUI
 updateConfigTable(handles);
 
-% Set the window title
-if handles.new,
-  set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
-  set(handles.pushbutton_copy,'visible','on');
-  set(handles.featureconfigpopup,'enable','on');
-else
-  set(hObject,'name',fif(handles.new,'Edit...','Basic Settings...'));
-  set(handles.pushbutton_copy,'visible','off')
-  set(handles.featureconfigpopup,'enable','off');
-end
+set(hObject,'name',fif(handles.new,'New...','Edit...'));
+onoff = fif(handles.new,'on','off');
+set(handles.featureconfigpopup,'enable',onoff);
+set(handles.pushbutton_copy,'visible',onoff);
+set(handles.editName,'enable',onoff);
+set(handles.edittrxfilename,'enable',onoff);
+set(handles.pushbutton_perframe,'visible',onoff);
 
 % Set the current score-as-feature file
 fileNameList = {handles.basicParamsStruct.scoreFeatures(:).classifierfile};
 handles.indexOfScoreFeaturesFile = fif(isempty(fileNameList),[],1);
   
-% Update handles structure
 guidata(hObject, handles);
 
 % Update all the text fields in the figure
@@ -363,11 +357,12 @@ fields2remove = {'featureLexicon','windowFeaturesParams','scoreFeatures', ...
                  'sublexiconPFNames','labels','gtLabels','expDirNames', ...
                  'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
                  'windowFeaturesParams'};
-for ndx = 1:numel(fields2remove)
-  if isfield(basicParamsStruct,fields2remove{ndx}),
-    basicParamsStruct = rmfield(basicParamsStruct,fields2remove{ndx});
-  end  
+if ~handles.new
+  editModeRemove = {'featureLexiconName' 'behaviors.names' 'behaviors.type' ...
+    'behaviors.nbeh' 'file.trxfilename' 'extra.perframe'};
+  fields2remove = [fields2remove editModeRemove];
 end
+basicParamsStruct = structrmfield(basicParamsStruct,fields2remove);
 data = GetParamsAsTable(basicParamsStruct);
 set(handles.config_table,'Data',data);
 return
@@ -458,7 +453,8 @@ end
 % Add no-behavior names
 behaviorsStruct.names = Labels.behnames2labelnames(behaviorsStruct.names);
 
-if numel(behaviorsStruct.labelcolors)~=3*numel(behaviorsStruct.names)
+nlabels = numel(behaviorsStruct.names);
+if numel(behaviorsStruct.labelcolors)~=3*nlabels
   if dowarn
     warning('ProjectSetup:behaviorParams',...
       'Specified label colors not consistent with number of behaviors. Updating.');
@@ -487,6 +483,7 @@ featureLexiconNameNew = handles.featureLexiconNameList{iFeatureLexicon};
 % (Note that any changes in the advanced part of the window will be lost.)
 behaviorName=handles.basicParamsStruct.behaviors.names;
 movieFileName=handles.basicParamsStruct.file.moviefilename;
+movieIndexFileName=handles.basicParamsStruct.file.movieindexfilename;
 trackFileName=handles.basicParamsStruct.file.trxfilename;
 scoreFileName=handles.basicParamsStruct.file.scorefilename;
 % Replace basicParamsStruct with one appropriate to the new feature lexicon
@@ -498,6 +495,7 @@ warning(old);  % restore annoying warning
 % Now restore fields from the old basicParamsStruct
 handles.basicParamsStruct.behaviors.names=behaviorName;
 handles.basicParamsStruct.file.moviefilename=movieFileName;
+handles.basicParamsStruct.file.movieindexfilename=movieIndexFileName;
 handles.basicParamsStruct.file.trxfilename=trackFileName;
 handles.basicParamsStruct.file.scorefilename=scoreFileName;
 guidata(hObject,handles);
@@ -603,6 +601,32 @@ if nbehavior~=nscorefile
   return
 end
 
+% if movie is an mjpg, ask for an index file
+[~,~,ext] = fileparts(handles.basicParamsStruct.file.moviefilename);
+if ismember(lower(ext),{'.mjpg','.mjpeg'}),
+  
+  res = questdlg('Is this an indexed MJPG file? If so, you will be prompted to select the corresponding index file location.');
+  if strcmpi(res,'Yes'),    
+    if isfield(handles.basicParamsStruct.file,'movieindexfilename') && ...
+        ischar(handles.basicParamsStruct.file.movieindexfilename),
+      defaultindexfile = handles.basicParamsStruct.file.movieindexfilename;
+    else
+      defaultindexfile = 'index.txt';
+    end
+    res = inputdlg({'MJPG index file name: '},'MJPG index file name',1,{defaultindexfile});
+    % cancel
+    if isempty(res),
+      return;
+    end
+    handles.basicParamsStruct.file.movieindexfilename = res{1};
+  else
+    handles.basicParamsStruct.file.movieindexfilename = 0;
+  end
+  
+else
+  handles.basicParamsStruct.file.movieindexfilename = 0;
+end
+
 % Finish initialization of basicParamsStruct and return as Macguffin in handleobj
 handles.basicParamsStruct.behaviors = ...
   enforceBehaviorParamConstraints(handles.basicParamsStruct.behaviors,true);
@@ -704,7 +728,10 @@ if ismember('Classifier Settings',sellist),
   clf_params_specific = {'classifierStuff.type'
     'classifierStuff.postProcessParams'
     'classifierStuff.trainingParams'
-    'classifierStuff.savewindowdata'};
+    'classifierStuff.savewindowdata'
+    'classifierStuff.selFeatures'
+    'classifierStuff.predictOnlyCurrentFly'
+    };
   
   for str = clf_params_specific(:)',
     try %#ok<TRYNC>
@@ -718,7 +745,6 @@ end
 if ismember('Advanced Parameters',sellist),
   adv_params_specific = {'behaviors.labelcolors'
     'behaviors.unknowncolor' 
-    'labelGraphicParams'
     'trxGraphicParams'
     'extra'};
   

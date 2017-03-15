@@ -1,5 +1,13 @@
 function [scores model binVals bins] = loglossboostLearnRandomFeatures(...
-  data,labels,numIters,initWt,binVals,bins,params,obj)
+  data,labels,numIters,initWt,binVals,bins,params,obj,str)
+
+if nargin<8,
+  obj = [];
+end
+
+if nargin<9,
+  str = '';
+end
 
 numEx = size(data,1);
 wt = initWt;
@@ -17,20 +25,35 @@ etimehist = [];
 etimehistlength = 25;
 nittoutput = 3;
 origbins = bins; origdata = data; origbinVals = binVals;
-featureSetRatio = 1.1;
+
+numFeatures = size(origbins,1);
+if numFeatures<10000,
+  featureSetRatio = 1.1;
+  refreshRatio = 100000; % never refresh
+elseif numFeatures < 20000
+  featureSetRatio = 0.7;
+  refreshRatio = 1/10;
+else
+  featureSetRatio = 0.4;
+  refreshRatio = 1/20;
+end
 
 % params.numSample = min(params.numSample,round(numEx/2));
 for itt = 1:numIters
-  if ceil(itt*10/numIters)-ceil( (itt-1)*10/numIters) > 0.5
-    % every 1/10th iterations select features to train on.
+  if (ceil(itt/refreshRatio/numIters)-ceil( (itt-1)/refreshRatio/numIters) > 0.5)
+    % every 1/20th iterations select features to train on.
     selFeatures = rand(1,size(origbins,1))>featureSetRatio;
     feature_map = find(~selFeatures);
-    bins = origbins;
-    data = origdata;
-    binVals = origbinVals;
-    bins(selFeatures,:) = [];
-    data(:,selFeatures) = [];
-    binVals(:,selFeatures) = [];
+    % MAYANK NOV 4 2015. copying and deleting as below is slow
+%     bins = origbins;
+%     data = origdata;
+%     binVals = origbinVals;
+%     bins(selFeatures,:) = [];
+%     data(:,selFeatures) = [];
+%     binVals(:,selFeatures) = [];
+    bins = origbins(~selFeatures,:);
+    data = origdata(:,~selFeatures);
+    binVals = origbinVals(:,~selFeatures);
   end
   count = 0;
   while(count<1)
@@ -74,9 +97,11 @@ for itt = 1:numIters
     if numel(etimehist) > etimehistlength,
       etimehist = etimehist(end-etimehistlength+1:end);
     end
-    %obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
-    %  round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
-    %drawnow();
+    if ~isempty(obj)
+      obj.SetStatus('%s %d%% training done. Time Remaining:%ds ',str,...
+        round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
+      drawnow();
+    end
     clk = tic;
   end
   

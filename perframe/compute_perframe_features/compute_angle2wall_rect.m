@@ -1,4 +1,4 @@
-% distance to wall
+% angle to wall
 function [data,units] = compute_angle2wall_rect(trx,n)
 
 flies = trx.exp2flies{n};

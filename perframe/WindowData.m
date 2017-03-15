@@ -30,16 +30,17 @@ classdef WindowData
         'predicted',[], ... % NUA
         'predicted_probs',[], ... % NUA
         'isvalidprediction',[], ... % NUA
-        'distNdx',[], ... % NUA?
+        'distNdx',[], ...
         'scores',[], ... % NUA
         'scoreNorm',[], ... 
         'binVals',[], ... 
         'scores_old',[], ... % NUA
-        'scores_validated',[], ... % NUA?
-        'postprocessed',[]); % NUA?
+        'scores_validated',[], ...
+        'postprocessed',[],... % NUA?
+        'bins',[]);
     end
     
-    function wd = windowdataVerify(wd)
+    function windowdataVerify(wd)
       for iCls = 1:numel(wd)        
         w = wd(iCls);        
         [n,nftr] = size(w.X);
@@ -52,6 +53,9 @@ classdef WindowData
           isempty(w.labelidx_old) && isempty(w.labelidx_imp));
         
         assert(numel(w.featurenames)==nftr);
+        if ~isempty(w.binVals),
+          assert(size(w.bins,1) == nftr && size(w.bins,2) == n);
+        end
 
         % scoreNorm?
         % binVals?
@@ -77,6 +81,7 @@ classdef WindowData
         wd(iCls).scores = [];
         wd(iCls).scoreNorm = [];
         wd(iCls).binVals = [];
+        wd(iCls).bins = uint8([]);
         wd(iCls).scores_old = [];
         wd(iCls).scores_validated = [];
         wd(iCls).postprocessed  = [];
@@ -106,24 +111,26 @@ classdef WindowData
         if n == 0, continue ; end
         tfRm = predFcn(wd(i));
         assert(islogical(tfRm)&&isvector(tfRm)&&numel(tfRm)==n);
-        
+        % MAYANK MAY9 2016  don't trim if there is nothing to trim.
+        if nnz(tfRm)<1, continue ;end 
         wd(i).X(tfRm,:) = [];
         wd(i).exp(tfRm,:) = [];
         wd(i).flies(tfRm,:) = [];
         wd(i).t(tfRm,:) = [];
+        wd(i).bins(:,tfRm) = [];
         wd(i).labelidx_cur(tfRm,:) = [];
         wd(i).labelidx_new(tfRm,:) = [];
         wd(i).labelidx_imp(tfRm,:) = [];
         wd(i).labelidx_old(tfRm,:) = [];
-        wd(i).binVals = [];
-
-%         wd(i).distNdx = [];
+        wd(i).distNdx = [];
+%        wd(i).binVals = [];
+        wd(i).scores_validated(tfRm,:) = [];
+        
 %         wd(i).isvalidprediction(idxcurr(1:numel(wd(i).isvalidprediction))) = [];
 %         wd(i).predicted(idxcurr(1:numel(wd(i).predicted))) = [];
 %         wd(i).predicted_probs(idxcurr(1:numel(wd(i).predicted_probs))) = [];
 %         wd(i).scores(idxcurr(1:numel(wd(i).scores))) = [];
 %         wd(i).scores_old(idxcurr(1:numel(wd(i).scores_old))) = [];
-%         wd(i).scores_validated(idxcurr(1:numel(wd(i).scores_validated)),:) = [];
 %         wd(i).postprocessed(idxcurr(1:numel(wd(i).postprocessed)),:) = [];
       end
     end
@@ -159,6 +166,26 @@ classdef WindowData
         end
         wd(iCls) = w;
       end
+    end
+    
+    % MK: Add thresholded bins to window data. May 10 2016
+    function [wd,wdmodified ] = modernize(wd)
+      wdmodified = false;
+      if ~isfield(wd,'bins'),
+        if numel(wd)>0,
+          for ndx = 1:numel(wd),
+            if ~isempty(wd(ndx).binVals),
+              wd(ndx).bins = findThresholdBins(wd(ndx).X,wd(ndx).binVals);
+            else
+              wd(ndx).bins = uint8([]);
+            end
+          end
+        else
+          tmp=cell(size(wd)); [wd(:).bins]=deal(tmp{:});
+        end
+        wdmodified = true;
+      end
+      
     end
       
   end

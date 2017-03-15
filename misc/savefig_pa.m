@@ -1,4 +1,4 @@
-function savefig(fname, varargin)
+function savefig_pa(fname, varargin)
 	
 % Usage: savefig(filename, fighdl, format, options)
 %
@@ -44,10 +44,7 @@ function savefig(fname, varargin)
 % Saves the current figure to nicefig.pdf and nicefig.png, both in cmyk and at 250 dpi,
 %          with high quality lossy compression.
 %
-% REQUIREMENT: Ghostscript. Version 8.57 works, probably older versions too, but '-dEPSCrop'
-%          must be supported. I think version 7.32 or newer is ok.
 % Copyright (C) Peder Axensten (peder at axensten dot se), 2006.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   [fpath,fname1,ext] = fileparts(fname);
@@ -99,7 +96,6 @@ function savefig(fname, varargin)
 	set(fighdl, 'PaperUnits', 'centimeters', 'PaperSize', sz(3:4), 'PaperPosition', sz);
   set(fighdl,'Units',oldunits);
 
-	
 	% Set up the various devices.
 	% Those commented out are not yet supported by gs (nor by savefig).
 	% pdf-cmyk works due to the Matlab '-cmyk' export being carried over from eps to pdf.
@@ -162,7 +158,8 @@ function savefig(fname, varargin)
 	% Generate the gs command.
 	switch(computer)													% Get gs command.
 		case {'MAC','MACI'},			gs= '/usr/local/bin/gs';
-		case {'PCWIN','PCWIN64'},		gs= 'gswin32c.exe';
+		case {'PCWIN'},		gs= 'gswin32c.exe';
+    case {'PCWIN64'}, gs='"C:\Program Files (x86)\gs\gs9.02\bin\gswin32c.exe"';
 		otherwise,						gs= 'gs';
 	end
 	gs=		[gs		' -q -dNOPAUSE -dBATCH -dEPSCrop'];					% Essential.

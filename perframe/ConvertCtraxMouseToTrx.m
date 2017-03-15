@@ -1,5 +1,5 @@
-function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSize,framerate,method,sex,frames2sel)
-% function ConvertCtraxMouseToTrx(indir,arenaSize,dt,sex)
+function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSize,framerate,method,sex,frames2sel,frame)
+% function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSize,framerate,method,sex,frames2sel,frame)
 % Convert tracking results from ctrx into trx format. Mainly for vivek's
 % movies.
 % indir: experiment directory
@@ -7,11 +7,14 @@ function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSi
 % moviefilename:
 % outtrxfile: output trx file
 % arenaSize: The size of the edge of the box in mm
-% framerate
+% framerate: 
 % method: 'manual','auto', 'both'. Both will try out auto and if it fails
 % will ask for for manual intervention.
 % sex: animals sex - optional 
-% frames2sel: Frames to use for corner detection.
+% frames2sel: Frames to use for corner detection -optional
+% frame: give a frame as input instead of loading the movie.
+%   If a frame is given using this argument then moviefilename 
+%   and frames2sel are ignored - optional
 
 % intrxfile = 'trx.mat';
 % moviefilename = 'movie.mov';
@@ -32,18 +35,24 @@ else
   isufmf = false;
 end
 
-[readframe,nframes,movie_fid,movieheaderinfo] = ...
-  get_readframe_fcn(fullfile(indir,moviefilename));
-
 imgfile = fullfile(indir,'corner_detection.png');
 
-if nargin<9
-  frames2read = randsample(nframes,1);
+if nargin<10
+  [readframe,nframes,movie_fid,movieheaderinfo] = ...
+    get_readframe_fcn(fullfile(indir,moviefilename));
+  
+  
+  if nargin<9
+    frames2read = randsample(nframes,1);
+  else
+    frames2read=randsample(frames2sel,1);
+  end
+  img = readframe(frames2read);
 else
-  frames2read=randsample(frames2sel,1);
+  img = frame; movie_fid = 0;
 end
+
 tl = []; tr = []; bl = []; br = [];
-img = readframe(frames2read);
 
 if strcmp(method,'auto'),
   
@@ -58,7 +67,7 @@ if strcmp(method,'auto'),
     return;
   end
 elseif strcmp(method,'manual'),
-  [ctl ctr cbl cbr] = getCornersManual(img);
+  [ctl, ctr, cbl, cbr] = getCornersManual(img);
 elseif strcmp(method,'both');
   [success,C] = cornerDetection(img,imgfile);
   if success,
@@ -67,7 +76,7 @@ elseif strcmp(method,'both');
     cbl = C(3,:);
     cbr = C(4,:);
   else
-    [ctl ctr cbl cbr] = getCornersManual(img);
+    [ctl,ctr,cbl, cbr] = getCornersManual(img);
   end
 else
   fprintf('Invalid method: It should be either ''manual'', ''auto'' or ''both''\n');

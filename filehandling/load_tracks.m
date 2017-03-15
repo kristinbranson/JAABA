@@ -1,11 +1,12 @@
 % [trx,matname,succeeded] = load_tracks(matname,[moviename])
 
-function [trx,matname,succeeded,timestamps] = load_tracks(matname,moviename,varargin)
+function [trx,matname,succeeded,timestamps,rest] = load_tracks(matname,moviename,varargin)
 
 [dosave,savename,annname,verbose] = myparse(varargin,'dosave',false,'savename','','annname','','verbose',false);
 
 succeeded = false;
 trx = [];
+rest = struct;
 
 isinteractive = ~exist('matname','var');
 
@@ -59,6 +60,11 @@ else
     for i = 1:numel(trx),
       timestamps(trx(i).firstframe:trx(i).endframe) = trx(i).timestamps;
     end
+  end
+  
+  fns = setdiff(fieldnames(tmp),{'trx','timestamps'});
+  for i = 1:numel(fns),
+    rest.(fns{i}) = tmp.(fns{i});
   end
   
   if exist('moviename','var') && ~isfield(trx,'moviename'),

@@ -71,6 +71,7 @@ fracneg = Zneg/Z;
 
 if dosample,
   
+
   posCount = accummatrix(curBins(:,idxpos)',ones(Zpos,1),numBins)'/Z;
   negCount = accummatrix(curBins(:,~idxpos)',ones(Zneg,1),numBins)'/Z;
   

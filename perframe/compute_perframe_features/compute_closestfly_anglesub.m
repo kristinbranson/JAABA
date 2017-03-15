@@ -10,7 +10,7 @@ nflies = numel(flies);
 closestfly = cell(1,nflies);
 maxanglesub = cell(1,nflies);
 
-for i1 = 1:nflies,
+parfor i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('fly1 = %d\n',fly1);
   flies2 = flies(trx.roi(fly1)==trx.roi(flies));

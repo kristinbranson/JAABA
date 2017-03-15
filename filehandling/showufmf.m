@@ -157,22 +157,48 @@ set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 handles.isplaying = true;
 guidata(hObject,handles);
 tic;
-for f = handles.f:handles.nframes,
+t0 = now;
+fnext = handles.f;
+
+while true,
   handles = guidata(hObject);
   if ~handles.isplaying,
     break;
   end
+  f = fnext;
   handles.f = f;
   handles = update_frame(handles);
   guidata(hObject,handles);
   if handles.MaxFPS > 0,
     tmp = toc;
+    t1 = now;
     if tmp < handles.MinSPF
-      pause(handles.MinSPF - tmp);
+      pause(handles.MinSPF - t1);
+      fnext = f + 1;
+    elseif tmp > handles.MinSPF,
+      fnext = max(1,round((t1-t0)*24*3600/handles.MinSPF));
+      %fprintf('setting fnext to %d\n',fnext);
+      if fnext > handles.nframes,
+        break;
     end
+      drawnow;
   else
     drawnow;
   end
+  else
+    fnext = f+1;
+    drawnow;
+  end
+
+  
+%   if handles.MaxFPS > 0,
+%     tmp = toc;
+%     if tmp < handles.MinSPF
+%       pause(handles.MinSPF - tmp);
+%     end
+%   else
+%     drawnow;
+%   end
   tic;
 end
 
@@ -215,7 +241,11 @@ switch showType,
     set(handles.axes_Video,'CLim',[0,255]);
   case 'Background Difference',
     if handles.FMFNameIsInput,
-      im = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+      im = handles.readframe_raw(handles.f);
+      if size(im,3) > 1,
+        im = rgb2gray(im);
+      end
+      im = cast(im,handles.headerinfo.dataclass);
     else
       im = handles.im;
     end
@@ -224,25 +254,47 @@ switch showType,
     set(handles.axes_Video,'CLim',[0,max(1,max(diff(:)))]);
   case 'Is Foreground',
     if handles.FMFNameIsInput,
-      im = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+      im = handles.readframe_raw(handles.f);
+      if size(im,3) > 1,
+        im = rgb2gray(im);
+      end
+      im = cast(im,handles.headerinfo.dataclass);
     else
       im = handles.im;
+    end
+    if size(im,3) > 1,
+      im = rgb2gray(im);
     end
     diff = max(im - handles.mu,handles.mu - im);
     isfore = diff >= handles.BackSubThresh;
     set(handles.himage,'CData',isfore);
     set(handles.axes_Video,'CLim',[0,1]);    
   case 'Raw Frame',
-     handles.rawim = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
-     set(handles.himage,'CData',handles.rawim);
-     set(handles.axes_Video,'CLim',[0,255]);
+    im = handles.readframe_raw(handles.f);
+    if size(im,3) > 1,
+      im = rgb2gray(im);
+    end
+    im = cast(im,handles.headerinfo.dataclass);
+    handles.rawim = im;
+    set(handles.himage,'CData',handles.rawim);
+    set(handles.axes_Video,'CLim',[0,255]);
   case 'Compression Error',
-    handles.rawim = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+    im = handles.readframe_raw(handles.f);
+    if size(im,3) > 1,
+      im = rgb2gray(im);
+    end
+    im = cast(im,handles.headerinfo.dataclass);
+    handles.rawim = im;
     diff = max(handles.im - handles.rawim,handles.rawim - handles.im);
     set(handles.himage,'CData',diff);
     set(handles.axes_Video,'CLim',[0,max(1,max(diff(:)))]);
   case 'Thresholded Compression Error',
-    handles.rawim = cast(handles.readframe_raw(handles.f),handles.headerinfo.dataclass)';
+    im = handles.readframe_raw(handles.f);
+    if size(im,3) > 1,
+      im = rgb2gray(im);
+    end
+    im = cast(im,handles.headerinfo.dataclass);
+    handles.rawim = im;
     diff = max(handles.im - handles.rawim,handles.rawim - handles.im);
     isfore = diff >= handles.BackSubThresh;
     set(handles.himage,'CData',isfore);

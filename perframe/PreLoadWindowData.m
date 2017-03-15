@@ -33,7 +33,7 @@ function [success,msg,predictblocks,windowdata] = PreLoadWindowData(...
   windowdata.labelidx_imp = [];
 
   % If there are no per-frame features or no frames missing data, declare victory.
-  if object.isempty_fieldnames_windowfeaturesparams || isempty(missingts)
+  if  isempty(missingts) || object.isempty_fieldnames_windowfeaturesparams
     success = true;
     return;
   end

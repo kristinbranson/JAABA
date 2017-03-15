@@ -1,7 +1,11 @@
 function p = mahdist(x, m, S, V)
 % mahalanobis distance from x to m by S
+% mahdist([x(:)';y(:)';z(:)'],mu,[],S)
 %   See NORMPDF for argument description.
-
+% [d, n] = size(x)
+% [d, 1] = size(m)
+% S = []
+% V = cov
 [d, n] = size(x);
 if nargin == 1
   dx = x;
@@ -86,4 +90,4 @@ else
     dx = solve_tril(S',dx);
   end
 end
-p = col_sum(dx.*dx);
+p = sum(dx.*dx,1);
