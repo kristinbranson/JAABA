@@ -83,30 +83,32 @@ classdef ClassifierStuff < handle
       end
       
       % MK: May 09 2016
-      if ~isprop(self,'selFeatures') || isempty(self.selFeatures),
-        tfmodified = true;
-        for i = 1:numel(self)
+      for i = 1:numel(self)
+        % AL: not sure need to check isprop(...,'selFeatures') b/c the
+        % property is in the class now -- any/all ClassifierStuffs running
+        % with this version prob get the prop now
+        if ~isprop(self(i),'selFeatures') || isempty(self(i).selFeatures),
+          tfmodified = true;
           self(i).selFeatures = SelFeatures.createEmpty();
-        end
-      else
-        [self.selFeatures,sfmod] = SelFeatures.modernize(self.selFeatures);
-        if sfmod,
-          tfmodified = true; %#ok<NASGU>
+        else
+          [self(i).selFeatures,sfmod] = SelFeatures.modernize(self(i).selFeatures);
+          tfmodified = tfmodified || sfmod;
         end
       end
       
       % MK: May 09 2016
-      if ~isfield(self.trainingParams,'nselfeatures'),
-        tfmodified = true;
-        for i = 1:numel(self)
+      for i = 1:numel(self)
+        if ~isfield(self(i).trainingParams,'nselfeatures'),
+          tfmodified = true;
           self(i).trainingParams.nselfeatures = 1000;
         end
       end
-      
+    
       % MK: May 09 2016
-      if ~isprop(self,'predictOnlyCurrentFly')|| isempty(self.predictOnlyCurrentFly),
-        tfmodified = true;
-        for i = 1:numel(self)
+      for i = 1:numel(self)
+        % AL: isprop etc
+        if ~isprop(self(i),'predictOnlyCurrentFly') || isempty(self(i).predictOnlyCurrentFly),
+          tfmodified = true;
           self(i).predictOnlyCurrentFly = false;
         end
       end
@@ -114,7 +116,7 @@ classdef ClassifierStuff < handle
       % MK: modernize window data.
       wdmodified = false;
       for i = 1:numel(self)
-        [ self(i).windowdata,wdm] =  WindowData.modernize(self(i).windowdata);
+        [self(i).windowdata,wdm] =  WindowData.modernize(self(i).windowdata);
         if wdm,
           wdmodified = true;
         end
@@ -122,7 +124,7 @@ classdef ClassifierStuff < handle
       if wdmodified,
         tfmodified = true;
       end
-
+      
     end
         
   end 
