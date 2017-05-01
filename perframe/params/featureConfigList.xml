@@ -24,5 +24,6 @@
 <flies_hoghof_hs_notaligned file="params/featureConfigHoghofplus_hsflow.xml" animal="wingedfly"/>
 <flies_hoghof_deep_aligned file="params/featureConfigHoghofDeepStationary.xml" animal="wingedfly"/>
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
+<flies_st_katie file="params/featureConfigHoghof_katie.xml" animal="fly"/>
 <adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
 </params>
