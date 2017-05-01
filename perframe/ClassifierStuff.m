@@ -84,9 +84,9 @@ classdef ClassifierStuff < handle
       
       % MK: May 09 2016
       for i = 1:numel(self)
-        % AL: not sure need to check isprop(...,'selFeatures') b/c the
+        % AL: prob don't need to check isprop(...,'selFeatures') b/c the
         % property is in the class now -- any/all ClassifierStuffs running
-        % with this version prob get the prop now
+        % with this version should get the prop 
         if ~isprop(self(i),'selFeatures') || isempty(self(i).selFeatures),
           tfmodified = true;
           self(i).selFeatures = SelFeatures.createEmpty();
