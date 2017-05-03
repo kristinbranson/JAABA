@@ -3037,22 +3037,23 @@ classdef JLabelData < matlab.mixin.Copyable
             elseif canusecache && expi == obj.expi,
               trx = obj.trx;
             else
+              trx = load_tracks(trxfile);
 %               try
                 % REMOVE THIS
-                global CACHED_TRX; %#ok<TLEV>
-                global CACHED_TRX_EXPNAME; %#ok<TLEV>
-                if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-                    ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',...
-                    obj.expnames{expi}),'interpreter','none');
-                  trx = load_tracks(trxfile);
-                  if ishandle(hwait), delete(hwait); end
-                  CACHED_TRX = trx;
-                  CACHED_TRX_EXPNAME = obj.expnames{expi};
-                else
-%                   fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-                  trx = CACHED_TRX;
-                end
+%                 global CACHED_TRX; %#ok<TLEV>
+%                 global CACHED_TRX_EXPNAME; %#ok<TLEV>
+%                 if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+%                     ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+%                   hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',...
+%                     obj.expnames{expi}),'interpreter','none');
+%                   trx = load_tracks(trxfile);
+%                   if ishandle(hwait), delete(hwait); end
+%                   CACHED_TRX = trx;
+%                   CACHED_TRX_EXPNAME = obj.expnames{expi};
+%                 else
+% %                   fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+%                   trx = CACHED_TRX;
+%                 end
 %               catch ME,
 %                 msg = sprintf(['Could not load trx file for experiment %s '...
 %                     'to count flies: %s'],obj.expdirs{expi},getReport(ME));
