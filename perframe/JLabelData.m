@@ -3807,9 +3807,9 @@ classdef JLabelData < matlab.mixin.Copyable
       for ndx = 1:obj.nclassifiers
         obj.selFeatures(ndx) = SelFeatures.createEmpty();
       end
-      obj.selFeatures(:).use = useselfeatures;
+      [obj.selFeatures(:).use] = deal(useselfeatures);
       if useselfeatures,
-        obj.selFeatures(:).do = true;
+        [obj.selFeatures(:).do] = deal(true);
       end
       obj.predictblocks = Predict.predictblocks(obj.nclassifiers);      
       obj.UpdatePredictedIdx();
