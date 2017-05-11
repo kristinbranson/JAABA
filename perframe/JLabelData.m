@@ -4187,10 +4187,12 @@ classdef JLabelData < matlab.mixin.Copyable
           obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
                     
           % TODO: remove this
-          global CACHED_TRX; %#ok<TLEV>
-          global CACHED_TRX_EXPNAME; %#ok<TLEV>
-          if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-              ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+          % Please DO NOT USE caching. Creates a lot of bugs if the user
+          % doesn't know about it or forgets about it.
+%           global CACHED_TRX; %#ok<TLEV>
+%           global CACHED_TRX_EXPNAME; %#ok<TLEV>
+%           if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+%               ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
             trx = load_tracks(trxfilename);
             ff = fieldnames(trx);
             for fnum = 1:numel(ff)
@@ -4202,12 +4204,12 @@ classdef JLabelData < matlab.mixin.Copyable
             end
 
             obj.trx = trx;
-            CACHED_TRX = obj.trx;
-            CACHED_TRX_EXPNAME = obj.expnames{expi};
-          else
-%            fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-            obj.trx = CACHED_TRX;
-          end
+%             CACHED_TRX = obj.trx;
+%             CACHED_TRX_EXPNAME = obj.expnames{expi};
+%           else
+% %            fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+%             obj.trx = CACHED_TRX;
+%           end
           % store trx_info, in case this is the first time these trx have
           % been loaded
           [success,msg] = obj.GetTrxInfo(expi,true,obj.trx);
