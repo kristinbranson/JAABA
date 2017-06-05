@@ -2562,7 +2562,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function res = IsRequiredFile(obj,file)
       if obj.isST
-        res = any(strcmp(file,{'trx' 'stfeatures'}));
+        res = any(strcmp(file,{'trx','perframedir','stfeatures'}));
       else
         res = ismember(file,{'trx','perframedir'});
       end
