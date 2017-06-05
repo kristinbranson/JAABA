@@ -6902,7 +6902,13 @@ classdef JLabelData < matlab.mixin.Copyable
             % [-1,+1].
             % Is this really what we want in this case?
             
-            obj.windowdata(iCls).scoreNorm = nan;
+            if obj.isST && prctile(abs(scores(iCls,:)),80)>0,
+              % not the best way but the only I can think of.
+              % MK 20170605
+              obj.windowdata(iCls).scoreNorm = prctile(abs(scores(iCls,:)),80);
+            else
+              obj.windowdata(iCls).scoreNorm = nan;
+            end
           else
             wScores = myBoostClassify(obj.windowdata(iCls).X,cls);
             obj.windowdata(iCls).scoreNorm = prctile(abs(wScores),80);
@@ -7820,7 +7826,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifier_old = self.classifier;
       self.classifierTS = zeros(1,nCls); 
       for iCls = 1:nCls
-        self.windowdata(iCls).scoreNorm = 0;
+        self.windowdata(iCls).scoreNorm = nan;
       end
       self.PredictDataInvalidate();
       self.UpdatePredictedIdx(); % update cached predictions for current target
