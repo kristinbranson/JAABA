@@ -56,6 +56,16 @@ elseif nargin == 5
     lineStyle = 'b-';
 end
 
+tf = strcmpi(varargin,'hEllipse');
+if any(tf)
+  iProp = find(tf,1);
+  iVal = iProp+1;
+  hEllipse = varargin{iVal};
+  varargin(:,[iProp iVal]) = [];
+else
+  hEllipse = [];
+end
+
 theta = [-0.03:0.01:2*pi];
 
 % Parametric equation of the ellipse
@@ -75,4 +85,8 @@ theta = [-0.03:0.01:2*pi];
 
 % Plot the ellipse
 %----------------------------------------
- hEllipse = plot(X,Y,lineStyle,varargin{:});
+if isempty(hEllipse)
+  hEllipse = plot(X,Y,lineStyle,varargin{:});
+else
+  set(hEllipse,'XData',X,'YData',Y);
+end
