@@ -2874,8 +2874,8 @@ for b=bb
 
   foo=prctile(tmp,[1 99]);
   low=foo(1);  high=foo(2);
-  unique(abs(tmp));
-  nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+  ans1 = unique(abs(tmp));
+  nearzero=ans1(1);  if(ans1(1)==0)  nearzero=ans1(2);  end
   if(~isempty(low) && ~isempty(high) && ~isempty(nearzero))
     if(handles.logbinsize)
       if((low>=0) && (high>0))

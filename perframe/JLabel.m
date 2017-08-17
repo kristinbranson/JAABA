@@ -1762,12 +1762,12 @@ if gdata.behaviorFocusOn
       scores_bottom = zeros(size(scrsFoc));
     case 'Distance'
       bottomDist = jldata.GetDistance(jldata.expi,jldata.flies); % asserts for multiclassifier
-      scores_bottom = zeros(size(scrsFoc));
+      scores_bottom = bottomDist;
     otherwise
       warndlg('Undefined scores type to display for the bottom part of the automatic');
   end
 
-  if ~any(strcmp(gdata.bottomAutomatic,{'Postprocessed','Distance','Imported'}))
+  if ~any(strcmp(gdata.bottomAutomatic,{'Postprocessed','Imported'}))
     prediction_bottom = zeros(size(scores_bottom));
     prediction_bottom(scores_bottom>0) = 1;
     prediction_bottom(scores_bottom<0) = 2;
