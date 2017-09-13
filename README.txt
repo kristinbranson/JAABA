@@ -68,6 +68,11 @@ JAABA contains code from the following sources:
   http://www.mathworks.us/matlabcentral/fileexchange/30733-hatchfill
 * JavaSysMon by Jez Humble
   https://github.com/jezhumble/javasysmon
+* Optical Flow computation code from Deqing Sun for "Secrets of Optical Flow Estimation and Their Principles", CVPR 2010 
+ http://cs.brown.edu/~dqsun/research/software.html 
+* Implementation of the Deep Matching algorithm, published at ICCV 2013 in
+"DeepFlow: Large displacement optical flow with deep matching".
+ http://lear.inrialpes.fr/src/deepflow/
 
 ***
 
