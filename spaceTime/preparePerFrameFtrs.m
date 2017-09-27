@@ -7,7 +7,7 @@ setup;
 % method = 'hs-brightness';
 % flowname = 'hs_ff';
 if nargin<4,
-  usedeep = true;
+  usedeep = false;
 end
 
 params = getParams;
