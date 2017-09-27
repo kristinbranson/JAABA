@@ -21,7 +21,7 @@ nframes = maxlast-minfirst+1;
 nblocks = ceil((nframes-1)/blocksize);
 
 allftrs ={};
-
+parfor_progress(nblocks);
 % compute features in parallel for different intervals of frames.
 parfor ndx = 1:nblocks
 % for ndx = 1:nblocks
@@ -34,9 +34,11 @@ parfor ndx = 1:nblocks
   if fid>0
     fclose(fid);
   end
-  fprintf('.');
-  if mod(ndx,20)==0, fprintf('\n%.2f\n',telapsed); end
+  parfor_progress;
+%   fprintf('.');
+%   if mod(ndx,20)==0, fprintf('\n%.2f\n',telapsed); end
 end
+parfor_progress(0);
 
 ff = fields(allftrs{1});
 
