@@ -29,7 +29,7 @@ classdef ClassifierStuff < handle
                            'alpha',[]);
       self.timeStamp = 0;  % default time stamp (bad idea?)
       self.confThresholds = [0 0];
-      self.scoreNorm = 0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
+      self.scoreNorm = nan;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
       self.postProcessParams.method = 'Hysteresis';
       self.postProcessParams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
       self.postProcessParams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
@@ -84,9 +84,9 @@ classdef ClassifierStuff < handle
       
       % MK: May 09 2016
       for i = 1:numel(self)
-        % AL: not sure need to check isprop(...,'selFeatures') b/c the
+        % AL: prob don't need to check isprop(...,'selFeatures') b/c the
         % property is in the class now -- any/all ClassifierStuffs running
-        % with this version prob get the prop now
+        % with this version should get the prop 
         if ~isprop(self(i),'selFeatures') || isempty(self(i).selFeatures),
           tfmodified = true;
           self(i).selFeatures = SelFeatures.createEmpty();

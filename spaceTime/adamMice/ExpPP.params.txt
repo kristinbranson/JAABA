@@ -1,0 +1,27 @@
+name,type,nanok,default,desc
+toneframe,nat,1,0,frame of tone
+fillsize,nat,0,1,bout fill-in (closing) size
+minboutsize#Lift,nat,0,3,Minimum bout duration
+minboutsize#Handopen,nat,0,3,Minimum bout duration
+minboutsize#Grab,nat,0,3,Minimum bout duration
+minboutsize#Sup,nat,0,3,Minimum bout duration
+minboutsize#Atmouth,nat,0,3,Minimum bout duration
+minboutsize#Chew,nat,0,3,Minimum bout duration
+grabseq_overlap,nat,0,10,Overlap between successive behaviors permitted in Grab sequence
+grabseq_maxdelayframes,nat,0,180,Maximum delay between successive behaviors permitted in Grab sequence
+grabseq_usefirsthandopen,nat,0,0,Use first of multiple handopens (1) or not (0)
+grabseq_minboutlengths#Lift,nat,0,3,Minimum bout duration during Grab sequence
+grabseq_minboutlengths#Handopen,nat,0,3,Minimum bout duration during Grab sequence
+grabseq_minboutlengths#Grab,nat,0,3,Minimum bout duration during Grab sequence
+grabseq_minboutlengths#Sup,nat,0,3,Minimum bout duration during Grab sequence
+grabseq_minboutlengths#Atmouth,nat,0,3,Minimum bout duration during Grab sequence
+grabseq_minboutlengths#Chew,nat,0,3,Minimum bout duration during Grab sequence
+trialsuccess_t0,nat,1,nan,Start of acceptable window for successful Grab sequence
+trialsuccess_t1,nat,1,nan,End of acceptable window for successful Grab sequence
+trialsuccess_atmouthminframes,nat,0,20,Minimum number of cumulative atmouth frames required for successful Grab sequence
+trialsuccess_atmouthminframesrange,nat,0,200,Window size during which atmouth frames are counted for successful Grab sequence
+trialsuccess_allowsuccessfulgrabafterperchreturn,nat,0,1,Mouse may make successful grab after return to perch (1) or not (0)
+laser_inuse,nat,0,0,true if laser pulse occurs
+laser_on,nat,1,0,frame laser pulse on
+laser_progressmaxdelay,nat,1,500,maximum delay after laser pulse for behavior progression to occur
+
