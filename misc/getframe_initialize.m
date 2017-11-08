@@ -49,7 +49,7 @@ gfdata.hardcopy_args = {haxes,['-d',renderer],['-r',num2str(round(pixelsperinch)
 % warning(warnstate);
 
 function inputType = getInputType(frame)
-if isscalar(frame) && ishandle(frame) && (frame > 0)
+if isscalar(frame) && ishandle(frame),
   inputType = get(frame,'type');
 elseif isstruct(frame) & isfield(frame,'cdata')
   inputType = 'movie';

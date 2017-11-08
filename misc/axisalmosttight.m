@@ -5,7 +5,7 @@ function axisalmosttight(border,varargin)
 if nargin < 1 || isempty(border),
   border = 1/20;
 end
-if numel(varargin)>1,
+if numel(varargin)>=1,
   hax = varargin{1};
 else
   hax = gca;
