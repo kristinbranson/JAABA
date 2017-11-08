@@ -204,7 +204,29 @@ elseif strcmpi(ext,'.seq'),
     nframes = headerinfo.m_iNumFrames;
     readframe = @(f) read_seq_frame(headerinfo,f);
   end
+  
+elseif strcmpi(ext,'.h5'),
+  
+  [dims,datasetname,fixdims,fixidx] = myparse(varargin,'slicedims',3,'datasetname',[],'fixdims',[],'fixidx',[]);
+  if isempty(datasetname),
+    headerinfo = h5info(filename);
+    datasetname = headerinfo.Name;
+    headerinfo = headerinfo.Datasets;
+  else
+    headerinfo = h5info(filename,datasetname);
+  end
+  headerinfo.datasetname = datasetname;
+  headerinfo.dims = dims;
+  headerinfo.fixdims = fixdims;
+  headerinfo.fixidx = fixidx;
+  headerinfo.sz = headerinfo.Dataspace.Size;
+  headerinfo.ndims = numel(headerinfo.sz);
+  headerinfo.nframes = headerinfo.sz(headerinfo.dims);
 
+  readframe = h5_get_readframe_fcn(filename,headerinfo);
+  nframes = headerinfo.nframes;
+  fid = 0;
+  
 else
   fid = 0;
   
