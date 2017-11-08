@@ -1,0 +1,13 @@
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=mex 2011.7.3)  25 JUL 2013 15:54
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**chnsTestCpp.cpp convConst.cpp gradientMex.cpp imPadMex.cpp imResampleMex.cpp 
+rgbConvertMex.cpp
+(./chnsTestCpp.cpp
+This is MeX  Version 1.05  18 XII 1993  (B. Jackowski & M. Ry\'cko)
+! Misplaced alignment tab character &.
+l.2 * Piotr's Image&
+                    Video Toolbox      Version 3.00
+? exit
+No pages of output.

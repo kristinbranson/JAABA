@@ -1,0 +1,1 @@
+mex -v deepmex.cpp *.o  -ljpeg -lpng CXXFLAGS=' -fopenmp -fPIC' LDFLAGS='/usr/lib/atlas-base/libsatlas.so' -lgomp
