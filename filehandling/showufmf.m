@@ -139,7 +139,17 @@ end
 
 % set slider listener
 fcn = get(handles.slider_Frame,'Callback');
-handles.slider_listener = handle.listener(handles.slider_Frame,'ActionEvent',fcn);
+if verLessThan('matlab','8.4.0')
+  handles.hslider_listener = handle.listener(handles.slider_Frame,...
+    'ActionEvent',fcn);
+  set(handles.slider_Frame,'Callback','');
+else
+  handles.hslider_listener = addlistener(handles.slider_Frame,...
+    'ContinuousValueChange',fcn);
+  set(handles.slider_Frame,'Callback','');
+end
+
+%handles.slider_listener = handle.listener(handles.slider_Frame,'ActionEvent',fcn);
 
 % open video
 handles = open_fmf(handles);
