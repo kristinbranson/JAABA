@@ -1,12 +1,15 @@
-function dcenter = dcenter_pair(trx,fly1,fly2)
-
+function [dcenter,i0,i1,j0,j1] = dcenter_pair(trx,fly1,fly2)
+% modified AR 3/8/2018 add i0,i1,j0,j1 to output 
 % initialize
 dcenter = nan(1,trx(fly1).nframes);
 
 % get start and end frames of overlap
 t0 = max(trx(fly1).firstframe,trx(fly2).firstframe);
 t1 = min(trx(fly1).endframe,trx(fly2).endframe);
-  
+i0 = nan;
+i1 = nan; 
+j0 = nan;
+j1 = nan;
 % no overlap
 if t1 < t0, 
   return;
