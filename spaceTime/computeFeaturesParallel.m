@@ -1,4 +1,4 @@
-function ftrs = computeFeaturesParallel(moviename,trackfilename,stationary,method)
+function ftrs = computeFeaturesParallel(moviename,trackfilename,stationary,method,params)
 
 if nargin<3,
   stationary = false;
@@ -12,7 +12,6 @@ if fid>0
   fclose(fid);
 end
 
-params = getParams;
 blocksize = params.blocksize;
 
 minfirst = min([tracks.firstframe]);
