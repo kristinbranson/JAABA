@@ -1,9 +1,9 @@
 function im = VisualizeFlowFeatures(bdir,fly,fnum,stationary,varargin)
 %% inputs.
 
-[method,moviename,trxfilename] = myparse(varargin,...
+[method,moviename,trxfilename,params] = myparse(varargin,...
   'method','deep-sup',...
-  'moviename','movie.ufmf','trxfilename','trx.mat');
+  'moviename','movie.ufmf','trxfilename','trx.mat','params',getParams);
 
 if strcmp(method,'LK')
   fname = 'ff';
@@ -30,7 +30,7 @@ moviename = fullfile(bdir,moviename);
 trackfilename = fullfile(bdir,trxfilename);
 
 %% params
-params = getParams;
+%'params = getParams;
 npatches = params.npatches;
 psize = params.psize;
 nbins = params.nbins; 
@@ -57,13 +57,13 @@ im1 = readfcn(fnum);
 im2 = readfcn(fnum+1);
 
 trackndx = fnum - tracks(fly).firstframe + 1;
-locy = round(tracks(fly).y(trackndx));
-locx = round(tracks(fly).x(trackndx));
+locy = double(round(tracks(fly).y(trackndx)));
+locx = double(round(tracks(fly).x(trackndx)));
 im1 = extractPatch(im1,...
   locy,locx,tracks(fly).theta(trackndx),patchsz);
 if stationary
-  locy = round(tracks(fly).y(trackndx+1));
-  locx = round(tracks(fly).x(trackndx+1));
+  locy = double(round(tracks(fly).y(trackndx+1)));
+  locx = double(round(tracks(fly).x(trackndx+1)));
 end
 
 if ~strcmp(method,'hs_sup')
