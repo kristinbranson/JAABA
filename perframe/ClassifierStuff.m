@@ -113,20 +113,35 @@ classdef ClassifierStuff < handle
         end
       end
       
+%       % MK: modernize window data.
+%       wdmodified = false;
+%       for i = 1:numel(self)
+%           [self(i).windowdata,wdm] =  WindowData.modernize(self(i).windowdata);
+%           if wdm,
+%               wdmodified = true;
+%           end
+%       end
+%       if wdmodified,
+%           tfmodified = true;
+%       end
+      
       % MK: modernize window data.
+      % AL: fixed for classifiers without windowdata
       wdmodified = false;
       for i = 1:numel(self)
-        [self(i).windowdata,wdm] =  WindowData.modernize(self(i).windowdata);
-        if wdm,
-          wdmodified = true;
-        end
+          if ~isequal(self(i).windowdata,[])
+              [self(i).windowdata,wdm] =  WindowData.modernize(self(i).windowdata);
+              if wdm,
+                  wdmodified = true;
+              end
+          end
       end
       if wdmodified,
-        tfmodified = true;
+          tfmodified = true;
       end
       
     end
-        
+    
   end 
   
 end

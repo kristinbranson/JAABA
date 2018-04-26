@@ -427,7 +427,7 @@ if isempty(val) || isnan(val) || val<-1 || val>1,
   uiwait(warndlg('Enter a number between -1 and 1'));
   return;
 end
-if val > handles.NJObj.lthresh,
+if val > handles.NJObj.hthresh,
   uiwait(warndlg('Low threshold cannot be larger than high threshold'));
   return;
 end
