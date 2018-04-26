@@ -24,14 +24,31 @@ tic;
 nframes = numel(fstart:fend+1);
 im = uint8(zeros(headerinfo.nr,headerinfo.nc,nframes));
 count = 1;
+
+fr = readfcn(fstart);
+n_colors = 1;
+if ndims(fr) > 2,
+  if size(fr,3)==3,
+    n_colors = 3;
+  end
+end
+
 for ndx = fstart:fend
-  im(:,:,count) = readfcn(ndx);
+  if n_colors > 1,
+    im(:,:,count) = rgb2gray(readfcn(ndx));
+  else
+    im(:,:,count) = readfcn(ndx);
+  end
   count = count + 1;
 end
 if fend==headerinfo.nframes
   im(:,:,count) = im(:,:,count-1);
 else
-  im(:,:,count) = readfcn(fend+1);
+  if n_colors > 1,
+    im(:,:,count) = rgb2gray(readfcn(fend+1));
+  else
+    im(:,:,count) = readfcn(fend+1);
+  end
 end
 
 tread =toc;
@@ -87,14 +104,14 @@ for ndx = fstart:fend
       continue;
     end
     trackndx = ndx - tracks(fly).firstframe + 1;
-    locy = round(tracks(fly).y(trackndx));
-    locx = round(tracks(fly).x(trackndx));
+    locy = double(round(tracks(fly).y(trackndx)));
+    locx = double(round(tracks(fly).x(trackndx)));
     curpatch = extractPatch(im(:,:, ndx-fstart + 1),...
       locy,locx,tracks(fly).theta(trackndx),patchsz);
 
     if stationary && ndx<tracks(fly).endframe
-      locy = round(tracks(fly).y(trackndx+1));
-      locx = round(tracks(fly).x(trackndx+1));
+      locy = double(round(tracks(fly).y(trackndx+1)));
+      locx = double(round(tracks(fly).x(trackndx+1)));
     end
     
     if methodC<3  || ~stationary || ndx==tracks(fly).endframe
