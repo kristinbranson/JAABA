@@ -11,7 +11,9 @@ end
 % speed up reading
 indexdata = fscanf(fid,'%f %f %f %f\n');
 indexdata = reshape(indexdata,[4,numel(indexdata)/4]);
-assert(all(diff(indexdata(1,:))==1));
+if ~all(diff(indexdata(1,:))==1),
+  warning('There are %d skipped frames in the index file',nnz(diff(indexdata(1,:))~=1));
+end
 %assert(all(indexdata(1,:) == 0:size(indexdata,2)-1));
 headerinfo.timestamp = indexdata(2,:);
 headerinfo.frame2file = indexdata(3,:);
