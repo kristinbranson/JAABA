@@ -74,11 +74,11 @@ elseif strcmpi(ext,'.mmf'),
   readframe = mmf_get_readframe_fcn(headerinfo,varargin{:});
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
-elseif strcmpi(ext,'.tif'),
+elseif strcmpi(ext,'.tif') || strcmp(ext,'.tiff'),
   info = imfinfo(filename);
   isimseq = false;
   if numel(info) == 1,
-    filespec = regexprep(filename,'_\d+\.tif$','_*.tif');
+    filespec = regexprep(filename,['_\d+\.',ext,'$'],['_*.',ext]);
     imfiles = mydir(filespec);
     if numel(imfiles) > 1,
       imfiles = sort(imfiles);
@@ -296,20 +296,32 @@ else
       headerinfo = info;
       headerinfo.type = 'avi';
     else
+      
+      % optional argument to not use the read function of VideoReader
+      [useRead] = myparse(varargin,'useRead',true);
+      
       try
         readerobj = VideoReader(filename);
-        nframes = get(readerobj,'NumberOfFrames');
-        if isempty(nframes),
+        headerinfo = get(readerobj);
+        
+        if useRead,
+          nframes = get(readerobj,'NumberOfFrames');
+        end
+        if ~useRead || isempty(nframes),
           % approximate nframes from duration
-          nframes = get(readerobj,'Duration')*get(readerobj,'FrameRate');
+          nframes = round(get(readerobj,'Duration')*get(readerobj,'FrameRate'));
         end
         %readframe = @(f) flipdim(read(readerobj,f),1);
-        headerinfo = get(readerobj);
         headerinfo.type = 'avi';
         headerinfo.nr = headerinfo.Height;
         headerinfo.nc = headerinfo.Width;
-    headerinfo.nframes = nframes;
-        readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+        headerinfo.nframes = nframes;
+        headerinfo.readerobj = readerobj;
+        if useRead,
+          readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+        else
+          readframe = @(f) avi_read_frame_useReadFrame(readerobj,headerinfo,f);
+        end
       catch ME_videoreader
         error('Could not open file %s with VideoReader: %s',...
           filename,getReport(ME_videoreader));
@@ -340,6 +352,16 @@ if ~sr.seek(f-1),
 end
 
 [im,timestamp] = sr.getframe();
+
+function [im,timestamp] = avi_read_frame_useReadFrame(readerobj,headerinfo,f)
+
+timestamp = (f-1)/headerinfo.FrameRate;
+oldtimestamp = get(readerobj,'CurrentTime');
+if oldtimestamp ~= timestamp,
+  set(readerobj,'CurrentTime',timestamp);
+end
+timestamp = get(readerobj,'CurrentTime');
+im = readFrame(readerobj);
 
 function [im,timestamp] = avi_read_frame(readerobj,headerinfo,f)
 
