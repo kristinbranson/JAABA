@@ -321,17 +321,17 @@ else
           
           
           nframes = 0;
-          headerinfo.preload = struct;
-          headerinfo.preload.ims = {};
-          headerinfo.preload.ts = [];
+          preloaddata = struct;
+          preloaddata.ims = {};
+          preloaddata.ts = [];
           
           while true,
           
             if ~hasFrame(readerobj),
               break;
             end
-            headerinfo.preload.ts(end+1) = get(readerobj,'CurrentTime');
-            headerinfo.preload.ims{end+1} = readFrame(readerobj);
+            preloaddata.ts(end+1) = get(readerobj,'CurrentTime');
+            preloaddata.ims{end+1} = readFrame(readerobj);
             nframes = nframes+1;
             
           end
@@ -352,7 +352,7 @@ else
         
         if preload,
           
-          readframe = @(f) preload_read_frame(headerinfo,f);
+          readframe = @(f) preload_read_frame(preloaddata,f);
           didpreload = true;
           
         else
@@ -374,15 +374,15 @@ end
 
 if preload && ~didpreload,
   
-  headerinfo.preload = struct;
-  headerinfo.preload.ims = cell(1,headerinfo.nframes);
-  headerinfo.preload.ts = nan(1,headerinfo.nframes);
+  preloaddata = struct;
+  preloaddata.ims = cell(1,headerinfo.nframes);
+  preloaddata.ts = nan(1,headerinfo.nframes);
           
   for f = 1:headerinfo.nframes,
-    [headerinfo.preload.ims{f},headerinfo.preload.ts(f)] = readframe(f);
+    [preloaddata.ims{f},preloaddata.ts(f)] = readframe(f);
   end
   
-  readframe = @(f) preload_read_frame(headerinfo,f);
+  readframe = @(f) preload_read_frame(preloaddata,f);
   didpreload = true;
   
 end
@@ -420,11 +420,11 @@ end
 timestamp = get(readerobj,'CurrentTime');
 im = readFrame(readerobj);
 
-function [im,timestamp] = preload_read_frame(headerinfo,f)
+function [im,timestamp] = preload_read_frame(preloaddata,f)
 
 try 
-  im = headerinfo.preload.ims{f};
-  timestamp = headerinfo.preload.ts(f);
+  im = preloaddata.ims{f};
+  timestamp = preloaddata.ts(f);
 catch ME,
   warning('Error reading preloaded frame %d: %s',f,getReport(ME));
 end
