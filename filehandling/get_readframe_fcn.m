@@ -23,6 +23,15 @@
 
 function [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename,varargin)
 
+i = find(strcmpi(varargin(1:2:end),'preload'));
+if ~isempty(i),
+  preload = varargin{i+1};
+  varargin(i:i+1) = [];
+else
+  preload = false;
+end
+didpreload = false;
+
 % allow videoio library to be used if it is installed and on the path
 %CTRAX_ISVIDEOIO = exist('videoReader','file');
 CTRAX_ISVIDEOIO = false;
@@ -304,23 +313,56 @@ else
         readerobj = VideoReader(filename);
         headerinfo = get(readerobj);
         
-        if useRead,
-          nframes = get(readerobj,'NumberOfFrames');
-        end
-        if ~useRead || isempty(nframes),
-          % approximate nframes from duration
-          nframes = round(get(readerobj,'Duration')*get(readerobj,'FrameRate'));
-        end
-        %readframe = @(f) flipdim(read(readerobj,f),1);
         headerinfo.type = 'avi';
         headerinfo.nr = headerinfo.Height;
         headerinfo.nc = headerinfo.Width;
-        headerinfo.nframes = nframes;
-        headerinfo.readerobj = readerobj;
-        if useRead,
-          readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+        
+        if preload,
+          
+          
+          nframes = 0;
+          headerinfo.preload = struct;
+          headerinfo.preload.ims = {};
+          headerinfo.preload.ts = [];
+          
+          while true,
+          
+            if ~hasFrame(readerobj),
+              break;
+            end
+            headerinfo.preload.ts(end+1) = get(readerobj,'CurrentTime');
+            headerinfo.preload.ims{end+1} = readFrame(readerobj);
+            nframes = nframes+1;
+            
+          end
+                    
         else
-          readframe = @(f) avi_read_frame_useReadFrame(readerobj,headerinfo,f);
+          if useRead,
+            nframes = get(readerobj,'NumberOfFrames');
+          end
+          if ~useRead || isempty(nframes),
+            % approximate nframes from duration
+            nframes = round(get(readerobj,'Duration')*get(readerobj,'FrameRate'));
+          end
+          headerinfo.readerobj = readerobj;
+          
+        end
+
+        headerinfo.nframes = nframes;
+        
+        if preload,
+          
+          readframe = @(f) preload_read_frame(headerinfo,f);
+          didpreload = true;
+          
+        else
+        
+          if useRead,
+            readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
+          else
+            readframe = @(f) avi_read_frame_useReadFrame(readerobj,headerinfo,f);
+          end
+          
         end
       catch ME_videoreader
         error('Could not open file %s with VideoReader: %s',...
@@ -328,6 +370,21 @@ else
       end
     end
   end
+end
+
+if preload && ~didpreload,
+  
+  headerinfo.preload = struct;
+  headerinfo.preload.ims = cell(1,headerinfo.nframes);
+  headerinfo.preload.ts = nan(1,headerinfo.nframes);
+          
+  for f = 1:headerinfo.nframes,
+    [headerinfo.preload.ims{f},headerinfo.preload.ts(f)] = readframe(f);
+  end
+  
+  readframe = @(f) preload_read_frame(headerinfo,f);
+  didpreload = true;
+  
 end
 
 function varargout = multi_read_frame(f,readframes)
@@ -362,6 +419,15 @@ if oldtimestamp ~= timestamp,
 end
 timestamp = get(readerobj,'CurrentTime');
 im = readFrame(readerobj);
+
+function [im,timestamp] = preload_read_frame(headerinfo,f)
+
+try 
+  im = headerinfo.preload.ims{f};
+  timestamp = headerinfo.preload.ts(f);
+catch ME,
+  warning('Error reading preloaded frame %d: %s',f,getReport(ME));
+end
 
 function [im,timestamp] = avi_read_frame(readerobj,headerinfo,f)
 
