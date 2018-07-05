@@ -107,6 +107,30 @@ elseif strcmpi(ext,'.tif') || strcmp(ext,'.tiff'),
     nframes = headerinfo.nframes;
     fid = -1;
   end
+elseif strcmpi(ext,'.png'),
+    info = imfinfo(filename);
+    isimseq = false;
+    if numel(info) == 1,
+        filespec = regexprep(filename,['_\d+\.',ext,'$'],['_*.',ext]);
+        imfiles = mydir(filespec);
+        if numel(imfiles) > 1,
+            imfiles = sort(imfiles);
+            im = imread(imfiles{1});
+            headerinfo = struct('nr',size(im,1),'nc',size(im,2),'ncolors',size(im,3),'nframes',numel(imfiles),...
+                'type','imseq','imfiles',{imfiles});
+            readframe = @(f) imseq_read_frame(f,imfiles);
+            nframes = headerinfo.nframes;
+            fid = -1;
+            isimseq = true;
+        end
+    end
+    if ~isimseq,
+        headerinfo = struct('nr',info(1).Height,'nc',info(1).Width,'nframes',numel(info),'type','png',...
+            'bitdepth',info(1).BitDepth);
+        readframe = @(f) deal(imread(filename,f),f);
+        nframes = headerinfo.nframes;
+        fid = -1;
+    end
 elseif strcmpi(ext,'.klb'),
   tfKLBLib = exist('readKLBslice','file')>0;
   if ~tfKLBLib
