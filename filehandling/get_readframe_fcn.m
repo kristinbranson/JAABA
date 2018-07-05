@@ -307,7 +307,7 @@ else
     else
       
       % optional argument to not use the read function of VideoReader
-      [useRead] = myparse(varargin,'useRead',true);
+      [useRead,neednframes] = myparse(varargin,'useRead',true,'neednframes',true);
       
       try
         readerobj = VideoReader(filename);
@@ -335,12 +335,14 @@ else
             nframes = nframes+1;
             
           end
-                    
+            
+          assert(numel(preloaddata.ims) == nframes);
+          
         else
-          if useRead,
+          if neednframes && useRead,
             nframes = get(readerobj,'NumberOfFrames');
           end
-          if ~useRead || isempty(nframes),
+          if ~neednframes || ~useRead || isempty(nframes),
             % approximate nframes from duration
             nframes = round(get(readerobj,'Duration')*get(readerobj,'FrameRate'));
           end
@@ -426,6 +428,10 @@ try
   im = preloaddata.ims{f};
   timestamp = preloaddata.ts(f);
 catch ME,
+  if ~isempty(preloaddata.ims),
+    im = preloaddata.ims{end};
+    timestamp = preloaddata.ts(end);
+  end
   warning('Error reading preloaded frame %d: %s',f,getReport(ME));
 end
 
