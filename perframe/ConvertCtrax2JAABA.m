@@ -66,6 +66,10 @@ catch ME,
   return;
 end
 
+if all(isnan(timestamps)),
+  timestamps = [];
+end
+
 iswings = isfield(trx,'xwingl');
 
 if iswings,
