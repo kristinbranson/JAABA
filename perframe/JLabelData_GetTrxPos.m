@@ -175,5 +175,20 @@ switch obj.targettype,
     %pos.ycontour = obj.trx(fly).ycontour{is};
     pos.xspine = obj.trx(fly).xspine(:,is);
     pos.yspine = obj.trx(fly).yspine(:,is);
+		
+	case 'center_and_orientation',
+    
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      pos.theta = obj.trx(fly).theta;
+      pos.a = 10;
+      return;
+    end
+    
+    pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+    pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+    pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+    pos.a = 10;
 
 end

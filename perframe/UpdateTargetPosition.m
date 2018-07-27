@@ -6,7 +6,11 @@ switch targettype,
     set(hfly,'XData',pos.skeletonx,'YData',pos.skeletony);
     set(hfly_extra,'XData',pos.skeletonx(1),'YData',pos.skeletony(1));
   case 'wingedfly',
-    updatewingedfly(hfly,hfly_extra,pos);
+		updatewingedfly(hfly,hfly_extra,pos);
+	case 'center_and_orientation',
+		xdata = pos.x + [0,cos(pos.theta)*pos.a];
+		ydata = pos.y + [0,sin(pos.theta)*pos.a];
+		set(hfly,'XData',xdata,'YData',ydata);
   case 'larvacontour',
     updatelarvacontour(hfly,hfly_extra,pos);
   case 'larvasamuel',
