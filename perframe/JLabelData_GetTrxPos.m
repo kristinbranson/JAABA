@@ -206,19 +206,22 @@ switch obj.targettype,
       pos.ywingr = obj.trx(fly).ywingr;
       pos.xlandmarks = obj.trx(fly).xlandmarks;
       pos.ylandmarks = obj.trx(fly).ylandmarks;
-      return;
+    else    
+      pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+      pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+      pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+      pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
+      pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
+      pos.xwingl = obj.trx(fly).xwingl(ts + obj.trx(fly).off);
+      pos.ywingl = obj.trx(fly).ywingl(ts + obj.trx(fly).off);
+      pos.xwingr = obj.trx(fly).xwingr(ts + obj.trx(fly).off);
+      pos.ywingr = obj.trx(fly).ywingr(ts + obj.trx(fly).off);
+      pos.xlandmarks = obj.trx(fly).xlandmarks(:,ts+obj.trx(fly).off);
+      pos.ylandmarks = obj.trx(fly).ylandmarks(:,ts+obj.trx(fly).off);
     end
+    pos.xskeleton = nan(numel(obj.trx(fly).skeleton_edges),size(pos.xlandmarks,2));
+    pos.yskeleton = nan(numel(obj.trx(fly).skeleton_edges),size(pos.xlandmarks,2));
+    pos.xskeleton(obj.trx(fly).skeleton_edges~=0,:) = pos.xlandmarks(obj.trx(fly).skeleton_edges(obj.trx(fly).skeleton_edges~=0),:);
+    pos.yskeleton(obj.trx(fly).skeleton_edges~=0,:) = pos.ylandmarks(obj.trx(fly).skeleton_edges(obj.trx(fly).skeleton_edges~=0),:);
     
-    pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
-    pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
-    pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
-    pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
-    pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
-    pos.xwingl = obj.trx(fly).xwingl(ts + obj.trx(fly).off);
-    pos.ywingl = obj.trx(fly).ywingl(ts + obj.trx(fly).off);
-    pos.xwingr = obj.trx(fly).xwingr(ts + obj.trx(fly).off);
-    pos.ywingr = obj.trx(fly).ywingr(ts + obj.trx(fly).off);    
-    pos.xlandmarks = obj.trx(fly).xlandmarks(:,ts+obj.trx(fly).off);
-    pos.ylandmarks = obj.trx(fly).ylandmarks(:,ts+obj.trx(fly).off);
-
 end
