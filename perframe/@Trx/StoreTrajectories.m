@@ -15,6 +15,12 @@ end
 if isfield(traj,'ycontour'),
   obj.ycontour = {traj.ycontour};
 end
+if isfield(traj,'xlandmarks'),
+  obj.xlandmarks = {traj.xlandmarks};
+end
+if isfield(traj,'ylandmarks'),
+  obj.ylandmarks = {traj.ylandmarks};
+end
     
 
 for i = 1:numel(traj_fns),

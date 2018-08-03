@@ -190,5 +190,35 @@ switch obj.targettype,
     pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
     pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
     pos.a = 10;
+    
+  case 'wingedfly_and_landmarks',
+    
+    %skelidx = cat(1,obj.skeleton{:});
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      pos.theta = obj.trx(fly).theta;
+      pos.a = obj.trx(fly).a;
+      pos.b = obj.trx(fly).b;
+      pos.xwingl = obj.trx(fly).xwingl;
+      pos.ywingl = obj.trx(fly).ywingl;
+      pos.xwingr = obj.trx(fly).xwingr;
+      pos.ywingr = obj.trx(fly).ywingr;
+      pos.xlandmarks = obj.trx(fly).xlandmarks;
+      pos.ylandmarks = obj.trx(fly).ylandmarks;
+      return;
+    end
+    
+    pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+    pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+    pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+    pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
+    pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
+    pos.xwingl = obj.trx(fly).xwingl(ts + obj.trx(fly).off);
+    pos.ywingl = obj.trx(fly).ywingl(ts + obj.trx(fly).off);
+    pos.xwingr = obj.trx(fly).xwingr(ts + obj.trx(fly).off);
+    pos.ywingr = obj.trx(fly).ywingr(ts + obj.trx(fly).off);    
+    pos.xlandmarks = obj.trx(fly).xlandmarks(:,ts+obj.trx(fly).off);
+    pos.ylandmarks = obj.trx(fly).ylandmarks(:,ts+obj.trx(fly).off);
 
 end

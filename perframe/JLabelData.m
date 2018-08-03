@@ -47,7 +47,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
     % last-used trajectories (one experiment, all flies)
     trx
-
+    
     % last-used per-frame data (one fly)
     % This seems to generally be a cell array with as many elements as
     % allperframefns.  (I.e. as many features as are in the subdialect.)

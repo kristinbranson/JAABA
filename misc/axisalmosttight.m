@@ -15,14 +15,17 @@ ax = [inf,-inf,inf,-inf];
 for i = 1:numel(hax),
   axis(hax(i),'tight');
   ax1 = axis(hax);
-  ax = [min(ax(1),ax1(1)),max(ax(2),ax1(2)),min(ax(3),ax1(3)),max(ax(4),ax1(4))];
+  nd = numel(ax1)/2;
+  if i == 1,
+    ax = repmat([inf,-inf],[1,nd]);
+  end
+  ax(1:2:end-1) = min(ax(1:2:end-1),ax1(1:2:end-1));
+  ax(2:2:end) = max(ax(2:2:end),ax1(2:2:end));
 end
-dx = (ax(2) - ax(1))*border;
-ax(1) = ax(1) - dx;
-ax(2) = ax(2) + dx;
-dy = (ax(4) - ax(3))*border;
-ax(3) = ax(3) - dy;
-ax(4) = ax(4) + dy;
+
+dx = (ax(2:2:end)-ax(1:2:end-1))*border;
+ax(1:2:end-1) = ax(1:2:end-1) - dx;
+ax(2:2:end) = ax(2:2:end) + dx;
 
 for i = 1:numel(hax),
   axis(hax(i),ax);

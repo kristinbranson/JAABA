@@ -24,5 +24,11 @@
     <plot>
       <trx nextra_markers="2" extra_marker=".,o" extra_linestyle="-,None" extra_markersize="12,8"/>
     </plot>
-  </larvacontour>
+    </larvacontour>
+  <wingedfly_and_landmarks>
+    <plot>
+      <trx nextra_markers="2" extra_marker=".,+" extra_linestyle="-,None" extra_markersize="12,8"/>
+    </plot>
+  </wingedfly_and_landmarks>
+  
 </params>
