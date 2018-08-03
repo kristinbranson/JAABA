@@ -80,7 +80,7 @@ obj.trxfiles{n} = trxfilename;
 if ~exist(obj.trxfiles{n},'file'),
   error('Trajectory file %s does not exist',obj.trxfiles{n});
 end
-traj = load_tracks(obj.trxfiles{n});
+[traj,~,~,~,trxrest] = load_tracks(obj.trxfiles{n});
 
 % set movie properties when there is no movie
 if ~openmovie || isempty(obj.moviefilestr),

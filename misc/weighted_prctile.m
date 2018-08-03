@@ -1,4 +1,4 @@
-function y = weighted_prctile(x,p,w,dim,issorted)
+function [y,yidx] = weighted_prctile(x,p,w,dim,issorted)
 % y = weighted_prctile(x,p,w,dim,issorted)
 % similar to MATLAB's prctile, but takes weights
 
@@ -66,6 +66,7 @@ else
     x = reshape(x, nrows, ncols);
     w = reshape(w, nrows, ncols);
     y = zeros(numel(p), ncols, class(x));
+    yidx = nan(size(y));
     
     if ~issorted,
       % sort x
@@ -86,41 +87,46 @@ else
     cw = cumsum(w,1);
     % for numerical errors
     cw = cw / cw(end);
+
+    % start of each column
+    off = (0:ncols-1)'*nrows;
     
     for i = 1:numel(p),
       
       if p(i) == 0,
-        ind = find(cw > 0,1);
+        isbigger = [false(1,ncols);cw > 0];
+        ind = find(isbigger(1:end-1,:)==false & isbigger(2:end,:)==true);
+        %ind = find(cw > 0,1);
       elseif p(i) == 100,
-        ind = find(cw > 0,1,'last');
+        ind = off + nrows;
+        %ind = find(cw > 0,1,'last');
       else      
         % find the frame where cumsum of weight is at least p
         isbigger = [false(1,ncols);cw >= p(i)/100];
         ind = find(isbigger(1:end-1,:)==false & isbigger(2:end,:)==true);
       end
       % check for border
-      isexact = cw(ind) == p(i)/100 && ind < numel(cw);
-      if isexact,
-        y(i) = (x(ind) + x(ind+1))/2;
-      else
-        % store this index
-        y(i) = x(ind);
-      end
+      indrel = ind - off;
+      isexact = cw(ind) == p(i)/100 & indrel < nrows;
+      indnext = indrel(isexact)+1 + off(isexact);
+      y(i,isexact) = (x(ind(isexact)) + x(indnext))/2;
+      y(i,~isexact) = x(ind(~isexact));
+      yidx(i,:) = order(ind);
+
     end
 
 end
 
 % undo the DIM permutation
 if dimArgGiven
-     y = ipermute(y,perm);  
+  y = reshape(y,[numel(p),sz(2:end)]);
+  y = ipermute(y,perm);
+  yidx = reshape(yidx,[numel(p),sz(2:end)]);
+  yidx = ipermute(yidx,perm);
 end
 
 % If X is a vector, the shape of Y should follow that of P, unless an
 % explicit DIM arg was given.
 if ~dimArgGiven && isvector(x)
     y = reshape(y,size(p)); 
-else
-  sz2 = sz0;
-  sz2(dim0) = 1;
-  y = reshape(y,sz2);
 end
