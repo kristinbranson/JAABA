@@ -154,6 +154,12 @@ classdef Trx < handle
     xcontour = {};
     ycontour = {};
     
+    %% landmark points
+    xlandmarks = [];
+    ylandmarks = [];
+    skeleton_edges = {};
+
+    
 %     %% larva spine
 %     xspine = [];
 %     yspine = [];

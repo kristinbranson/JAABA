@@ -27,4 +27,5 @@
 <larva_highrespast file="params/featureConfigLarvaehighres_past.xml" animal="larvacontour"/>
 <flies_st_katie file="params/featureConfigHoghof_katie.xml" animal="fly"/>
 <adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
+<wingedfly_and_landmarks file="params/featureConfigAPTfly17pts.xml" animal="wingedfly_and_landmarks"/>
 </params>
