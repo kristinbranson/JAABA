@@ -3,6 +3,9 @@ function StoreTrajectories(obj,n,traj,dooverwrite)
 if ~exist('dooverwrite','var'),
   dooverwrite = true;
 end
+if ~exist('trxrest','var'),
+  trxrest = struct;
+end
 
 traj_fns = {'x','y','theta','a','b','timestamps','area',...
   'x_mm','y_mm','a_mm','b_mm','theta_mm','dt','sex','area_mm',...
@@ -21,7 +24,6 @@ end
 if isfield(traj,'ylandmarks'),
   obj.ylandmarks = {traj.ylandmarks};
 end
-    
 
 for i = 1:numel(traj_fns),
   fn = traj_fns{i};
