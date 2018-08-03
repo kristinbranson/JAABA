@@ -18,6 +18,6 @@ switch targettype,
   case 'larva',
     updatelarvaspecies(hfly,hfly_extra,pos);
   case 'wingedfly_and_landmarks',
-    updatewingedfly(hfly,hfly_extra(:,1,:),pos);
-    updatelandmarks(hfly_extra(:,2,:),pos);
+    updatewingedfly([],hfly_extra(:,1,:),pos);
+    updatelandmarks(hfly,hfly_extra(:,2,:),pos);
 end

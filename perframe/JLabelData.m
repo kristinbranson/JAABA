@@ -4193,7 +4193,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %           global CACHED_TRX_EXPNAME; %#ok<TLEV>
 %           if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
 %               ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-            trx = load_tracks(trxfilename);
+            [trx,~,~,~,trxrest] = load_tracks(trxfilename);
             ff = fieldnames(trx);
             for fnum = 1:numel(ff)
               if numel(trx(1).(ff{fnum})) == trx(1).nframes && ~strcmpi(ff{fnum},'sex');
@@ -4202,6 +4202,21 @@ classdef JLabelData < matlab.mixin.Copyable
                 end
               end
             end
+            
+            if isfield(trxrest,'skeleton'),
+              ntotal = numel(trxrest.skeleton) + sum(cellfun(@numel,trxrest.skeleton)) - 1;
+              skeleton_edges = zeros(ntotal,1);
+              off = 0;
+              for i = 1:numel(trxrest.skeleton),
+                skeleton_edges(off+1:off+numel(trxrest.skeleton{i})) = trxrest.skeleton{i};
+                off = off + numel(trxrest.skeleton{i}) + 1;
+              end
+              for i = 1:numel(trx),
+                trx(i).skeleton_edges = skeleton_edges;
+              end
+            end
+
+
 
             obj.trx = trx;
 %             CACHED_TRX = obj.trx;

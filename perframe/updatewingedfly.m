@@ -1,7 +1,9 @@
 function updatewingedfly(hbody,hwings,pos)
 
 % body position
-updatefly(hbody,pos.x,pos.y,pos.theta,pos.a,pos.b);
+if ~isempty(hbody),
+  updatefly(hbody,pos.x,pos.y,pos.theta,pos.a,pos.b);
+end
 
 % wing positions
 set(hwings,'XData',[pos.xwingl,pos.x,pos.xwingr],...

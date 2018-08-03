@@ -154,7 +154,7 @@ classdef Trx < handle
     xcontour = {};
     ycontour = {};
     
-    %% landmark points
+    %% landmark points from APT
     xlandmarks = [];
     ylandmarks = [];
     skeleton_edges = {};
