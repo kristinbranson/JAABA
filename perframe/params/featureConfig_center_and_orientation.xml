@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+    
+    <absdtheta trans_types="relative" type="locomotion"/>
+    
+    <angle2wall trans_types="flip,abs" type="arena"/>
+    
+    <arena_angle trans_types="none" type="position"/>
+    
+    <arena_r trans_types="none" type="arena,position"/>
+    
+    <closestfly_center  trans_types="none" type="identity"/>
+    
+    <dangle2wall trans_types="flip,abs" type="arena"/>
+    
+    <dcenter trans_types="none,relative" type="social"/>
+    
+    <ddcenter trans_types="none,abs" type="social"/>
+    
+    <ddist2wall trans_types="none" type="arena"/>
+    
+    <dist2wall trans_types="none,relative" type="arena"/>
+    
+    <dnose2tail trans_types="none,relative" type="social"/>
+    
+    <dphi trans_types="none,abs" type="locomotion"/>
+    
+    <dtheta trans_types="flip,abs" type="locomotion"/>
+    
+    <du_ctr trans_types="none,abs,relative" type="locomotion"/>
+    
+    <du_tail trans_types="none,abs,relative" type="locomotion"/>
+    
+    <dv_ctr trans_types="flip,abs" type="locomotion"/>
+    
+    <dv_tail trans_types="flip,abs" type="locomotion"/>
+    
+    <nflies_close trans_types="none" type="social"/>
+
+    <phi trans_types="none" type="position"/>
+    
+    <phisideways trans_types="none" type="locomotion"/>
+    
+    <velmag trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_ctr trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_nose trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_tail trans_types="none,relative" type="locomotion"/>
+    
+    <yaw trans_types="flip,abs" type="locomotion"/>
+    
+    <absyaw trans_types="none" type="compatbility"/>
+    
+  </perframe>
+  
+  <perframe_params  fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625" lengthfrac="0.01"/>
+</params>
