@@ -18,6 +18,15 @@ classdef String
     end
     
     % see civilizedStringFromCellArrayOfStrings
+    
+    function s = niceUpperCase(s)
+      s = lower(s);
+      if ~isempty(s)
+        s(1) = upper(s(1));
+      end
+    end
+      
+      
   end
   
 end
