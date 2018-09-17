@@ -16,3 +16,16 @@ perframe/.PrepareJAABAData_rc.mat
 *.pdf
 *.mat
 untitled*.m
+*tmp*
+*test*
+*xml
+*txt
+*.dat
+*.png
+*.svg
+*.pdf
+*#
+*JAABA_Release*
+*obsolete*
+*csv
+compiled*

@@ -19,7 +19,7 @@ h = zeros(1,K);
 for k = 1:K,
     if ~any(isnan(S)),
       [a,b,theta] = cov2ell(S(:,:,k));
-      h(k) = ellipsedraw(a,b,mu(k,1),mu(k,2),theta,colors(k),rest{:});
+      h(k) = ellipsedraw(a,b,mu(k,1),mu(k,2),theta,colors(mod(k-1,numel(colors))+1),rest{:});
     end;
 end;
 
