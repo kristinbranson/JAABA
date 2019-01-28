@@ -1,4 +1,4 @@
-function imcrop = CropImAroundTrx(im,x,y,theta,winwidth,winheight,varargin)
+function [imcrop,A] = CropImAroundTrx(im,x,y,theta,winwidth,winheight,varargin)
 
 [interp,fillvalues] = myparse(varargin,'interp','bilinear','fillvalues',0);
 
