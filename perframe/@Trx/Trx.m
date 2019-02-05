@@ -155,8 +155,11 @@ classdef Trx < handle
     ycontour = {};
     
     %% landmark points from APT
+    
+    nlandmarks = 0;
     xlandmarks = [];
     ylandmarks = [];
+    zlandmarks = [];
     skeleton_edges = {};
 
     
@@ -288,6 +291,8 @@ classdef Trx < handle
       m_dist2roi2 = regexp(fn,'^dist2roi2_(.+)$','tokens','once');
       m_angle2roi2 = regexp(fn,'^angle2roi2_(.+)$','tokens','once');
       m_spacetime = regexp(fn,'^spacetime_t(\d+)_r(\d+)($|_[a-z]+$)','tokens','once');
+      [m_landmark,landmark_starts] = regexp(fn,'_landmark(\d+)($|\D)','tokens','start');
+      m_landmark = cellfun(@(x) x{1},m_landmark,'Uni',0);
       if ~isempty(m_magveldiff),
         [data,units] = compute_magveldiff(obj,n,m_magveldiff{1});
       elseif ~isempty(m_veltoward),
@@ -324,6 +329,11 @@ classdef Trx < handle
         [data,units] = compute_angle2roi2(obj,n,str2double(m_angle2roi2{1}));
       elseif ~isempty(m_spacetime),
         [data,units] = compute_spacetime(obj,n,str2double(m_spacetime{1}),str2double(m_spacetime{2}),m_spacetime{3});
+      elseif ~isempty(m_landmark),
+        fn1 = fn(1:landmark_starts(1)-1);
+        args = str2double(m_landmark);
+        funname = sprintf('compute_landmark_%s',fn1);
+        [data,units] = feval(funname,obj,args,n);
       else
         funname = sprintf('compute_%s',fn);
         [data,units] = feval(funname,obj,n);
