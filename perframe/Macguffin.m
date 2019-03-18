@@ -20,18 +20,33 @@ classdef Macguffin < handle
     gtSuggestions
     extra=struct()  % a structure that stores additional information
     version=''
+    fromAPT=false;
+    aptInfo=struct();
+    
       % 0.5.0 : Original
       % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
       %           flies_extra_marker, and flies_extra_linestyle fields in
       %           trxGraphicParams.
       % 0.6.0 : Multiclassifier and ST updates.
+      % 0.7.0 : APT support
   end
     
   % -----------------------------------------------------------------------
   methods (Access=private)
     % ---------------------------------------------------------------------
-    function initFromFeatureLexiconName(self,featureLexiconName)
-      [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
+    function initFromFeatureLexiconName(self,featureLexiconName,varargin)
+      [apt] = myparse(varargin,...
+                'APT',[]);              
+            
+      if ~isempty(apt)
+        featureLexicon = apt.featureLexicon;
+        self.fromAPT = true;
+        self.aptInfo = apt;
+        animalType = apt.animalType;
+      else
+        [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
+        self.fromAPT = false;
+      end
       self.featureLexiconName=featureLexiconName;
       self.behaviors.type=animalType;
       self.behaviors.names = {};  % no behaviors defined yet
@@ -132,7 +147,8 @@ classdef Macguffin < handle
       self.gtSuggestions.loadedGTSuggestions = jld.loadedGTSuggestions;
       self.gtSuggestions.balancedGTSuggestions = jld.balancedGTSuggestions ;
 
-
+      self.aptInfo = jld.aptInfo;
+      self.fromAPT = jld.fromAPT;
     end  % method
 
     
@@ -587,6 +603,8 @@ classdef Macguffin < handle
       elseif length(varargin)==1 && isstruct(varargin{1})
         basicDataStruct=varargin{1};
         self.initFromBasicDataStruct(basicDataStruct);
+      elseif length(varargin)==2 && ischar(varargin{1})
+        self.initFromFeatureLexiconName(varargin{1},'APT',varargin{2});
       elseif length(varargin)==4 || length(varargin)==6
         projectParams=varargin{1};
         classifierParams=varargin{2};
