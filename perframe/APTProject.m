@@ -22,7 +22,7 @@ function varargout = APTProject(varargin)
 
 % Edit the above text to modify the response to help APTProject
 
-% Last Modified by GUIDE v2.5 27-Feb-2019 16:21:41
+% Last Modified by GUIDE v2.5 14-Mar-2019 16:49:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -53,11 +53,20 @@ function APTProject_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to APTProject (see VARARGIN)
 
 % Choose default command line output for APTProject
-lbl_file = myparse(varargin,'lbl_file','');
-handles.lbl_file = lbl_file;
-
 handles.output = hObject;
 
+lbl_file = myparse(varargin,'lbl_file','');
+aptStruct = struct();
+aptStruct.lbl_file = lbl_file;
+aptStruct.featureLexicon = [];
+aptStruct.featureLexiconName = '';
+aptStruct.origFeatureLexiconName = '';
+aptStruct.animalType = '';
+aptStruct.n_pts = 0;
+aptStruct.n_view = 0;
+aptStruct.projname = '';
+aptStruct.trkfilename = '';
+handles.aptStruct = aptStruct;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -68,38 +77,44 @@ if isempty(lbl_file)
   return
 end
 
+h = waitbar(0,'Loading label file');
+handles.waitbar = h;
+guidata(hObject,handles);
 try
   apt = load(lbl_file,'-mat');
 catch ME
   errmsg = sprintf('Could not load label file %s',ME.message);
-  errordlg(errmsg, 'Unable to load label file');
-  return
+  uiwait(errordlg(errmsg, 'Unable to load label file'));
+  handles.aptStruct.lbl_file = '';
+  guidata(hObject,handles);
+  return;
 end
-  
+
 if isempty(apt.movieFilesAll)
-  errordlg('APT Label file should have at least one movie','Empty APT project');
+  uiwait(errordlg('APT Label file should have at least one movie','Empty APT project'));
   return;
 end
 
 %
 handles.apt = apt;
-handles.n_pts = apt.cfg.NumLabelPoints;
-handles.n_view = apt.cfg.NumViews;
 handles.has_trx = apt.projectHasTrx;
+handles.has_crops = ~isempty(apt.movieFilesAllCropInfo{1});
+aptStruct.n_pts = apt.cfg.NumLabelPoints;
 if handles.has_trx
   handles.use_theta = apt.preProcParams.TargetCrop.AlignUsingTrxTheta;
   sz = apt.preProcParams.TargetCrop.Radius;
   handles.sz = [sz,sz];
-elseif apt.cropIsCropMode
+elseif handles.has_crops
   % dont use theta if there is no trx file. 
   % might need updating later.
-  handles.use_theta = False;
-  assert(false, 'Update size when using crops')
-  handles.sz = apt.movieFilesAllCropInfo;
+  handles.use_theta = true;
+  ff = apt.movieFilesAllCropInfo{1}(1).roi;
+  ht = ff(4)-ff(3)+1; wd = ff(2)-ff(1)+1;
+  handles.sz = [ht,wd];
 else
-  handles.use_theta = False;
-  ht = apt.movieInfoAll{1}.info.max_height;
-  wd = apt.movieInfoAll{1}.info.max_width;
+  handles.use_theta = true;
+  ht = apt.movieInfoAll{1}.info.nr;
+  wd = apt.movieInfoAll{1}.info.nc;
   handles.sz = [ht,wd];
 end
 
@@ -109,18 +124,27 @@ featureList = featureList(~stFeatures);
 xmlList = xmlList(~stFeatures);
 handles.trxList = {featureList, xmlList};
 
-handles.global_ftrs = {'velmag','dvelmag','dphi'};
-handles.body_ftrs = {'velmag','dvelmag','dphi',...
-        'dist_center', 'ddist_center'};
-handles.theta_ftrs = {'x','y','dx','dy','dtheta', ...
-          'sin','cos'};
-handles.pair_ftrs = {'pair_x','pair_y','pair_dist','pair_ddist',...
-          'pair_cos','pair_sin','pair_dangle','pair_area','pair_dvelmag',...
-          'pair_u1','pair_v1','pair_u2','pair_v2'};
-handles.triad_ftrs = {'triad_cos','triad_sin','triad_dangle',...
-          'triad_area','triad_darea','triad_dlen'};
+% handles.global_ftrs = {'velmag'};
+% handles.body_ftrs = {'velmag',...
+%           'distcenter', 'ddistcenter'};
+% handles.theta_ftrs = {'x','y','dx','dy',...
+%           'dtheta', 'sin', 'cos'};
+handles.common_ftrs = {'global_velmag','body_velmag',...
+          'body_distcenter', 'body_ddistcenter',...
+          'body_x','body_y','body_dx','body_dy',...
+          'body_dtheta', 'body_sin', 'body_cos'};
+handles.pair_ftrs = {'velmag',...
+          'ddist','dist', ... % These are same body_ftrs
+          'x','y','dx','dy',...
+          'dtheta','cos','sin',... % these are same theta_ftrs
+          'areaswept'};
+handles.triad_ftrs = {'cos','sin','dangle',...
+          'area','darea','dlen'};
 
+waitbar(.5,handles.waitbar,'Reading example frame from movie file');        
+handles.aptStruct = aptStruct;
 handles = initialize(handles);
+delete(handles.waitbar);
 guidata(hObject,handles);
 
 % UIWAIT makes APTProject wait for user response (see UIRESUME)
@@ -135,32 +159,65 @@ function varargout = APTProject_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
-if isempty(handles.lbl_file)
-  figure1_CloseRequestFcn(hObject,eventdata,handles);
+if ~isempty(handles.aptStruct.lbl_file)
+  uiwait(handles.figure1);
 end
+if ~isgraphics(hObject)
+  aptStruct = struct();
+  aptStruct.featureLexicon = [];
+  varargout{1} = aptStruct;
+  return;
+end
+handles = guidata(hObject);
+varargout{1} = handles.aptStruct;
+if isgraphics(handles.waitbar)
+  delete(handles.waitbar);
+end
+figure1_CloseRequestFcn(hObject,eventdata,handles);
+
 
 function handles = initialize(handles)
+set(handles.trx_pop,'Enable',onoffif(handles.has_trx));
+set(handles.trx_pop,'Visible',onoffif(handles.has_trx));
+set(handles.trx_checkbox,'Visible',onoffif(handles.has_trx));
+set(handles.trx_checkbox,'Value',handles.has_trx);
+set(handles.group_notrx,'Visible',onoffif(~handles.has_trx));
+set(handles.rb_centroid,'Visible',onoffif(~handles.has_trx));
+set(handles.rb_frame,'Visible',onoffif(~handles.has_trx));
+set(handles.rb_crop,'Visible',onoffif(~handles.has_trx));
+set(handles.rb_custom,'Visible',onoffif(~handles.has_trx));
+set(handles.text_centroid,'Visible',onoffif(~handles.has_trx));
+
 if handles.has_trx
   set(handles.trx_pop,'String',handles.trxList{1})
   set(handles.trx_pop,'Value',1);
+  set(handles.trx_checkbox,'Value',true);
 else
   set(handles.trx_pop,'String',{''})
-  set(handdles.trx_pop,'Value',0)
+  set(handles.trx_pop,'Value',0)
+  set(handles.trx_checkbox,'Value',true);
+  if handles.has_crops
+    set(handles.rb_crop,'Value',true);
+    set(handles.rb_frame,'Value',false);
+    set(handles.rb_crop,'Enable','on');
+  else
+    set(handles.rb_crop,'Value',false);
+    set(handles.rb_crop,'Enable','off');
+    set(handles.rb_frame,'Value',true);
+  end
+  set(handles.rb_centroid,'Value',false);
 end
-set(handles.trx_pop,'Enable',onoffif(handles.has_trx));
-
-set(handles.body_checkbox,'Value',handles.has_trx);
-set(handles.theta_checkbox,'Value',~handles.use_theta);
-set(handles.theta_checkbox,'Enable',onoffif(handles.has_trx));
-set(handles.global_checkbox,'Value',true);
 
 % load a reference image and point locations.
 apt = handles.apt;
 has_ref_img = false;
 for ndx = 1:size(apt.movieFilesAll,1)
   has_label = false;
-  cur_pts = SparseLabelArray.full(apt.labeledpos{ndx});
+  s = apt.labeledpos{ndx};
+  assert(isstruct(s));
+  cur_pts = nan(s.size);
+  cur_pts(s.idx) = s.val; % scalar expansion for 'log'
+
   tndx_to_use = 1;
   locs = [];
   for tndx = 1:size(cur_pts,4)
@@ -178,35 +235,169 @@ for ndx = 1:size(apt.movieFilesAll,1)
     continue;
   end
   has_ref_img = true;
-  mov_file = unMacroise(apt.movieFilesAll{ndx,1},apt);
-  rfn = get_readframe_fcn(mov_file);
-  trx = load(getTrxFile(apt.trxFilesAll{ndx},mov_file),'-mat');
-  trx = trx.trx(tndx_to_use);
-  img = rfn(frm);
-  off = trx.off;
-  x = trx.x(frm+off);
-  y = trx.y(frm+off);
-  theta = trx(tndx_to_use).theta(frm+off);
-  [img, aff_mat] = CropImAroundTrx(img,x,y,theta,handles.sz(2),handles.sz(1));
-  ll = locs*aff_mat(1:2,1:2);
-  ll(:,2) = ll(:,2)+aff_mat(3,2) + handles.sz(1);
-  ll(:,1) = ll(:,1)+aff_mat(3,1) + handles.sz(2);
-  locs = ll;
+  img = []; all_locs = []; prev_width = 0;
+  for m_ndx = 1:size(apt.movieFilesAll,2)
+    mov_file = unMacroise(apt.movieFilesAll{ndx,m_ndx},apt);
+    rfn = get_readframe_fcn(mov_file);
+    cur_img = rfn(frm);
+    if handles.has_trx,
+      trx = load(getTrxFile(apt.trxFilesAll{ndx},mov_file),'-mat');
+      trx = trx.trx(tndx_to_use);
+      off = trx.off;
+      x = trx.x(frm+off);
+      y = trx.y(frm+off);
+      theta = trx(tndx_to_use).theta(frm+off);
+      [cur_img, aff_mat] = CropImAroundTrx(cur_img,x,y,theta,handles.sz(2),handles.sz(1));
+      ll = locs*aff_mat(1:2,1:2);
+      ll(:,2) = ll(:,2)+aff_mat(3,2) + handles.sz(1) + 0.5;
+      ll(:,1) = ll(:,1)+aff_mat(3,1) + handles.sz(2) + 0.5;
+      ll(:,1) = ll(:,1) + prev_width;
+    else
+      n_pts = handles.aptStruct.n_pts;
+      st = (m_ndx-1)*n_pts + 1; en = m_ndx*n_pts;
+      ll = locs(st:en,:);
+      ll(:,1) = ll(:,1) + prev_width;
+    end
+    img = cat(2,img,cur_img);
+    prev_width = size(img,2);
+    all_locs = cat(1,all_locs,ll);
+  end
+  
   break
 end
+
 if has_ref_img
-  axes(handles.axes1);
-  imshow(img);
-  hold on;
-  scatter(ll(:,1),ll(:,2),'.');
-  hold off;
   handles.im = img;
-  handles.locs = ll;
+  handles.locs = all_locs;
 else
   handles.im = [];
   handles.locs = [];
 end
-axis(handles.axes1,'off');
+
+trkfilename = reset_trk_edit(handles);
+set(handles.text_centroid,'String','');
+
+handles.aptStruct.n_pts = apt.cfg.NumLabelPoints;
+handles.aptStruct.n_view = apt.cfg.NumViews;
+handles.aptStruct.projname = apt.projname;
+handles.aptStruct.featureLexicon = [];
+handles.aptStruct.featureLexiconName = '';
+handles.aptStruct.animalType = '';
+handles.aptStruct.trkfilename = trkfilename;
+handles.aptStruct.view = 1;
+handles = UpdateHandles(handles);
+UpdatePlots(handles)
+
+
+
+function handles = UpdateHandles(handles)
+handles.use_trx = get(handles.trx_checkbox,'Value');
+if handles.has_trx
+  trx_type_ndx = get(handles.trx_pop,'Value');
+  featureLexiconName = handles.trxList{1}{trx_type_ndx};
+  [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
+else
+  featureLexiconName = 'apt';
+  animalType = 'apt';
+end
+handles.aptStruct.origFeatureLexiconName = featureLexiconName;
+if handles.has_trx
+  handles.aptStruct.featureLexiconName = [featureLexiconName '_' handles.aptStruct.projname];
+else
+  handles.aptStruct.featureLexiconName = featureLexiconName;
+end
+
+handles.aptStruct.animalType = animalType;
+% pairs
+str = get(handles.edit_pair,'String');
+pair_str = strsplit(str,',');
+pairs = {};
+if ~isempty(pair_str{1}),
+  for ndx = 1:numel(pair_str)
+    cur_str = strtrim(pair_str{ndx});
+    cur_pair = strsplit(cur_str);
+    if numel(cur_pair)~=2
+      uiwait(errordlg('Incorrect format for specifying pairs.'));
+      pairs = {}; break;
+    end
+    pts = [];
+    is_error = false;
+    for pndx = 1:numel(cur_pair)
+      cur_p = str2double(cur_pair{pndx});
+      if round(cur_p) ~= cur_p || isnan(cur_p)
+        uiwait(errordlg('Please specify points as integer'));
+        pairs = {}; is_error = true; break;
+      end
+      if cur_p > handles.aptStruct.n_pts
+        uiwait(errordlg(sprintf('Points should be between 1 and %d',handles.n_pts)));
+        pairs = {};  is_error = true;break;
+      end
+      pts(end+1) = cur_p;
+    end
+    if is_error
+      pairs = {}; break;
+    end
+    if pts(1) == pts(2)
+      uiwait(errordlg('Cannot use same point in pairs'));
+      pairs = {}; break;
+    end
+    pairs{end+1} = pts;
+  end
+end
+handles.pairs = pairs;
+
+% triads
+str = get(handles.edit_triad,'String');
+pair_str = strsplit(str,',');
+triads = {};
+if ~isempty(pair_str{1}),
+  for ndx = 1:numel(pair_str)
+    cur_str = strtrim(pair_str{ndx});
+    cur_pair = strsplit(cur_str);
+    if numel(cur_pair)~=3
+      uiwait(errordlg('Incorrect format for specifying triads.'));
+      triads = {}; break;
+      return;
+    end
+    pts = [];
+    is_error = false;
+    for pndx = 1:numel(cur_pair)
+      cur_p = str2double(cur_pair{pndx});
+      if round(cur_p) ~= cur_p || isnan(cur_p)
+        uiwait(errordlg('Please specify points as integer'));
+        triads = {}; is_error = true; break;
+      end
+      if cur_p > handles.aptStruct.n_pts
+        uiwait(errordlg(sprintf('Points should be between 1 and %d',handles.aptStruct.n_pts)));
+        triads = {};  is_error = true;break;
+      end
+      pts(end+1) = cur_p;
+    end
+    if is_error, triads = {}; break; end
+    if numel(unique(pts))~=3
+      uiwait(errordlg('Cannot use same points twice in the triads'));
+      triads = {}; break;
+    end
+    triads{end+1} = pts;
+  end
+end
+handles.triads = triads;
+
+% custom
+str = get(handles.edit_custom,'String');
+pair_str = strsplit(str,',');
+custom_list = {};
+if ~isempty(pair_str{1}),
+  for ndx = 1:numel(pair_str)
+    custom_list{ndx} = strtrim(pair_str{ndx});
+  end
+end
+handles.custom_list = custom_list;
+trk_file_str = strtrim(get(handles.edit_trk,'String'));
+trkfiles = strsplit(trk_file_str,',');
+handles.aptStruct.trkfilename = trkfiles;
+UpdatePlots(handles);  
+
 
 function filename = unMacroise(filename,apt)
 macros = fieldnames(apt.projMacros); 
@@ -215,9 +406,58 @@ for fndx = 1:numel(macros)
   filename = strrep(filename,sprintf('$%s',f),apt.projMacros.(f));
 end
 
+
 function trxfile = getTrxFile(trxfile,movfile)
 movdir = fileparts(movfile);
 trxfile = strrep(trxfile,'$movdir',movdir);
+
+
+function UpdatePlots(handles)
+if isempty(handles.im)
+  axis(handles.axes1,'off');
+  return
+end
+axes(handles.axes1);
+img = handles.im;
+ll = handles.locs;
+
+imshow(img);
+hold on;
+scatter(ll(:,1),ll(:,2),'.');
+for ndx = 1:size(ll,1)
+  cur_n = modrange(ndx,1,handles.aptStruct.n_pts+1);
+  text(ll(ndx,1)+1,ll(ndx,2)+1,num2str(cur_n),'Color',[1 0 0]);
+end
+for pndx = 1:numel(handles.pairs)
+  for view = 1:handles.aptStruct.n_view
+    n_pts = handles.aptStruct.n_pts;
+    p = ll(handles.pairs{pndx}+(view-1)*n_pts,:);
+    plot(p(:,1),p(:,2));
+  end
+end
+hold off;
+handles.im = img;
+handles.locs = ll;
+axis(handles.axes1,'off');
+
+
+function all_trkfilenames = reset_trk_edit(handles)
+apt = handles.apt;
+trk_file_str = '';
+all_trkfilenames = {};
+for ndx = 1:size(apt.movieFilesAll,2)
+  mov_file = apt.movieFilesAll{1,ndx};
+  [~,movfilename,~] = fileparts(apt.movieFilesAll{1,ndx});
+  [~,projfile,~] = fileparts(handles.aptStruct.lbl_file);
+  trkfilename = [movfilename '_' projfile '.trk'];
+  if isempty(trk_file_str)
+    trk_file_str = trkfilename;
+  else
+    trk_file_str = sprintf('%s,%s',trk_file_str,trkfilename);
+  end
+  all_trkfilenames{ndx} = trkfilename;
+end
+set(handles.edit_trk,'String',trk_file_str)
 
 
 function onoff = onoffif(in)
@@ -280,41 +520,7 @@ function edit_pair_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_pair as text
 %        str2double(get(hObject,'String')) returns contents of edit_pair as a double
-str = get(hObject,'String');
-pair_str = strsplit(str,',');
-pairs = {};
-for ndx = 1:numel(pair_str)
-  cur_str = strtrim(pair_str{ndx});
-  cur_pair = strsplit(cur_str);
-  if numel(cur_pair)~=2
-    errordlg('Incorrect format for specifying pairs.');
-    return;
-  end
-  pts = [];
-  for pndx = 1:numel(cur_pair)
-    cur_p = str2double(cur_pair{pndx});
-    if round(cur_p) ~= cur_p || isnan(cur_p)
-      errordlg('Please specify points as integer');
-    end
-    pts(end+1) = cur_p;
-  end
-  pairs{end+1} = pts;
-end
-handles.pairs = pairs;
-
-img = handles.im;
-ll = handles.locs;
-axes(handles.axes1);
-imshow(img);
-hold on;
-scatter(ll(:,1),ll(:,2),'.');
-for pndx = 1:numel(handles.pairs)
-  p = ll(handles.pairs{pndx},:);
-  plot(p(:,1),p(:,2));
-end
-hold off;
-axis(handles.axes1,'off');
-  
+handles = UpdateHandles(handles);
 guidata(hObject,handles)
 
 % --- Executes during object creation, after setting all properties.
@@ -338,29 +544,8 @@ function edit_triad_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_triad as text
 %        str2double(get(hObject,'String')) returns contents of edit_triad as a double
-str = get(hObject,'String');
-pair_str = strsplit(str,',');
-triads = {};
-for ndx = 1:numel(pair_str)
-  cur_str = strtrim(pair_str{ndx});
-  cur_pair = strsplit(cur_str);
-  if numel(cur_pair)~=3
-    errordlg('Incorrect format for specifying triads.');
-    return;
-  end
-  pts = [];
-  for pndx = 1:numel(cur_pair)
-    cur_p = str2double(cur_pair{pndx});
-    if round(cur_p) ~= cur_p || isnan(cur_p)
-      errordlg('Please specify points as integer');
-    end
-    pts(end+1) = cur_p;
-  end
-  triads{end+1} = pts;
-end
-handles.triads = triads;
+handles = UpdateHandles(handles);
 guidata(hObject,handles)
-
 
 
 % --- Executes during object creation, after setting all properties.
@@ -384,13 +569,7 @@ function edit_custom_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_custom as text
 %        str2double(get(hObject,'String')) returns contents of edit_custom as a double
-str = get(hObject,'String');
-pair_str = strsplit(str,',');
-custom_list = {};
-for ndx = 1:numel(pair_str)
-  custom_list = strtrim(pair_str{ndx});
-end
-handles.custom_list = custom_list;
+handles = UpdateHandles(handles);
 guidata(hObject,handles)
 
 
@@ -416,6 +595,8 @@ function trx_pop_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns trx_pop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from trx_pop
+handles = UpdateHandles(handles);
+guidata(hObject,handles)
 
 
 % --- Executes during object creation, after setting all properties.
@@ -438,6 +619,8 @@ function global_checkbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of global_checkbox
+handles = UpdateHandles(handles);
+guidata(hObject,handles)
 
 
 % --- Executes on button press in theta_checkbox.
@@ -447,21 +630,180 @@ function theta_checkbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of theta_checkbox
-
+handles = UpdateHandles(handles);
+guidata(hObject,handles)
 
 % --- Executes on button press in done_pb.
 function done_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to done_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = UpdateHandles(handles);
+handles.perframe = struct;
+if handles.has_trx
+  featureLexiconName = handles.aptStruct.origFeatureLexiconName;
+  [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
+  if ~handles.use_trx
+    f = fieldnames(featureLexicon.perframe);
+    for fndx = 1:numel(f)
+      featureLexicon.perframe = rmfield(featureLexicon.perframe,f{fndx});
+    end
+  end
+else
+  featureLexiconName = 'apt';
+  animalType = 'apt';
+  [featureLexicon,~]=featureLexiconFromFeatureLexiconName('flies');
+  f = fieldnames(featureLexicon.perframe);
+  for fndx = 1:numel(f)
+    featureLexicon.perframe = rmfield(featureLexicon.perframe,f{fndx});
+  end
+end
 
+handles.aptStruct.animalType = animalType;
+trans_type = {'none' 'relative'}; 
+common_struct = struct();
+common_struct.trans_types=trans_type;
+common_struct.type='apt_locomotion';
+dphi_struct = common_struct;
+dphi_struct.trans_types = {'none' 'abs'};
+dtheta_struct = common_struct;
+dtheta_struct.trans_types = {'none'};
 
+n_pts = handles.aptStruct.n_pts;
+
+cur_set = handles.common_ftrs;
+for fndx = 1:numel(cur_set)
+  for ndx = 1:n_pts
+    cur_ftr = sprintf('apt_%s_%d',cur_set{fndx},ndx);
+    if contains(cur_ftr,'dphi')
+      featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+    elseif contains(cur_ftr,'dtheta')
+      featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+    else
+      featureLexicon.perframe.(cur_ftr) = common_struct;
+    end
+  end
+end
+
+% if handles.use_global
+%   if handles.has_trx 
+%     cur_set = handles.global_ftrs;
+%   else
+%     cur_set = cat(2,handles.global_ftrs,handles.theta_ftrs);
+%   end
+%   for fndx = 1:numel(cur_set)
+%     for ndx = 1:n_pts
+%       cur_ftr = sprintf('apt_global_%s_%d',cur_set{fndx},ndx);
+%       if contains(cur_ftr,'dphi')
+%         featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+%       elseif contains(cur_ftr,'dtheta')
+%         featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+%       else
+%         featureLexicon.perframe.(cur_ftr) = common_struct;
+%       end
+%     end
+%   end
+% end
+% if handles.use_body
+%   cur_set = handles.body_ftrs;
+%   for fndx = 1:numel(cur_set)
+%     for ndx = 1:n_pts
+%       cur_ftr = sprintf('apt_body_%s_%d',cur_set{fndx},ndx);
+%       if contains(cur_ftr,'dphi')
+%         featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+%       elseif contains(cur_ftr,'dtheta')
+%         featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+%       else
+%         featureLexicon.perframe.(cur_ftr) = common_struct;
+%       end
+%     end
+%   end
+% end
+% if handles.use_theta
+%   cur_set = handles.theta_ftrs;
+%   for fndx = 1:numel(cur_set)
+%     for ndx = 1:n_pts
+%       cur_ftr = sprintf('apt_body_%s_%d',cur_set{fndx},ndx);
+%       if contains(cur_ftr,'dphi')
+%         featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+%       elseif contains(cur_ftr,'dtheta')
+%         featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+%       else
+%         featureLexicon.perframe.(cur_ftr) = common_struct;
+%       end
+%     end
+%   end
+% end
+
+% pair features
+for pndx = 1:numel(handles.pairs)
+  cur_set = handles.pair_ftrs;
+  cur_p = handles.pairs{pndx};
+  for fndx = 1:numel(cur_set)
+      cur_ftr = sprintf('apt_pair_%s_%d_%d',cur_set{fndx},cur_p(1),cur_p(2));
+      if contains(cur_ftr,'dphi')
+        featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+      elseif contains(cur_ftr,'dtheta')
+        featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+      else
+        featureLexicon.perframe.(cur_ftr) = common_struct;
+      end
+  end
+end
+% triad features
+for pndx = 1:numel(handles.triads)
+  cur_set = handles.triad_ftrs;
+  cur_p = handles.triads{pndx};
+  for fndx = 1:numel(cur_set)
+      cur_ftr = sprintf('apt_triad_%s_%d_%d_%d',cur_set{fndx},cur_p(1),cur_p(2),cur_p(3));
+      if contains(cur_ftr,'dphi')
+        featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+      elseif contains(cur_ftr,'dtheta')
+        featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+      else
+        featureLexicon.perframe.(cur_ftr) = common_struct;
+      end
+  end
+end
+
+for pndx = 1:numel(handles.custom_list)
+  trans_type = {'none' 'relative'}; 
+  cur_ftr = handles.custom_list{pndx};
+  featureLexicon.perframe.(cur_ftr) = common_struct;
+end
+handles.aptStruct.featureLexicon = featureLexicon;
+handles.aptStruct.has_trx = handles.has_trx;
+handles.aptStruct.has_crops = handles.has_crops;
+
+if ~handles.has_trx
+  if get(handles.rb_frame,'Value')
+    handles.aptStruct.apt_trx_type = 'frame';
+  elseif  get(handles.rb_crop,'Value')
+    handles.aptStruct.apt_trx_type = 'crop';
+  elseif  get(handles.rb_custom,'Value')
+    handles.aptStruct.apt_trx_type = 'custom';
+  else
+    handles.aptStruct.apt_trx_type = 'trk';    
+    handles.aptStruct.apt_trx_centers = handles.apt_trx_centers;
+    handles.aptStruct.apt_trx_orient = handles.apt_trx_orient;    
+  end
+else
+  handles.aptStruct.apt_trx_type = '';
+end
+guidata(hObject,handles);
+uiresume(handles.figure1);
+
+  
 % --- Executes on button press in cancel_pb.
 function cancel_pb_Callback(hObject, eventdata, handles)
 % hObject    handle to cancel_pb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+handles.aptStruct.featureLexicon = [];
+handles.aptStruct.featureLexiconName = '';
+handles.aptStruct.animalType = '';
+guidata(hObject,handles);
+uiresume(handles.figure1);
 
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
@@ -478,3 +820,142 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
+
+
+
+function edit_trk_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_trk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_trk as text
+%        str2double(get(hObject,'String')) returns contents of edit_trk as a double
+trk_file_str = strtrim(get(hObject,'String'));
+trkfiles = strsplit(trk_file_str,',');
+if numel(trkfiles)~=handles.aptStruct.n_view
+  uiwait(errormsg('Number of trk files should be same as number of views'));
+  handles.aptStruct.trkfilename = reset_trk_edit(handles);
+  guidata(hObject,handels);
+  return;
+end
+handles.aptStruct.trkfilename = trkfiles;
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_trk_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_trk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in rb_crop.
+function rb_crop_Callback(hObject, eventdata, handles)
+% hObject    handle to rb_crop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rb_crop
+
+
+% --- Executes on button press in rb_frame.
+function rb_frame_Callback(hObject, eventdata, handles)
+% hObject    handle to rb_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rb_frame
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over rb_centroid.
+function rb_centroid_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to rb_centroid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in rb_centroid.
+function rb_centroid_Callback(hObject, eventdata, handles)
+% hObject    handle to rb_centroid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rb_centroid
+in_str = {'Centroid of landmarks to be used as center for JAABA Trx. Eg ''1 2 3''',...
+  'Use direction from centroid to this landmark as orientation. Eg ''3''. For no orientation leave it emtpy'};
+gg = inputdlg(in_str,'Select landmarks for JAABA Trx');
+
+handles = guidata(hObject);
+if isempty(gg)
+  reset_rb(handles);
+  % reset to default if user cancels.
+  return;
+end
+
+bb = strsplit(strtrim(gg{1}));
+centers = [];
+n_pts = handles.aptStruct.n_pts;
+for ndx = 1:numel(bb)
+  curo = str2double(bb{ndx});
+  if isnan(curo) || round(curo) - curo ~= 0 || curo < 1 || curo > n_pts
+    uiwait(errordlg(sprintf('Please input only integers or integers less than %d',n_pts)));
+    reset_rb(handles)
+    return;
+  end
+  centers(end+1) = curo;
+end
+
+if isempty(strtrim(gg{2})),
+  orient = 0;
+else
+  bb = strsplit(strtrim(gg{2}));
+  if numel(bb)>1
+    uiwait(errordlg('Please input only 1 integer for orientation'));
+    reset_rb(handles)
+    return;
+  end
+  
+  curo = str2double(bb{1});
+  if isnan(curo) || round(curo) - curo ~= 0 || curo < 1 || curo > handles.aptStruct.n_pts
+    uiwait(errordlg(sprintf('Please input only integers for orientation or integers less than %d',n_pts)));
+    reset_rb(handles)
+    return;
+  end
+  orient = curo;
+end
+
+handles.apt_trx_centers = centers;
+handles.apt_trx_orient = orient;
+handles.apt_trx_type = 'trk';
+tt = sprintf('%d ', centers);
+cstr = sprintf('Centroid: %s',tt);
+tstr = sprintf('Orientation: %d',orient);
+set(handles.text_centroid,'String',{cstr,tstr});
+guidata(hObject,handles);
+
+function reset_rb(handles)
+  if handles.has_crops
+    set(handles.rb_crop,'Value',true);
+    set(handles.rb_frame,'Value',false);
+  else
+    set(handles.rb_crop,'Value',false);
+    set(handles.rb_frame,'Value',true);
+  end
+  set(handles.rb_custom,'Value',false);
+  set(handles.rb_centroid,'Value',false);
+  set(handles.text_centroid,'String','');
+
+% --- Executes on button press in rb_custom.
+function rb_custom_Callback(hObject, eventdata, handles)
+% hObject    handle to rb_custom (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rb_custom

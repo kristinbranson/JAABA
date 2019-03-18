@@ -55,6 +55,7 @@ classdef Trx < handle
     trxfilestr = 'trx.mat';
     perframedir = 'perframe';
     moviefilestr = 'movie.ufmf';
+    trkfilestr = '';
 
     %% data locations
         
@@ -288,6 +289,7 @@ classdef Trx < handle
       m_dist2roi2 = regexp(fn,'^dist2roi2_(.+)$','tokens','once');
       m_angle2roi2 = regexp(fn,'^angle2roi2_(.+)$','tokens','once');
       m_spacetime = regexp(fn,'^spacetime_t(\d+)_r(\d+)($|_[a-z]+$)','tokens','once');
+      m_apt = regexp(fn,'^apt_(.*)','tokens','once');
       if ~isempty(m_magveldiff),
         [data,units] = compute_magveldiff(obj,n,m_magveldiff{1});
       elseif ~isempty(m_veltoward),
@@ -324,6 +326,8 @@ classdef Trx < handle
         [data,units] = compute_angle2roi2(obj,n,str2double(m_angle2roi2{1}));
       elseif ~isempty(m_spacetime),
         [data,units] = compute_spacetime(obj,n,str2double(m_spacetime{1}),str2double(m_spacetime{2}),m_spacetime{3});
+      elseif ~isempty(m_apt)
+        [data,units] = compute_apt(obj,n,m_apt{1});
       else
         funname = sprintf('compute_%s',fn);
         [data,units] = feval(funname,obj,n);
