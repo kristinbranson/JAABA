@@ -140,6 +140,7 @@ classdef JLabelGUIData < handle
     hflies = [];       % nfly-by-numAxes handle array. The triangle marking each fly.
     hflies_extra = [];
     hfly_markers = []; % nfly-by-numAxes handle array. The dot/star at the center of each fly.    
+    hflies_apt = []; %  nfly-by-numAxes handle array. APT trk for each fly.    
     hlabel_curr = [];  % 1-by-numAxes handle. The line showing labeling-in-progress.
     hlabels = [];      % numAxes-by-nbehavior handle array. The lines (trx-overlay) showing labels for each behavior.
     hpredicted = [];   % numAxes-by-nbehavior handle array. The lines (trx-overlay) showing predictions for each behavior.
@@ -1066,6 +1067,7 @@ classdef JLabelGUIData < handle
           set(self.hflies(j,i),'Color',flyclr);
           set(self.hfly_markers(j,i),'Color',flyclr);
           set(self.hflies_extra(j,:,i),'Color',flyclr,'MarkerFaceColor',flyclr);
+          set(self.hflies_apt(j,i),'Color',flyclr,'MarkerFaceColor',flyclr);
         end
       end
     end

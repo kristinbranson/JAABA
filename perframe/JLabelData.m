@@ -241,6 +241,7 @@ classdef JLabelData < matlab.mixin.Copyable
     clipsdir
     scores
     stfeatures
+    trkfilename
     
     % Properties relating to whether there is a movie to show
     %openmovie  % true iff a movie is one of the required files for each experiment
@@ -454,6 +455,10 @@ classdef JLabelData < matlab.mixin.Copyable
     
     trainWarnCount = 0; % number of training iterations since we warned the user about increasing the iterations.
     trainWarn = true;
+    
+    % Details of APT project.
+    aptInfo = struct()
+    fromAPT = false;
   end
 
  
@@ -1339,6 +1344,18 @@ classdef JLabelData < matlab.mixin.Copyable
         error('JLabelData:expDirDoesNotExist', '%s', ...
               expDirName);
       end
+      
+      if obj.fromAPT && ~obj.aptInfo.has_trx && ~strcmp(obj.aptInfo.apt_trx_type,'custom')
+      % Maybe generate trx file if project is imported from APT and doesn't
+      % have trx.
+        trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
+        trkFileName =  fullfile(expDirName,obj.GetFileName('trk'));
+        if ~exist(trxFileNameAbs,'file')
+          trx = create_trx_apt(trkFileName,obj.aptInfo);  %#ok<PROPLC>
+          A = struct('trx',trx); %#ok<PROPLC>
+          save(trxFileNameAbs,'-struct','A');
+        end        
+      end
  
       [~,expName] = myfileparts(expDirName);
       
@@ -1800,6 +1817,8 @@ classdef JLabelData < matlab.mixin.Copyable
           res = obj.scorefilename;
         case 'stfeatures',
           res = obj.stfeatures;
+        case 'trk'
+          res = obj.trkfilename;
         otherwise
           error('Unknown file type %s',fileType);
       end
@@ -1983,7 +2002,8 @@ classdef JLabelData < matlab.mixin.Copyable
                         'moviefilestr',obj.GetFileName('movie'),...
                         'perframedir',obj.GetFileName('perframedir'),...
                         'default_landmark_params',obj.landmark_params,...
-                        'perframe_params',obj.perframe_params);
+                        'perframe_params',obj.perframe_params,...
+                        'trkfilestr',obj.GetFileName('trk'));
                         %'rootwritedir',expdir);
 %                        'rootwritedir',obj.rootoutputdir);
       
@@ -2019,7 +2039,7 @@ classdef JLabelData < matlab.mixin.Copyable
         file = perframefiles{i};
         if ~dooverwrite && exist(file,'file'),
           continue;
-        end
+        end        
         if isInteractive
           hwait = mywaitbar(i/numel(obj.allperframefns),hwait,...
             sprintf('Computing %s and saving to file %s',fn,file));
@@ -2282,7 +2302,11 @@ classdef JLabelData < matlab.mixin.Copyable
     % etc. 
     
       moviefilename = obj.GetFile('movie',expi);
-      [~,~,ext] = fileparts(moviefilename);
+      if ischar(moviefilename)
+        [~,~,ext] = fileparts(moviefilename);
+      else
+        [~,~,ext] = fileparts(moviefilename{1});
+      end
       ismaybeindexedfile = ismember(lower(ext),{'.mjpg','.mjpeg'});
       if ismaybeindexedfile,
         movieindexfilename = obj.GetFile('movieindex',expi);
@@ -2323,51 +2347,60 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       for i = 1:numel(expis),
-        moviefilename = obj.GetFile('movie',expis(i));
-        movieindexfilename = obj.GetFile('movieindex',expis(i));
+        all_moviefilenames = obj.GetFile('movie',expis(i));
+        all_movieindexfilenames = obj.GetFile('movieindex',expis(i));
         obj.SetStatus('Checking movie %s...',moviefilename);
         
-        % check for file existence
-        if ~exist(moviefilename,'file'),
-          successes(i) = false;
-          msg1 = sprintf('File %s missing',moviefilename);
-          if isempty(msg),
-            msg = msg1;
-          else
-            msg = sprintf('%s\n%s',msg,msg1);
-          end
-        else
-          
-          if ischar(movieindexfilename) && ~exist(movieindexfilename,'file'),
+        if ischar(all_moviefilenames),
+          all_moviefilenames = {all_moviefilenames};
+          all_movieindexfilenames = {all_movieindexfilenames};
+        end
+        
+        for ndx = 1:numel(all_moviefilenames)
+          moviefilename = all_moviefilenames{ndx};
+          movieindexfilename = all_movieindexfilenames{ndx};
+          % check for file existence
+          if ~exist(moviefilename,'file'),
             successes(i) = false;
-            msg1 = sprintf('File %s missing',movieindexfilename);
+            msg1 = sprintf('File %s missing',moviefilename);
             if isempty(msg),
               msg = msg1;
             else
               msg = sprintf('%s\n%s',msg,msg1);
             end
-            
           else
-            
-            % try reading a frame
-            %           try
-            [readframe,~,movie_fid] = ...
-              obj.get_readframe_fcn(expis(i));
-            if movie_fid <= 0,
-              error('Could not open movie %s for reading',moviefilename);
+
+            if ischar(movieindexfilename) && ~exist(movieindexfilename,'file'),
+              successes(i) = false;
+              msg1 = sprintf('File %s missing',movieindexfilename);
+              if isempty(msg),
+                msg = msg1;
+              else
+                msg = sprintf('%s\n%s',msg,msg1);
+              end
+
+            else
+
+              % try reading a frame
+              %           try
+              [readframe,~,movie_fid] = ...
+                obj.get_readframe_fcn(expis(i));
+              if movie_fid <= 0,
+                error('Could not open movie %s for reading',moviefilename);
+              end
+              readframe(1);
+              fclose(movie_fid);
+              %           catch ME,
+              %             successes(i) = false;
+              %             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
+              %             if isempty(msg),
+              %               msg = msg1;
+              %             else
+              %               msg = sprintf('%s\n%s',msg,msg1);
+              %             end
+              %           end
+
             end
-            readframe(1);
-            fclose(movie_fid);
-            %           catch ME,
-            %             successes(i) = false;
-            %             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
-            %             if isempty(msg),
-            %               msg = msg1;
-            %             else
-            %               msg = sprintf('%s\n%s',msg,msg1);
-            %             end
-            %           end
-            
           end
         end
       end
@@ -2528,6 +2561,24 @@ classdef JLabelData < matlab.mixin.Copyable
           return;
         end
         [success,msg] = obj.UpdateStatusTable('movie');
+      elseif iscell(moviefilename)
+        if indexfilesmatch && ischar(obj.moviefilename) && strcmp(moviefilename,obj.moviefilename),
+          success = true;
+          return;
+        end
+        oldmovieindexfilename = obj.movieindexfilename;
+        oldmoviefilename = obj.moviefilename;
+        obj.moviefilename = moviefilename;
+        obj.movieindexfilename = movieindexfilename;
+        %obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
+        [success1,msg] = obj.CheckMovies();
+        if ~success1,
+          obj.moviefilename = oldmoviefilename;
+          obj.movieindexfilename = oldmovieindexfilename;
+          return;
+        end
+        [success,msg] = obj.UpdateStatusTable('movie');
+
       end
       
     end
@@ -2785,6 +2836,39 @@ classdef JLabelData < matlab.mixin.Copyable
 
         obj.clipsdir = clipsdir;        
         [success,msg] = obj.UpdateStatusTable('clipsdir');
+      end
+      
+    end
+
+    function [success,msg] = SetTrkFileName(obj,trkfilename)
+    % [success,msg] = SetClipsDir(obj,clipsdir)
+    % Sets the clips directory name within the experiment directory.
+      
+      success = true;
+      msg = '';
+
+      if ischar(trkfilename),
+        for i = 1:numel(obj.expdirs),
+          trkcurr = fullfile(obj.expdirs{i},trkfilename);
+          if ~exist(trkcurr,'file')
+            success = false;
+            msg = sprintf('Trk file %s does not exist',trkcurr);
+          end
+        end
+        if ischar(obj.trkfilename) && strcmp(trkfilename,obj.trkfilename),
+          success = true;
+          return;
+        end
+
+        obj.trkfilename = trkfilename;        
+        [success,msg] = obj.UpdateStatusTable('trk');
+      elseif iscell(trkfilename),
+        if iscell(obj.trkfilename) && all(strcmp(trkfilename,obj.trkfilename)),
+          success = true;
+          return;
+        end
+        obj.trkfilename = trkfilename;        
+        [success,msg] = obj.UpdateStatusTable('trk');
       end
       
     end
@@ -3433,7 +3517,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
      % --------------------------------------------------------------------------
     function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex,hasPerFrameSex] = ...
-        readTrxInfoFromFile(trxFileName)
+        readTrxInfoFromFile(trxFileName,varargin)
       % Read the trx file
       [trx,~,success] = load_tracks(trxFileName);
       if ~success,
@@ -4133,7 +4217,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = setCurrentTarget(obj,expi,flies,force)
+    function [success,msg] = setCurrentTarget(obj,expi,flies,headerinfo,force)
       % This is the method formerly known as PreLoad(). Sets the current
       % target to experiment expi, animal flies.  This implies preloading
       % data associated with the input experiment and flies. If neither the
@@ -4216,7 +4300,45 @@ classdef JLabelData < matlab.mixin.Copyable
               end
             end
 
+            if obj.fromAPT
+              trkfilename = obj.GetFile('trk',expi);
+              if any(cellfun(@(x) ~exist(x,'file'),trkfilename))
+                msg = sprintf('APT Trk file %s does not exist',trxfilename);
+                success = false;
+                return;
+              end
+              prev_width = 0;
+              for ndx = 1:numel(trkfilename),
+                trk = load(trkfilename{ndx},'-mat');
+                % check frames are in order
+                frms = trk.pTrkFrm;
+                dd = frms(2:end)-frms(1:end-1);
+                is_ordered = all(dd==1);
+                assert(is_ordered, 'Trk file should be ordered');
+                for i = 1:numel(trx)
+                  trx_ndx = find(trk.pTrkiTgt==i);
+                  cur_trk = trk.pTrk(:,:,:,trx_ndx);
+                  if isempty(trx_ndx) 
+                    msg = sprintf('APT trk %s does not tracking results for animal %d',trkfilename,i);
+                    success = false;
+                    return;
+                  end
+                  start_t = find(frms==trx(i).firstframe);
+                  end_t = find(frms==trx(i).endframe);
+                  if isempty(start_t) || isempty(end_t)
+                    msg = sprintf('APT trk %s does not have tracking info for all the frames for animal %d',trkfilename,i);
+                    success = false;
+                    return;
+                  end
 
+                  cur_trk = cur_trk(:,:,start_t:end_t);
+                  cur_trk(:,1,:) = cur_trk(:,1,:) + prev_width;                  
+                  trx(i).apt_trk{ndx} = cur_trk;
+                  prev_width = prev_width + headerinfo{ndx}.nc;
+                end
+              end
+              
+            end
 
             obj.trx = trx;
 %             CACHED_TRX = obj.trx;
@@ -7185,7 +7307,21 @@ classdef JLabelData < matlab.mixin.Copyable
         self.SetStatus('Loading %s',fileNameAbs);
         macguffin = loadAnonymous(fileNameAbs);
         if isstruct(macguffin)
-          macguffin = Macguffin(macguffin);
+          if isfield(macguffin,'fromAPT') && macguffin.fromAPT
+            behaviorName=macguffin.behaviors.names;
+            movieFileName=macguffin.file.moviefilename;
+            movieIndexFileName=macguffin.file.movieindexfilename;
+            trackFileName=macguffin.file.trxfilename;
+            scoreFileName=macguffin.file.scorefilename;
+            macguffin = Macguffin(macguffin.featureLexiconName,macguffin.aptInfo);
+            macguffin.behaviors.names=behaviorName;
+            macguffin.file.moviefilename=movieFileName;
+            macguffin.file.movieindexfilename=movieIndexFileName;
+            macguffin.file.trxfilename=trackFileName;
+            macguffin.file.scorefilename=scoreFileName;
+          else
+            macguffin = Macguffin(macguffin);
+          end
         end
         self.ClearStatus();
       end
@@ -7725,7 +7861,32 @@ classdef JLabelData < matlab.mixin.Copyable
         assert(numel(obj.labelcolors)==3*numel(obj.labelnames));
 
         [obj.ntimelines,obj.iLbl2iCls,obj.iCls2iLbl] = Labels.determineNumTimelines(obj.labelnames);
-                
+
+        % Do APT Stuff before the filetype list is used for everything else
+        if everythingParams.fromAPT
+          if ~isempty(everythingParams.aptInfo.trkfilename),
+            [success1,msg] = obj.SetTrkFileName(everythingParams.aptInfo.trkfilename);
+            if ~success1
+              error('JLabelData:unableToSetTrkFileName', ...
+                    msg);
+            end
+          end
+          obj.aptInfo = everythingParams.aptInfo;
+          obj.fromAPT = true;
+        else
+          % remove trk from file types
+          ftypes = obj.filetypes;
+          for ndx = numel(ftypes):-1:1
+            if strcmp(ftypes{ndx},'trk')
+              ftypes(ndx)=[];
+            end
+          end
+          obj.filetypes = ftypes;
+          obj.fileexists = false(0,numel(obj.filetypes));
+          obj.aptInfo = struct;
+          obj.fromAPT = false;
+        end
+        
         if isfield(everythingParams.file,'moviefilename'),
           if isfield(everythingParams.file,'movieindexfilename'),
             [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename,...
@@ -7770,7 +7931,7 @@ classdef JLabelData < matlab.mixin.Copyable
                   msg);
           end
         end
-        
+                
         obj.stfeatures = 'features.mat'; % temporary hardcode
         [success1,msg] = obj.UpdateStatusTable('stfeatures');
         if ~success1
@@ -10213,7 +10374,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifierTS = zeros(1,0); 
       self.trainstats = cell(1,0);
       self.classifier_params = cell(1,0);
-      self.filetypes = {'movie','trx','perframedir','clipsdir','scores','stfeatures'};
+      self.filetypes = {'movie','trx','perframedir','clipsdir','scores','stfeatures','trk'};
       self.moviefilename = 0;
       self.trxfilename = 0;
       self.scorefilename = 0;
@@ -10221,6 +10382,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.clipsdir = 0;
       self.scores = 0;
       self.stfeatures = 0;
+      self.trkfilename = 0;
       %self.openmovie = false;
       % self.ismovie = false;
       self.expdirs = {};
