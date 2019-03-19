@@ -670,17 +670,19 @@ dtheta_struct = common_struct;
 dtheta_struct.trans_types = {'none'};
 
 n_pts = handles.aptStruct.n_pts;
-
+n_view = handles.aptStruct.n_view;
 cur_set = handles.common_ftrs;
 for fndx = 1:numel(cur_set)
   for ndx = 1:n_pts
-    cur_ftr = sprintf('apt_%s_%d',cur_set{fndx},ndx);
-    if contains(cur_ftr,'dphi')
-      featureLexicon.perframe.(cur_ftr) = dphi_struct;        
-    elseif contains(cur_ftr,'dtheta')
-      featureLexicon.perframe.(cur_ftr) = dtheta_struct;
-    else
-      featureLexicon.perframe.(cur_ftr) = common_struct;
+    for view = 1:n_view
+      cur_ftr = sprintf('apt_view%d_%s_%d',view,cur_set{fndx},ndx);
+      if contains(cur_ftr,'dphi')
+        featureLexicon.perframe.(cur_ftr) = dphi_struct;        
+      elseif contains(cur_ftr,'dtheta')
+        featureLexicon.perframe.(cur_ftr) = dtheta_struct;
+      else
+        featureLexicon.perframe.(cur_ftr) = common_struct;
+      end
     end
   end
 end
@@ -740,7 +742,9 @@ for pndx = 1:numel(handles.pairs)
   cur_set = handles.pair_ftrs;
   cur_p = handles.pairs{pndx};
   for fndx = 1:numel(cur_set)
-      cur_ftr = sprintf('apt_pair_%s_%d_%d',cur_set{fndx},cur_p(1),cur_p(2));
+    for view = 1:n_view
+
+      cur_ftr = sprintf('apt_view%d_pair_%s_%d_%d',view,cur_set{fndx},cur_p(1),cur_p(2));
       if contains(cur_ftr,'dphi')
         featureLexicon.perframe.(cur_ftr) = dphi_struct;        
       elseif contains(cur_ftr,'dtheta')
@@ -748,6 +752,7 @@ for pndx = 1:numel(handles.pairs)
       else
         featureLexicon.perframe.(cur_ftr) = common_struct;
       end
+    end
   end
 end
 % triad features
@@ -755,7 +760,8 @@ for pndx = 1:numel(handles.triads)
   cur_set = handles.triad_ftrs;
   cur_p = handles.triads{pndx};
   for fndx = 1:numel(cur_set)
-      cur_ftr = sprintf('apt_triad_%s_%d_%d_%d',cur_set{fndx},cur_p(1),cur_p(2),cur_p(3));
+    for view = 1:n_view
+      cur_ftr = sprintf('apt_view%d_triad_%s_%d_%d_%d',view,cur_set{fndx},cur_p(1),cur_p(2),cur_p(3));
       if contains(cur_ftr,'dphi')
         featureLexicon.perframe.(cur_ftr) = dphi_struct;        
       elseif contains(cur_ftr,'dtheta')
@@ -763,6 +769,7 @@ for pndx = 1:numel(handles.triads)
       else
         featureLexicon.perframe.(cur_ftr) = common_struct;
       end
+    end
   end
 end
 
