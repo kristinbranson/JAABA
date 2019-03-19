@@ -5,17 +5,19 @@ nflies = numel(flies);
 all_data = cell(1,nflies);
 expdir = trx.expdirs{n};
 trkname = trx.trkfilestr;
-trkfile = fullfile(expdir, trkname);
+all_trkfiles = fullfile(expdir, trkname);
+parts = strsplit(fn,'_');
+view_str = regexp(parts{1},'view(\d*)','tokens');
+view = str2double(view_str{1}{1});
+fn_type = parts{2};
+comp_type = parts{3};
 
+trkfile = all_trkfiles{view};
 try
   trk = load(trkfile,'-mat');
 catch ME
   error('Could not load trkfile %s:%s', trkfile, ME.message)
 end
-
-parts = strsplit(fn,'_');
-fn_type = parts{1};
-comp_type = parts{2};
 
 if isfield(trk.trkInfo,'crop_loc') && ~isempty(trk.trkInfo.crop_loc)
   crop_loc = trk.trkInfo.crop_loc;
@@ -27,9 +29,15 @@ else
 end
 
 for fndx = 1:nflies
-  x = trx(flies(fndx)).x;
-  y = trx(flies(fndx)).y;
-  theta = trx(flies(fndx)).theta;
+  if view > 1 
+    x = trx(flies(fndx)).(sprintf('x_view%d',view));
+    y = trx(flies(fndx)).(sprintf('y_view%d',view));
+    theta = trx(flies(fndx)).(sprintf('theta_view%d',view));    
+  else
+    x = trx(flies(fndx)).x;
+    y = trx(flies(fndx)).y;
+    theta = trx(flies(fndx)).theta;
+  end
   dt = trx(flies(fndx)).dt;
   trk_fly_ndx = find(trk.pTrkiTgt==fndx);
   assert(numel(trk_fly_ndx)==1, 'Trk file %s does not have data for fly %d',trkfile,fndx);
