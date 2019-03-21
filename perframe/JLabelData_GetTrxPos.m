@@ -235,6 +235,16 @@ switch obj.targettype,
       pos.a = obj.trx(fly).a;
       pos.b = obj.trx(fly).b;
       return;
+      count = 1;
+      fields = {'x','y','theta'};
+      while isfield(obj.trx,sprintf('x_view%d', count))
+        for fndx = 1:numel(fields)
+          cur_f = sprintf('%s_view%d', fields{fndx},count);
+          pos.(cur_f) = obj.trx(fly).(cur_f);
+        end
+        count = count + 1;
+      end
+
     end
     
     pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
@@ -242,6 +252,16 @@ switch obj.targettype,
     pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
     pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
     pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
+    
+    count = 1;
+    fields = {'x','y','theta'};
+    while isfield(obj.trx,sprintf('x_view%d', count))
+      for fndx = 1:numel(fields)
+        cur_f = sprintf('%s_view%d', fields{fndx},count);
+        pos.(cur_f) = obj.trx(fly).(cur_f)(ts + obj.trx(fly).off);
+      end
+      count = count + 1;
+    end
 
 end
 
