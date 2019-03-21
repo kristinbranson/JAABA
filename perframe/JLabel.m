@@ -3011,9 +3011,12 @@ if ~proceed,
 end
 handles=guidata(hObject);
 
-if ~isempty(handles.guidata.movie_fid) && ...
-    handles.guidata.movie_fid > 1 && ~isempty(fopen(handles.guidata.movie_fid)),
-  fclose(handles.guidata.movie_fid);
+if ~isempty(handles.guidata.movie_fid) 
+  for mndx = 1:numel(handles.guidata.movie_fid)
+    if handles.guidata.movie_fid(mndx) > 1 && ~isempty(fopen(handles.guidata.movie_fid(mndx))),
+      fclose(handles.guidata.movie_fid(mndx));
+    end
+  end
   handles.guidata.movie_fid = [];
 end
 % try
