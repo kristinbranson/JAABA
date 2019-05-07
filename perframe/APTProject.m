@@ -81,7 +81,7 @@ h = waitbar(0,'Loading label file');
 handles.waitbar = h;
 guidata(hObject,handles);
 try
-  apt = load(lbl_file,'-mat');
+  apt = loadLbl(lbl_file);
 catch ME
   errmsg = sprintf('Could not load label file %s',ME.message);
   uiwait(errordlg(errmsg, 'Unable to load label file'));
