@@ -101,8 +101,8 @@ handles.has_trx = apt.projectHasTrx;
 handles.has_crops = ~isempty(apt.movieFilesAllCropInfo{1});
 aptStruct.n_pts = apt.cfg.NumLabelPoints;
 if handles.has_trx
-  handles.use_theta = apt.preProcParams.TargetCrop.AlignUsingTrxTheta;
-  sz = apt.preProcParams.TargetCrop.Radius;
+  handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
+  sz = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.Radius;
   handles.sz = [sz,sz];
 elseif handles.has_crops
   % dont use theta if there is no trx file. 
