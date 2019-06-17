@@ -3,6 +3,7 @@ function [all_data, units] = compute_apt(trx,n,fn)
 flies = trx.exp2flies{n};
 nflies = numel(flies);
 all_data = cell(1,nflies);
+all_units = cell(1,nflies);
 expdir = trx.expdirs{n};
 trkname = trx.trkfilestr;
 all_trkfiles = fullfile(expdir, trkname);
@@ -28,7 +29,8 @@ else
   global_center = double(cell2mat(trk.trkInfo.params.imsz))/2;
 end
 
-for fndx = 1:nflies
+
+parfor fndx = 1:nflies
   if view > 1 
     x = trx(flies(fndx)).(sprintf('x_view%d',view));
     y = trx(flies(fndx)).(sprintf('y_view%d',view));
@@ -57,10 +59,10 @@ for fndx = 1:nflies
   switch fn_type
     case 'global'
       part_num = str2double(parts{end});
-      [data,units] = compute_global(mod_apt_data,dt,theta,comp_type,part_num,pxpermm,global_center);
+      [data,cur_units] = compute_global(mod_apt_data,dt,theta,comp_type,part_num,pxpermm,global_center);
     case 'body'
       part_num = str2double(parts{end});
-      [data,units] = compute_body(mod_apt_data,x,y,dt,theta,comp_type,part_num,pxpermm);
+      [data,cur_units] = compute_body(mod_apt_data,x,y,dt,theta,comp_type,part_num,pxpermm);
     case 'pair'
       part2 = str2double(parts{end});
       part1 = str2double(parts{end-1});
@@ -70,7 +72,7 @@ for fndx = 1:nflies
       y2 = permute(mod_apt_data(part2,2,:),[1,3,2]);
       [x1,y1] = convert_to_body(x1,y1,x,y,theta);
       [x2,y2] = convert_to_body(x2,y2,x,y,theta);
-      [data,units] = pair_fn(x1,y1,x2,y2,dt,comp_type,pxpermm);
+      [data,cur_units] = pair_fn(x1,y1,x2,y2,dt,comp_type,pxpermm);
     case 'triad'
       part3 = str2double(parts{end});
       part2 = str2double(parts{end-1});
@@ -81,13 +83,16 @@ for fndx = 1:nflies
       y2 = permute(mod_apt_data(part2,2,:),[1,3,2]);
       x3 = permute(mod_apt_data(part3,1,:),[1,3,2]);
       y3 = permute(mod_apt_data(part3,2,:),[1,3,2]);
-      [data,units] = triad_fn(x1,x2,x3,y1,y2,y3,dt,comp_type,pxpermm);
+      [data,cur_units] = triad_fn(x1,x2,x3,y1,y2,y3,dt,comp_type,pxpermm);
 
     otherwise
       error('Undefined computation type type %s',comp_type);
   end
   all_data{fndx} = data;
+  all_units{fndx} = cur_units
 end
+units = all_units{1};
+
 
 function [data,units] = compute_global(apt_data, dt, theta, comp_type, part,pxpermm,global_center)
 x = permute(apt_data(part,1,:),[1,3,2]);
