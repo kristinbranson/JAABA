@@ -14,10 +14,17 @@ fn_type = parts{2};
 comp_type = parts{3};
 
 trkfile = all_trkfiles{view};
-try
-  trk = load(trkfile,'-mat');
-catch ME
-  error('Could not load trkfile %s:%s', trkfile, ME.message)
+global global_trkfile global_trk
+if ~isempty(global_trkfile) && strcmp(trkfile,global_trkfile)
+  trk = global_trk;
+else
+  try
+    trk = load(trkfile,'-mat');
+  catch ME
+    error('Could not load trkfile %s:%s', trkfile, ME.message)
+  end
+  global_trk = trk;
+  global_trkfile = trkfile;
 end
 
 if isfield(trk.trkInfo,'crop_loc') && ~isempty(trk.trkInfo.crop_loc)
@@ -29,8 +36,10 @@ else
   global_center = double(cell2mat(trk.trkInfo.params.imsz))/2;
 end
 
+apt_frm = trk.pTrkFrm(1,:);
+assert(all(diff(apt_frm)==1)), 'Tracked frames should be in order';
 
-parfor fndx = 1:nflies
+for fndx = 1:nflies
   if view > 1 
     x = trx(flies(fndx)).(sprintf('x_view%d',view));
     y = trx(flies(fndx)).(sprintf('y_view%d',view));
@@ -47,14 +56,17 @@ parfor fndx = 1:nflies
   n_parts = size(apt_data,1);
   apt_frm = trk.pTrkFrm(1,:);
   nframes = trx(flies(fndx)).nframes;
-  mod_apt_data = nan(n_parts,2,nframes);
-  off = trx(flies(fndx)).off;
   pxpermm = trx.pxpermm;
   
-  % put the maybe out of order frames in trk back in order
-  for ndx = 1:nframes
-    mod_apt_data(:,:,ndx) = apt_data(:,:,apt_frm== (ndx - off));
-  end
+  start_fr = find(apt_frm == trx(flies(fndx)).firstframe);
+  end_fr =  find(apt_frm == trx(flies(fndx)).endframe);
+  mod_apt_data = apt_data(:,:,start_fr:end_fr);
+%   mod_apt_data = nan(n_parts,2,nframes);
+%   off = trx(flies(fndx)).off;
+%   % put the maybe out of order frames in trk back in order
+%   for ndx = 1:nframes
+%     mod_apt_data(:,:,ndx) = apt_data(:,:,apt_frm== (ndx - off));
+%   end
   
   switch fn_type
     case 'global'
@@ -89,7 +101,7 @@ parfor fndx = 1:nflies
       error('Undefined computation type type %s',comp_type);
   end
   all_data{fndx} = data;
-  all_units{fndx} = cur_units
+  all_units{fndx} = cur_units;
 end
 units = all_units{1};
 
