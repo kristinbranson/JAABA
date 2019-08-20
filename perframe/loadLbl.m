@@ -16,7 +16,11 @@ catch ME
   end
 end
 
+warning('off','MATLAB:load:classNotFound');
+warning('off','MATLAB:load:cannotInstantiateLoadedVariable');
 lbl = load(rawLblFile,'-mat');
+warning('on','MATLAB:load:classNotFound');
+warning('on','MATLAB:load:cannotInstantiateLoadedVariable');
 
 [success, message, ~] = rmdir(tname,'s');
 if ~success
