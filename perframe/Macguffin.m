@@ -605,8 +605,8 @@ classdef Macguffin < handle
       elseif length(varargin)==1 && isstruct(varargin{1})
         basicDataStruct=varargin{1};
         self.initFromBasicDataStruct(basicDataStruct);
-      elseif length(varargin)==2 && isstruct(varargin{1})
-        self.initFromBasicDataStruct(varargin{1},'APT',varargin{2});
+      elseif length(varargin)==2 && isstruct(varargin{2})
+        self.initFromFeatureLexiconName(varargin{1},'APT',varargin{2});
       elseif length(varargin)==4 || length(varargin)==6
         projectParams=varargin{1};
         classifierParams=varargin{2};
