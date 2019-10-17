@@ -164,9 +164,11 @@ classdef Macguffin < handle
 
     
     % ---------------------------------------------------------------------
-    function initFromBasicDataStruct(self,basicDataStruct)
+    function initFromBasicDataStruct(self,basicDataStruct,varargin)
+      [apt] = myparse(varargin,'APT',[]);              
+
       % Init from the featureLexiconName to start
-      self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName,...
+      self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName,'APT',apt,...
           'stFeatures',basicDataStruct.stFeatures,'stInfo',basicDataStruct.stInfo);
       % Copy over specific fields to start
       if isfield(basicDataStruct,'extra')
@@ -643,6 +645,8 @@ classdef Macguffin < handle
       elseif length(varargin)==1 && isstruct(varargin{1})
         basicDataStruct=varargin{1};
         self.initFromBasicDataStruct(basicDataStruct);
+      elseif length(varargin)==2 && isstruct(varargin{1})
+        self.initFromBasicDataStruct(varargin{1},'APT',varargin{2});
       elseif length(varargin)==2 && ischar(varargin{1})
         self.initFromFeatureLexiconName(varargin{1},'APT',varargin{2});
       elseif length(varargin)==4 || length(varargin)==6

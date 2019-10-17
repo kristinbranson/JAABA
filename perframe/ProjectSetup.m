@@ -248,6 +248,9 @@ end
 
 % Update the select feature dictionary name
 indexOfFeatureLexicon = find(strcmp(handles.basicParamsStruct.featureLexiconName,handles.featureLexiconNameList));
+if isempty(indexOfFeatureLexicon),
+  indexOfFeatureLexicon = 1;
+end
 set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
 tfST = handles.featureLexiconNameListIsST(indexOfFeatureLexicon);
 if tfST
