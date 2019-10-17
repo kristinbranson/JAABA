@@ -4346,7 +4346,7 @@ classdef JLabelData < matlab.mixin.Copyable
                   cur_trk = cur_trk(:,:,start_t:end_t);
                   cur_trk(:,1,:) = cur_trk(:,1,:) + prev_width;                  
                   trx(i).apt_trk{ndx} = cur_trk;
-                  if iscell(headerinfo)
+                  if exist('headerinfo','var') && iscell(headerinfo)
                     prev_width = prev_width + headerinfo{ndx}.nc;
                   end
                 end
@@ -7322,17 +7322,20 @@ classdef JLabelData < matlab.mixin.Copyable
         macguffin = loadAnonymous(fileNameAbs);
         if isstruct(macguffin)
           if isfield(macguffin,'fromAPT') && macguffin.fromAPT
-            behaviorName=macguffin.behaviors.names;
-            movieFileName=macguffin.file.moviefilename;
-            movieIndexFileName=macguffin.file.movieindexfilename;
-            trackFileName=macguffin.file.trxfilename;
-            scoreFileName=macguffin.file.scorefilename;
-            macguffin = Macguffin(macguffin.featureLexiconName,macguffin.aptInfo);
-            macguffin.behaviors.names=behaviorName;
-            macguffin.file.moviefilename=movieFileName;
-            macguffin.file.movieindexfilename=movieIndexFileName;
-            macguffin.file.trxfilename=trackFileName;
-            macguffin.file.scorefilename=scoreFileName;
+            macguffin = Macguffin(macguffin,macguffin.aptInfo);
+
+            % keep a copy of info as they will get removed when Macguffin
+            % is called.
+%             behaviorName=macguffin.behaviors.names;
+%             movieFileName=macguffin.file.moviefilename;
+%             movieIndexFileName=macguffin.file.movieindexfilename;
+%             trackFileName=macguffin.file.trxfilename;
+%             scoreFileName=macguffin.file.scorefilename;
+%             macguffin.behaviors.names=behaviorName;
+%             macguffin.file.moviefilename=movieFileName;
+%             macguffin.file.movieindexfilename=movieIndexFileName;
+%             macguffin.file.trxfilename=trackFileName;
+%             macguffin.file.scorefilename=scoreFileName;
           else
             macguffin = Macguffin(macguffin);
           end
