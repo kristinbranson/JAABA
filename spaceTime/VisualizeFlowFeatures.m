@@ -1,5 +1,5 @@
-function im = VisualizeFlowFeatures(bdir,fly,fnum,varargin)
-%% inputs.
+function VisualizeFlowFeatures(bdir,fly,fnum,varargin)
+% function VisualizeFlowFeatures(expdir,fly,fnum,'jabfile',jabfile)
 
 [method,moviename,trxfilename,params,jabfile,stationary] = myparse(varargin,...
   'method','hs-sup',...
@@ -107,7 +107,7 @@ end
   
 % plot
 
-hfig = figure('Visible','off');
+hfig = figure();%'Visible','off');
 clf;
 hax = axes('Position',[0,0,1,1]);
 set(hfig,'Units','pixels','Position',get(0,'ScreenSize'));
@@ -151,6 +151,6 @@ for xi = 1:ceil(nc/psize),
   end
 end
 truesize(hfig);
-im = getframe(hax);
-pause(0.01);
-close(hfig);
+% im = getframe(hax);
+% pause(0.01);
+% close(hfig);

@@ -1,19 +1,28 @@
-function im = VisualizeHogFeatures(bdir,fly,fnum,varargin)
-%% inputs.
+function VisualizeHogFeatures(bdir,fly,fnum,varargin)
+% function VisualizeHogFeatures(expdir,fly,fnum,'jabfile',jabfile)
 
-[moviename,trxfilename] = myparse(varargin,...
-  'moviename','movie.ufmf','trxfilename','trx.mat');
+[moviename,trxfilename,params,jabfile] = myparse(varargin,...
+  'moviename','movie.ufmf','trxfilename','trx.mat','params',getSTParams,...
+  'jabfile','');
+
+if ~isempty(jabfile)
+   J = load(jabfile,'-mat');
+   moviename = J.x.file.moviefilename;
+   trxfilename = J.x.file.trxfilename;
+   params = J.x.stInfo;
+end
 
 moviename = fullfile(bdir,moviename);
 trackfilename = fullfile(bdir,trxfilename);
 
 fname = 'hf';
 %% params
-params = getParams;
 psize = params.psize;
 nbins = params.nbins; 
-patchsz = params.patchsz;
-npatches = params.npatches;
+npatches_x = params.npatches_x;
+npatches_y = params.npatches_y;
+patchsz_x = psize*npatches_x;
+patchsz_y = psize*npatches_y;
 wd = params.wd;
 scale = params.scale;
 
@@ -35,18 +44,23 @@ tracks = tracks.trx;
 im1 = readfcn(fnum);
 
 trackndx = fnum - tracks(fly).firstframe + 1;
-locy = round(tracks(fly).y(trackndx));
-locx = round(tracks(fly).x(trackndx));
-im1 = extractPatch(im1,...
-  locy,locx,tracks(fly).theta(trackndx),patchsz);
+% locy = round(tracks(fly).y(trackndx));
+% locx = round(tracks(fly).x(trackndx));
+% im1 = extractPatch(im1,...
+%   locy,locx,tracks(fly).theta(trackndx),patchsz);
+locy = tracks(fly).y(trackndx);
+locx = tracks(fly).x(trackndx);
+im1 = CropImAroundTrx(im1,...
+  locx,locy,tracks(fly).theta(trackndx)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
 
-H = zeros(npatches,npatches,nbins);
-parfor yy = 1:npatches
-  for xx = 1:npatches
+H = zeros(npatches_y,npatches_x,nbins);
+firstframe = tracks(fly).firstframe;
+parfor yy = 1:npatches_y
+  for xx = 1:npatches_x
     for oo = 1:nbins
-      pfname = fullfile(bdir,'perframe',sprintf('%s_%02d_%02d_%d.mat',fname,yy,xx,oo));
+      pfname = fullfile(bdir,'perframe',sprintf('st_%s_%02d_%02d_%d.mat',fname,yy,xx,oo));
       q = load(pfname);
-      trackndx = fnum - tracks(fly).firstframe + 1;
+      trackndx = fnum - firstframe + 1;
       H(yy,xx,oo) = q.data{fly}(trackndx);
       
     end
@@ -54,7 +68,7 @@ parfor yy = 1:npatches
 end
   
 % plot
-hfig = figure('Visible','off');
+hfig = figure();%'Visible','off');
 clf;
 hax = axes('Position',[0,0,1,1]);
 set(hfig,'Units','pixels','Position',get(0,'ScreenSize'));
@@ -99,4 +113,4 @@ for xi = 1:ceil(nc/psize),
   end
 end
 truesize(hfig);
-im = getframe(hax);
+% im = getframe(hax);
