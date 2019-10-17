@@ -1,21 +1,31 @@
-function im = VisualizeFlowFeatures(bdir,fly,fnum,stationary,varargin)
+function im = VisualizeFlowFeatures(bdir,fly,fnum,varargin)
 %% inputs.
 
-[method,moviename,trxfilename,params] = myparse(varargin,...
-  'method','deep-sup',...
-  'moviename','movie.ufmf','trxfilename','trx.mat','params',getParams);
+[method,moviename,trxfilename,params,jabfile,stationary] = myparse(varargin,...
+  'method','hs-sup',...
+  'moviename','movie.ufmf','trxfilename','trx.mat','params',getSTParams,...
+  'jabfile','','stationary',false);
 
 if strcmp(method,'LK')
   fname = 'ff';
 elseif strcmp(method,'hs-brightness')
   fname = 'hs_ff';
 elseif strcmp(method,'hs-sup')
-  fname = 'hs_sup';
+  fname = 'ff';
 elseif strcmp(method,'deep-sup')
   fname = 'DS';
 else
   error('Unknown method %s',method);
 end
+
+if ~isempty(jabfile)
+   J = load(jabfile,'-mat');
+   moviename = J.x.file.moviefilename;
+   trxfilename = J.x.file.trxfilename;
+   params = J.x.stInfo;
+   stationary = J.x.stInfo.is_stationary;
+end
+
 if stationary,
   fname = [fname 's']; 
 end
@@ -31,10 +41,12 @@ trackfilename = fullfile(bdir,trxfilename);
 
 %% params
 %'params = getParams;
-npatches = params.npatches;
+npatches_x = params.npatches_x;
+npatches_y = params.npatches_y;
 psize = params.psize;
 nbins = params.nbins; 
-patchsz = params.patchsz;
+patchsz_x = npatches_x*psize;
+patchsz_y = npatches_y*psize;
 scale = params.scale;
 
 %% compute the bins
@@ -59,26 +71,32 @@ im2 = readfcn(fnum+1);
 trackndx = fnum - tracks(fly).firstframe + 1;
 locy = double(round(tracks(fly).y(trackndx)));
 locx = double(round(tracks(fly).x(trackndx)));
-im1 = extractPatch(im1,...
-  locy,locx,tracks(fly).theta(trackndx),patchsz);
+% im1 = extractPatch(im1,...
+%   locy,locx,tracks(fly).theta(trackndx),patchsz);
+im1 = CropImAroundTrx(im1,...
+  locx,locy,tracks(fly).theta(trackndx)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
 if stationary
   locy = double(round(tracks(fly).y(trackndx+1)));
   locx = double(round(tracks(fly).x(trackndx+1)));
 end
 
 if ~strcmp(method,'hs_sup')
-im2 = extractPatch(im2,...
-  locy,locx,tracks(fly).theta(trackndx),patchsz);
+% im2 = extractPatch(im2,...
+%   locy,locx,tracks(fly).theta(trackndx),patchsz);
+im2 = CropImAroundTrx(im2,...
+  locx,locy,tracks(fly).theta(trackndx)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
 else
+% im2 = extractPatch(im2,...
+%   locy,locx,tracks(fly).theta(trackndx+1),patchsz);  
 im2 = extractPatch(im2,...
-  locy,locx,tracks(fly).theta(trackndx+1),patchsz);  
+  locx,locy,tracks(fly).theta(trackndx+1)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);  
 end
 
-F = zeros(npatches,npatches,nbins);
-for yy = 1:npatches
-  for xx = 1:npatches
+F = zeros(npatches_y,npatches_x,nbins);
+for yy = 1:npatches_y
+  for xx = 1:npatches_x
     for oo = 1:nbins
-      pfname = fullfile(bdir,'perframe',sprintf('%s_%02d_%02d_%d.mat',fname,yy,xx,oo));
+      pfname = fullfile(bdir,'perframe',sprintf('st_%s_%02d_%02d_%d.mat',fname,yy,xx,oo));
       q = load(pfname);
       trackndx = fnum - tracks(fly).firstframe + 1;
       F(yy,xx,oo) = q.data{fly}(trackndx);
