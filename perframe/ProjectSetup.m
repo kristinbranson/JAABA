@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 05-Mar-2019 13:47:44
+% Last Modified by GUIDE v2.5 14-Oct-2019 15:30:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1097,3 +1097,48 @@ function radiobutton_apt_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of radiobutton_apt
+
+
+% --- Executes on button press in checkbox_st.
+function checkbox_st_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_st (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_st
+
+if ~get(hObject,'Value')
+   handles.basicParamsStruct.stFeatures = false;
+   guidata(hObject,handles);
+   return;
+end
+
+fname = uigetdir('.','Select an example JAABA experiment directory');
+if fname == 0
+  mov_file = '';
+  trx_file = '';
+  set(hObject,'Value',0);
+  return
+else
+  mov_file = fullfile(fname,handles.basicParamsStruct.file.moviefilename);
+  trx_file = fullfile(fname,handles.basicParamsStruct.file.trxfilename);
+  if ~exist(mov_file,'file')
+      errmsg = sprintf('Movie file %s does not exist',mov_file);
+      errordlg(errmsg);
+      set(hObject,'Value',0);
+      return;
+  end
+  if ~exist(trx_file,'file'),trx_file=''; end
+end
+
+[useST,stInfo] = spaceTimeOptions('mov_file',mov_file,...
+                    'trx_file',trx_file,...
+                    'prev_st',handles.basicParamsStruct.stInfo);
+                
+if useST
+    handles.basicParamsStruct.stFeatures = true;
+    handles.basicParamsStruct.stInfo = stInfo;
+else
+    handles.basicParamsStruct.stFeatures = false;
+end
+guidata(hObject,handles);
