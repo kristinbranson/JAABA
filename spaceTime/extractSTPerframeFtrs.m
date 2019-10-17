@@ -1,4 +1,4 @@
-function extractPerframeFtrs(outdir,ftrs,stationary,flowname)
+function extractSTPerframeFtrs(outdir,ftrs,stationary,flowname,params)
 
 if ~exist(outdir,'dir'),
   mkdir( outdir);
@@ -28,7 +28,8 @@ for fnum = 1:numel(ff)
           tt = ftrs.(ff{fnum}){fly}(yy,xx,oo,:);
           perframe.data{fly} = tt(:);
         end
-        perframe_name = sprintf('%s_%02d_%02d_%d',pfname,yy,xx,oo);
+        perframe_name = sprintf('st_%s_%02d_%02d_%d',pfname,yy,xx,oo);
+        perframe.params = params;
         outfilename = fullfile(outdir,perframe_name);
         save(outfilename,'-struct','perframe','-v7.3');
       end

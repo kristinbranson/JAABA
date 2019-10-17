@@ -1,4 +1,4 @@
-function preparePerFrameFtrs(moviefilename,trackfilename,stationary,usedeep, params)
+function prepareSTPerframeFtrs(moviefilename,trackfilename,stationary,usedeep, params,perframedir)
 
 % function preparePerFrameFtrs(moviefilename,trackfilename,stationary)
 % The perframe features are stored in perframedir.
@@ -25,7 +25,7 @@ flowname = params.flownames{mndx};
 
 % method = 'LK';
 % flowname = 'ff';
-ftrs = computeFeaturesParallel(moviefilename,trackfilename,stationary,method, params);
+ftrs = computeSTFeaturesParallel(moviefilename,trackfilename,stationary,method, params);
 expdir = fileparts(moviefilename);
-extractPerframeFtrs(fullfile(expdir,'perframe'),ftrs,stationary,flowname);
+extractSTPerframeFtrs(fullfile(expdir,perframedir),ftrs,stationary,flowname,params);
   

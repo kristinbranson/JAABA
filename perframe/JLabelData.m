@@ -459,6 +459,10 @@ classdef JLabelData < matlab.mixin.Copyable
     % Details of APT project.
     aptInfo = struct()
     fromAPT = false;
+    
+    % Details of st
+    stFeatures = false;
+    stInfo = getSTParams();
   end
 
  
@@ -2003,7 +2007,9 @@ classdef JLabelData < matlab.mixin.Copyable
                         'perframedir',obj.GetFileName('perframedir'),...
                         'default_landmark_params',obj.landmark_params,...
                         'perframe_params',obj.perframe_params,...
-                        'trkfilestr',obj.GetFileName('trk'));
+                        'trkfilestr',obj.GetFileName('trk'),...
+                        'stFeatures',obj.stFeatures,...
+                        'stInfo',obj.stInfo);
                         %'rootwritedir',expdir);
 %                        'rootwritedir',obj.rootoutputdir);
       
@@ -2904,15 +2910,21 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      parfor j = 1:nPerframeFeatures,
+      stInfo = obj.stInfo;
+      all_update = false(1,nPerframeFeatures);
+      parfor j = 1:nPerframeFeatures
         perframeFileName=perframeFileNameList{j};
-        [ftmp,funits] = readPFData(perframeFileName,iTarget);
+        [ftmp,funits,update] = readPFData(perframeFileName,iTarget,stInfo);
 %         tmp = load(perframeFileName);
 %         assert(isequal(ftmp,tmp.data(iTarget)));
 %         assert(isequal(funits,tmp.units));
         
         perframedata{j} = ftmp{1};
         perframeunits{j} = funits;
+        all_update(j) = update        
+      end
+      if any(all_update)
+          warndlg('The perframe features were generated with different parameters. Delete them to regenerate them with new parameters'); 
       end
       obj.perframedata = perframedata;
       obj.perframeunits = perframeunits;
@@ -2951,7 +2963,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       perframedir = obj.GetFile('perframedir',expi);
       pffile = fullfile(perframedir,[obj.allperframefns{prop},'.mat']);
-      perframedata = readPFData(pffile,flies(1));
+      perframedata = readPFData(pffile,flies(1),obj.stInfo);
       perframedata = perframedata{1};
       if nargin < 5,
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -4028,7 +4040,7 @@ classdef JLabelData < matlab.mixin.Copyable
               if usecacheperframe
                 parperframedata = tmp_cacheperframedata(perframei);
               else
-                parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr);
+                parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr,obj.stInfo);
               end
             else
               parperframedata = [];
@@ -6241,7 +6253,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %               perframedata = perframedata_cur{ndx};  %#ok
               perframedata = tmp_perframedata_cur{j}; %#ok<PROPLC>
             else
-              perframedata = readPFData(perframefile{ndx},flies(1));  %#ok
+              perframedata = readPFData(perframefile{ndx},flies(1),obj.stInfo);  %#ok
               perframedata = perframedata{1};  %#ok
             end
             
@@ -7888,6 +7900,9 @@ classdef JLabelData < matlab.mixin.Copyable
           obj.aptInfo = struct;
           obj.fromAPT = false;
         end
+        
+        obj.stInfo = everythingParams.stInfo;
+        obj.stFeatures = everythingParams.stFeatures;
         
         if isfield(everythingParams.file,'moviefilename'),
           if isfield(everythingParams.file,'movieindexfilename'),

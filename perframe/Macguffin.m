@@ -20,8 +20,14 @@ classdef Macguffin < handle
     gtSuggestions
     extra=struct()  % a structure that stores additional information
     version=''
+    
+    % details about APT projects
     fromAPT=false;
-    aptInfo=struct();
+    aptInfo=struct(); %
+    
+    % details about ST features
+    stFeatures = false;
+    stInfo = [];
     
       % 0.5.0 : Original
       % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
@@ -35,8 +41,8 @@ classdef Macguffin < handle
   methods (Access=private)
     % ---------------------------------------------------------------------
     function initFromFeatureLexiconName(self,featureLexiconName,varargin)
-      [apt] = myparse(varargin,...
-                'APT',[]);              
+      [apt,stFeatures,stInfo] = myparse(varargin,...
+                'APT',[],'stFeatures',false,'stInfo',[]);              
             
       if ~isempty(apt)
         featureLexicon = apt.featureLexicon;
@@ -47,6 +53,9 @@ classdef Macguffin < handle
         [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
         self.fromAPT = false;
       end
+
+      self.stInfo =stInfo;
+      self.stFeatures = stFeatures;
       self.featureLexiconName=featureLexiconName;
       self.behaviors.type=animalType;
       self.behaviors.names = {};  % no behaviors defined yet
@@ -149,13 +158,16 @@ classdef Macguffin < handle
 
       self.aptInfo = jld.aptInfo;
       self.fromAPT = jld.fromAPT;
+      self.stFeatures = jld.stFeatures;
+      self.stInfo = jld.stInfo;
     end  % method
 
     
     % ---------------------------------------------------------------------
     function initFromBasicDataStruct(self,basicDataStruct)
       % Init from the featureLexiconName to start
-      self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName);
+      self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName,...
+          'stFeatures',basicDataStruct.stFeatures,'stInfo',basicDataStruct.stInfo);
       % Copy over specific fields to start
       if isfield(basicDataStruct,'extra')
         self.extra=basicDataStruct.extra;
@@ -164,7 +176,7 @@ classdef Macguffin < handle
       fieldNames=fieldnames(basicDataStruct);
       for iField=1:length(fieldNames)
         fieldName=fieldNames{iField};
-        if ismember(fieldName,{'featureLexiconName' 'extra'})
+        if ismember(fieldName,{'featureLexiconName' 'extra' 'featureLexicon'})
           % already copied over
           continue
         elseif isprop(self,fieldName)
@@ -586,6 +598,34 @@ classdef Macguffin < handle
 %       classifierStuff.timeStamp=[];
       self.classifierStuff=classifierStuff;                            
     end  % method   
+    
+    function addSTFeatures(self)
+      featureLexicon = self.featureLexicon;
+      stFeatures = self.stFeatures;
+      stInfo = self.stInfo;
+      if stFeatures
+          base_st_params = struct('trans_types',{{'none'}},'type','spacetime');
+          flow_name = 'ff'; 
+          if stInfo.is_stationary
+              flow_name = [flow_name 's'];
+          end
+          for yy = 1:stInfo.npatches_y
+              for xx = 1:stInfo.npatches_x
+                  for oo = 1:stInfo.nbins
+                      cur_name = sprintf('st_hf_%02d_%02d_%d',yy,xx,oo);
+                      featureLexicon.perframe.(cur_name) = base_st_params;
+                      cur_name = sprintf('st_%s_%02d_%02d_%d',flow_name, yy,xx,oo);
+                      featureLexicon.perframe.(cur_name) = base_st_params;
+                  end
+              end
+          end
+      end
+      featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+      self.sublexiconPFNames = featureLexiconPFNames;
+      self.featureLexicon = featureLexicon;
+      
+    end
+    
   end  % private methods
   
   
@@ -627,6 +667,7 @@ classdef Macguffin < handle
         error('Macguffin:badArgumentsToConstructor', ...
               'The arguments to Macguffin() are no good');
       end
+      self.addSTFeatures;
     end  % constructor method
 
     % ---------------------------------------------------------------------
