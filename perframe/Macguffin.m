@@ -609,6 +609,7 @@ classdef Macguffin < handle
       featureLexicon = self.featureLexicon;
       stFeatures = self.stFeatures;
       stInfo = self.stInfo;
+      psz = stInfo.psize;
       if stFeatures
           base_st_params = struct('trans_types',{{'none'}},'type','spacetime');
           flow_name = 'ff'; 
@@ -618,9 +619,11 @@ classdef Macguffin < handle
           for yy = 1:stInfo.npatches_y
               for xx = 1:stInfo.npatches_x
                   for oo = 1:stInfo.nbins
-                      cur_name = sprintf('st_hf_%02d_%02d_%d',yy,xx,oo);
+                      cur_name = sprintf('st_hf_%02d_%02d_%d_ny%d_nx%d_ns%d',...
+                        yy,xx,oo,stInfo.npatches_y,stInfo.npatches_x,psz);
                       featureLexicon.perframe.(cur_name) = base_st_params;
-                      cur_name = sprintf('st_%s_%02d_%02d_%d',flow_name, yy,xx,oo);
+                      cur_name = sprintf('st_%s_%02d_%02d_%d_ny%d_nx%d_ns%d',...
+                        flow_name, yy,xx,oo,stInfo.npatches_y,stInfo.npatches_x,psz);
                       featureLexicon.perframe.(cur_name) = base_st_params;
                   end
               end
