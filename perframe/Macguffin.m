@@ -609,8 +609,8 @@ classdef Macguffin < handle
       featureLexicon = self.featureLexicon;
       stFeatures = self.stFeatures;
       stInfo = self.stInfo;
-      psz = stInfo.psize;
       if stFeatures
+          psz = stInfo.psize;
           base_st_params = struct('trans_types',{{'none'}},'type','spacetime');
           flow_name = 'ff'; 
           if stInfo.is_stationary

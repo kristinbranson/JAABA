@@ -20,6 +20,7 @@ for fnum = 1:numel(ff)
   end
   ny = size(ftrs.(curf){1},1);
   nx = size(ftrs.(curf){1},2);
+  nb = size(ftrs.(curf){1},3);
   psz = params.psize;
   for yy = 1:ny
     for xx = 1:nx
