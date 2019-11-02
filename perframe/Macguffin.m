@@ -168,6 +168,10 @@ classdef Macguffin < handle
       [apt] = myparse(varargin,'APT',[]);              
 
       % Init from the featureLexiconName to start
+      if ~isfield(basicDataStruct,'stFeatures')
+        basicDataStruct.stFeatures = false;
+        basicDataStruct.stInfo = [];
+      end
       self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName,'APT',apt,...
           'stFeatures',basicDataStruct.stFeatures,'stInfo',basicDataStruct.stInfo);
       % Copy over specific fields to start
