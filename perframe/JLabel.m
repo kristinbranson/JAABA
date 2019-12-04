@@ -1283,8 +1283,13 @@ end
 handles.guidata.thisMoviePresent=false;
 if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
   [moviefilename,timestamp] = handles.data.GetFile('movie',expi);
-  if any(isinf(timestamp)) && any(cellfun(@(x) ~exist(x,'file'),moviefilename)),
-    uiwait(warndlg(sprintf('Movie file %s does not exist for current experiment.  No movie will be shown.',moviefilename), ...
+  if isstr(moviefilename), 
+    mm = {moviefilename};
+  else
+    mm = moviefilename;
+  end
+  if any(isinf(timestamp)) && any(cellfun(@(x) ~exist(x,'file'),mm)),
+    git commit a  uiwait(warndlg(sprintf('Movie file %s does not exist for current experiment.  No movie will be shown.',moviefilename), ...
                    'Error setting movie'));
     handles.guidata.thisMoviePresent=false;             
   else
