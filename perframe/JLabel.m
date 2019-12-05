@@ -1289,7 +1289,7 @@ if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
     mm = moviefilename;
   end
   if any(isinf(timestamp)) && any(cellfun(@(x) ~exist(x,'file'),mm)),
-    git commit a  uiwait(warndlg(sprintf('Movie file %s does not exist for current experiment.  No movie will be shown.',moviefilename), ...
+    uiwait(warndlg(sprintf('Movie file %s does not exist for current experiment.  No movie will be shown.',moviefilename), ...
                    'Error setting movie'));
     handles.guidata.thisMoviePresent=false;             
   else
