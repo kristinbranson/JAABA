@@ -3701,11 +3701,10 @@ for b=bb
         cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
     num_indi=num_indi+length(feature_data.data);
 
-    ii=0;
     raw_parfor_tmp=cell(1,length(individual));
     parfor_tmp=cell(1,length(individual));
-    for i = individual
-      ii=ii+1;
+    for ii = 1:length(individual)
+      i=individual(ii);
       if(iscell(i))  i=char(i);  end
       tmp2=[];
       switch(i)
