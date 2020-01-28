@@ -6243,6 +6243,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
         [~,pfidx] = ismember(pffs,obj.allperframefns);
         tmp_perframedata_cur = perframedata_cur(pfidx);
+        stInfo = obj.stInfo;
         try
           parfor j = 1:numel(pffs),
             
@@ -6253,7 +6254,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %               perframedata = perframedata_cur{ndx};  %#ok
               perframedata = tmp_perframedata_cur{j}; %#ok<PROPLC>
             else
-              perframedata = readPFData(perframefile{ndx},flies(1),obj.stInfo);  %#ok
+              perframedata = readPFData(perframefile{ndx},flies(1),stInfo);  %#ok
               perframedata = perframedata{1};  %#ok
             end
             
