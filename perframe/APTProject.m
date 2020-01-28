@@ -781,6 +781,9 @@ end
 handles.aptStruct.featureLexicon = featureLexicon;
 handles.aptStruct.has_trx = handles.has_trx;
 handles.aptStruct.has_crops = handles.has_crops;
+handles.aptStruct.pairs = handles.pairs;
+handles.aptStruct.triads = handles.triads;
+handles.aptStruct.cutstom_list = handles.custom_list;
 
 if ~handles.has_trx
   if get(handles.rb_frame,'Value')
