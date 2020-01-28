@@ -2848,7 +2848,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     function [success,msg] = SetTrkFileName(obj,trkfilename)
     % [success,msg] = SetClipsDir(obj,clipsdir)
-    % Sets the clips directory name within the experiment directory.
+    % Sets the trk filename within the experiment directory.
       
       success = true;
       msg = '';
