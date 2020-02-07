@@ -22,7 +22,7 @@ function varargout = APTProject(varargin)
 
 % Edit the above text to modify the response to help APTProject
 
-% Last Modified by GUIDE v2.5 14-Mar-2019 16:49:19
+% Last Modified by GUIDE v2.5 07-Feb-2020 07:35:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -969,3 +969,11 @@ function rb_custom_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of rb_custom
+
+
+% --- Executes on button press in pushbutton_help.
+function pushbutton_help_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+web('https://github.com/kristinbranson/APT/wiki/Using-APT-tracking-data-in-JAABA');
