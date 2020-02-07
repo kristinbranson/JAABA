@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 14-Oct-2019 15:30:36
+% Last Modified by GUIDE v2.5 07-Feb-2020 04:27:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1134,14 +1134,17 @@ else
   if ~exist(trx_file,'file'),trx_file=''; end
 end
 
+set(handles.figureProjectSetup, 'pointer', 'watch')
 [useST,stInfo] = spaceTimeOptions('mov_file',mov_file,...
                     'trx_file',trx_file,...
                     'prev_st',handles.basicParamsStruct.stInfo);
-                
+
+set(handles.figureProjectSetup, 'pointer', 'arrow')                  
 if useST
     handles.basicParamsStruct.stFeatures = true;
     handles.basicParamsStruct.stInfo = stInfo;
 else
     handles.basicParamsStruct.stFeatures = false;
+    set(hObject,'Value',0);
 end
 guidata(hObject,handles);
