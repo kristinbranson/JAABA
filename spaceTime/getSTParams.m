@@ -22,5 +22,9 @@ params.deep_thres = 3.5;
 params.deepmatching_step = 8;
 params.warping_iters = 2;
 
-params.methods = {'deep-sup','hs-sup'};
-params.flownames = {'DS','ff'};
+% params.methods = {'deep-sup','hs-sup','LK'};
+% params.flownames = {'DS','ff','lk'};
+params.methods = {'hs-sup','LK'};
+params.flownames = {'ff','lk'};
+params.method_names = {'horn-schunck','lucas-kanade'};
+params.cur_method = 'hs-sup';

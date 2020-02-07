@@ -1,7 +1,7 @@
 function [data,units] = compute_spacetime_hoghof(trx,n,m_spacetime)
 
 params = trx.stInfo;
-method = 'hs-sup';
+method = params.cur_method;
 mndx = find(strcmp(params.methods,method));
 flowname = params.flownames{mndx};
 expdir = trx.expdirs{n};

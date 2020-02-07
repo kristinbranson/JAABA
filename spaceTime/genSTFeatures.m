@@ -128,8 +128,7 @@ for ndx = fstart:fend
       locx = tracks(fly).x(trackndx+1);
     end
     
-    if methodC<3  || ~stationary || ndx==tracks(fly).endframe
-      % methodC<3 if for legacy mistake.
+    if ~stationary || ndx==tracks(fly).endframe
 %       curpatch2 = extractPatch(im(:,:, ndx-fstart + 2),...
 %         locy,locx,tracks(fly).theta(trackndx),patchsz);
       curpatch2 = CropImAroundTrx(im(:,:, ndx-fstart + 2),...
