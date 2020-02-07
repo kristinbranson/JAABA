@@ -22,7 +22,7 @@ function varargout = spaceTimeOptions(varargin)
 
 % Edit the above text to modify the response to help spaceTimeOptions
 
-% Last Modified by GUIDE v2.5 16-Oct-2019 15:13:01
+% Last Modified by GUIDE v2.5 07-Feb-2020 04:14:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -115,6 +115,9 @@ set(handles.edit_horz,'String',sprintf('%d',params.npatches_x));
 set(handles.edit_vert,'String',sprintf('%d',params.npatches_y));
 set(handles.edit_frame,'String',sprintf('%d',handles.frame_num));
 set(handles.edit_trx,'String',sprintf('%d',handles.cur_fly));
+method_ndx = find(strcmp(handles.params.methods,handles.params.cur_method));
+set(handles.menu_methods,'String',handles.params.method_names);
+set(handles.menu_methods,'Value',method_ndx);
 
 
 function handles = updatePlots(handles)
@@ -140,7 +143,7 @@ cla(handles.axes_hog);
 cla(handles.axes_hof);
 
 ftrs = genSTFeatures(handles.rfn,handles.headerinfo,frame_num,frame_num+1,...
-    handles.trx,handles.params.is_stationary,'hs-sup',handles.params);
+    handles.trx,handles.params.is_stationary,handles.params.cur_method,handles.params);
 
 % hog ftrs
 scale = 6;
@@ -226,7 +229,7 @@ hold on;
 colors = hsv(nbins);
 [nr,nc,~] = size(im1);
 % maxv2 = max(F(:));
-maxv2 = 2;
+maxv2 = 1;
 
 F = ftrs.flowftrs{cur_fly}(:,:,:,1);
 h = [];
@@ -410,8 +413,8 @@ handles.cur_fly = fly_num;
 if handles.frame_num < handles.trx(fly_num).firstframe
     handles.frame_num = handles.trx(fly_num).firstframe;
 end
-if handles.frame_num > handles.trx(fly_num).endframe
-    handles.frame_num = handles.trx(fly_num).endframe;
+if handles.frame_num > (handles.trx(fly_num).endframe-1)
+    handles.frame_num = handles.trx(fly_num).endframe-1;
 end
 updateGUI(handles);
 handles = updatePlots(handles);
@@ -519,6 +522,33 @@ function edit_vert_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in menu_methods.
+function menu_methods_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_methods (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns menu_methods contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from menu_methods
+method_ndx = get(hObject,'Value');
+handles.params.cur_method = handles.params.methods{method_ndx};
+handles = updatePlots(handles);
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function menu_methods_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to menu_methods (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');

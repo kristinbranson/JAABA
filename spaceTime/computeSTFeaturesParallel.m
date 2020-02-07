@@ -26,7 +26,7 @@ parfor ndx = 1:nblocks
 % for ndx = 1:nblocks
   [readfcn,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
   fstart = minfirst + (ndx-1)*blocksize;
-  fend = min(maxlast,fstart+ndx*blocksize);
+  fend = min(maxlast,ndx*blocksize);
   tic;
   allftrs{ndx} = genSTFeatures(readfcn,headerinfo,fstart,fend,tracks,stationary,method,params);
   telapsed = toc;
