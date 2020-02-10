@@ -612,7 +612,8 @@ classdef Macguffin < handle
       if stFeatures
           psz = stInfo.psize;
           base_st_params = struct('trans_types',{{'none'}},'type','spacetime');
-          flow_name = 'ff'; 
+          mndx = find(strcmp(stInfo.methods,stInfo.cur_method));
+          flow_name = stInfo.flownames{mndx};
           if stInfo.is_stationary
               flow_name = [flow_name 's'];
           end

@@ -1,4 +1,4 @@
-function prepareSTPerframeFtrs(moviefilename,trackfilename,stationary,usedeep, params,perframedir)
+function prepareSTPerframeFtrs(moviefilename,trackfilename,stationary,method, params,perframedir)
 
 % function preparePerFrameFtrs(moviefilename,trackfilename,stationary)
 % The perframe features are stored in perframedir.
@@ -7,18 +7,19 @@ setup;
 % method = 'hs-brightness';
 % flowname = 'hs_ff';
 if nargin<4,
-  usedeep = false;
+  method = 'hs-sup';
 end
 
 if nargin < 5,
-  params = getParams;
+  params = getSTParams;
 end
 
-if usedeep,
-  method = 'deep-sup';
-else
-  method = 'hs-sup';
-end
+% if usedeep,
+%   method = 'deep-sup';
+% else
+%   method = 'hs-sup';
+% end
+
 mndx = find(strcmp(params.methods,method));
 flowname = params.flownames{mndx};
 % method can be LK, hs-brightness, hs-sup. 
