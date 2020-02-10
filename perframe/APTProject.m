@@ -976,4 +976,4 @@ function pushbutton_help_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_help (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-web('https://github.com/kristinbranson/APT/wiki/Using-APT-tracking-data-in-JAABA');
+web('https://github.com/kristinbranson/APT/wiki/Using-APT-tracking-data-in-JAABA','-browser');
