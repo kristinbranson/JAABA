@@ -58,7 +58,11 @@ for fnum = 1:numel(ff)
     count = 1;
     for bnum = 1:numel(allftrs)
       numframes = size(allftrs{bnum}.(ff{fnum}){flynum});
-      numframes = numframes(end);
+      if numel(numframes)<4
+        numframes = 1;
+      else
+        numframes = numframes(end);
+      end
       if numframes < 1, continue; end
 %       ftrs.(ff{fnum}){flynum}(:,count:count+numframes-1) = ...
 %         single(reshape(allftrs{bnum}.(ff{fnum}){flynum},[],numframes));
