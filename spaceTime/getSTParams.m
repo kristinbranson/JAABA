@@ -12,7 +12,7 @@ params.is_stationary = false;
 
 params.optflowwinsig = 3;
 params.optflowsig = 2;
-params.optreliability = 1e-4;
+params.optreliability = 1e-6;
 
 params.blocksize = 50; % block size for parallel features computation.
 
