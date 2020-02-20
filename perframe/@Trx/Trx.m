@@ -294,6 +294,7 @@ classdef Trx < handle
 %      m_spacetime = regexp(fn,'^spacetime_t(\d+)_r(\d+)($|_[a-z]+$)','tokens','once');
       m_spacetime = regexp(fn,'^st_(.*)','tokens','once');
       m_apt = regexp(fn,'^apt_(.*)','tokens','once');
+      params = [];
       if ~isempty(m_magveldiff)
         [data,units] = compute_magveldiff(obj,n,m_magveldiff{1});
       elseif ~isempty(m_veltoward)
@@ -329,16 +330,16 @@ classdef Trx < handle
       elseif ~isempty(m_angle2roi2)
         [data,units] = compute_angle2roi2(obj,n,str2double(m_angle2roi2{1}));
       elseif ~isempty(m_spacetime)
-        [data,units] = compute_spacetime_hoghof(obj,n,m_spacetime{1});
+        [data,units,params] = compute_spacetime_hoghof(obj,n,m_spacetime{1});
       elseif ~isempty(m_apt)
-        [data,units] = compute_apt(obj,n,m_apt{1});
+        [data,units,params] = compute_apt(obj,n,m_apt{1});
       else
         funname = sprintf('compute_%s',fn);
         [data,units] = feval(funname,obj,n);
       end
       filename = obj.GetPerFrameFile(fn,n);
       try
-        save(filename,'data','units');
+        save(filename,'data','units','params');
       catch ME
         warning('Could not save %s data to %s: %s',fn,filename,getReport(ME));
       end
