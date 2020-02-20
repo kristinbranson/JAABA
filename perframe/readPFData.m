@@ -36,6 +36,6 @@ else
   end
 end
 
-if ~isequal(saved_params,params) && do_check
+if ~isequal(saved_params,params) && do_check && ~isempty(saved_params)
     update = true;
 end
