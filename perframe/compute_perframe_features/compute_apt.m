@@ -1,4 +1,4 @@
-function [all_data, units] = compute_apt(trx,n,fn)
+function [all_data, units, apt_info] = compute_apt(trx,n,fn)
 
 flies = trx.exp2flies{n};
 nflies = numel(flies);
@@ -12,6 +12,8 @@ view_str = regexp(parts{1},'view(\d*)','tokens');
 view = str2double(view_str{1}{1});
 fn_type = parts{2};
 comp_type = parts{3};
+apt_info = struct;
+apt_info.trkname = trkname;
 
 trkfile = all_trkfiles{view};
 global global_trkfile global_trk

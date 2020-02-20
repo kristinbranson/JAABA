@@ -1,4 +1,4 @@
-function [data,units] = compute_spacetime_hoghof(trx,n,m_spacetime)
+function [data,units,params] = compute_spacetime_hoghof(trx,n,m_spacetime)
 
 params = trx.stInfo;
 method = params.cur_method;
@@ -16,3 +16,4 @@ extractSTPerframeFtrs(fullfile(expdir,perframedir),ftrs,params.is_stationary,flo
 aa = load(fullfile(expdir,perframedir,sprintf('st_%s.mat',m_spacetime)));
 data = aa.data;
 units = aa.units;
+params = aa.params;
