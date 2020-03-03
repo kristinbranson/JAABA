@@ -2912,7 +2912,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       stInfo = obj.stInfo;
       all_update = false(1,nPerframeFeatures);
-      parfor j = 1:nPerframeFeatures
+      for j = 1:nPerframeFeatures
         perframeFileName=perframeFileNameList{j};
         [ftmp,funits,update] = readPFData(perframeFileName,iTarget,stInfo);
 %         tmp = load(perframeFileName);
@@ -2921,7 +2921,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
         perframedata{j} = ftmp{1};
         perframeunits{j} = funits;
-        all_update(j) = update        
+        all_update(j) = update;        
       end
       if any(all_update)
           warndlg('The perframe features were generated with different parameters. Delete them to regenerate them with new parameters'); 
