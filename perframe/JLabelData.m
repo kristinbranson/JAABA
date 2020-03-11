@@ -2912,7 +2912,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       stInfo = obj.stInfo;
       all_update = false(1,nPerframeFeatures);
-      for j = 1:nPerframeFeatures
+      for j = 1:nPerframeFeatures % TODO: change to parfor if it is for
         perframeFileName=perframeFileNameList{j};
         [ftmp,funits,update] = readPFData(perframeFileName,iTarget,stInfo);
 %         tmp = load(perframeFileName);
@@ -2924,7 +2924,7 @@ classdef JLabelData < matlab.mixin.Copyable
         all_update(j) = update;        
       end
       if any(all_update)
-          warndlg('The perframe features were generated with different parameters. Delete them to regenerate them with new parameters'); 
+          warndlg('The perframe features were generated with different parameters. To regenerate them with new parameters, delete them. JAABA, for now, will continue to use existing ones.'); 
       end
       obj.perframedata = perframedata;
       obj.perframeunits = perframeunits;
@@ -4030,7 +4030,8 @@ classdef JLabelData < matlab.mixin.Copyable
           [~,pfidx] = ismember(curperframefns,allperframefns);
           tmp_cacheperframedata = cacheperframedata(pfidx);
           
-          parfor perframei = 1:Ncpff
+          stInfo = obj.stInfo;
+          parfor perframei = 1:Ncpff % TODO: Switch back to parfor
             perframefn = curperframefns{perframei};
             ndx = find(strcmp(perframefn,allperframefns));
             
@@ -4040,7 +4041,7 @@ classdef JLabelData < matlab.mixin.Copyable
               if usecacheperframe
                 parperframedata = tmp_cacheperframedata(perframei);
               else
-                parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr,obj.stInfo);
+                parperframedata = readPFData(obj_getperframefiles{ndx},flies_curr,stInfo);
               end
             else
               parperframedata = [];
