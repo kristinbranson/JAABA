@@ -333,7 +333,7 @@ classdef Trx < handle
       elseif ~isempty(m_spacetime)
         [data,units,params] = compute_spacetime_hoghof(obj,n,m_spacetime{1});
       elseif ~isempty(m_apt)
-        [data,units,params,info] = compute_apt(obj,n,m_apt{1});
+        [data,units,info] = compute_apt(obj,n,m_apt{1});
       else
         funname = sprintf('compute_%s',fn);
         [data,units] = feval(funname,obj,n);
