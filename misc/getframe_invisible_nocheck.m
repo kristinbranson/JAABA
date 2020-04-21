@@ -15,7 +15,8 @@ end
 
 hfig = gfdata.hfig;
 
-img = hardcopy(gfdata.hardcopy_args{:});
+% img = hardcopy(gfdata.hardcopy_args{:});
+img = print(hfig,'-RGBImage');
 set(hfig,'Units',gfdata.units,'Position',gfdata.pos);
 if numel(img) == 1,
   fprintf('Could not grab invisible figure. Making visible temporarily.\n');
