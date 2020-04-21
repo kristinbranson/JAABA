@@ -54,15 +54,17 @@ end
 %Turn off warning in case opengl is not supported and
 %hardcopy needs to use zbuffer
 warnstate = warning('off');
-noanimate('save',get(haxes,'parent'));
-img = hardcopy(haxes, ['-d' renderer], ['-r' num2str(round(pixelsperinch))]);
+% noanimate('save',get(haxes,'parent'));
+% img = hardcopy(haxes, ['-d' renderer], ['-r' num2str(round(pixelsperinch))]);
+img = print(hfig, '-RGBImage');
 set(hfig,'Units',units,'Position',pos);
 
 if numel(img) == 1,
   fprintf('Could not grab invisible figure. Making visible temporarily.\n');
   set(hfig,'visible','on');
   pause(.1);
-  img = hardcopy(haxes, ['-d' renderer], ['-r' num2str(round(pixelsperinch))]);
+%   img = hardcopy(haxes, ['-d' renderer], ['-r' num2str(round(pixelsperinch))]);
+  img = print(hfig, '-RGBImage'); 
   pause(.1);
   set(hfig,'visible','off');
 end
@@ -95,7 +97,7 @@ else
 end
 img = img(firstrow:lastrow,firstcol:lastcol,:);
 
-noanimate('restore',get(haxes,'parent'));
+% noanimate('restore',get(haxes,'parent'));
 warning(warnstate);
 
 
