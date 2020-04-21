@@ -84,7 +84,7 @@ if docompute,
     % TODO: extend to multiple flies
     for fly = 1:data.nflies_per_exp(expi),
       
-      x = perframedata.data{fly};
+      x = perframedata.data{fly}(:)';
       
       % load labels for this fly and experiment
       if expi == data.expi && all(fly == data.flies),
