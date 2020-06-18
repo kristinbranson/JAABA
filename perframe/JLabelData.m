@@ -7511,7 +7511,11 @@ classdef JLabelData < matlab.mixin.Copyable
       macguffin = loadAnonymous(fileNameAbs);
       % if we get here, file was read successfully
       if isstruct(macguffin)
-        macguffin = Macguffin(macguffin);
+        if isfield(macguffin,'fromAPT') && macguffin.fromAPT
+          macguffin = Macguffin(macguffin,macguffin.aptInfo);
+        else
+          macguffin = Macguffin(macguffin);
+        end
       end
       macguffin.modernize(true);
       
