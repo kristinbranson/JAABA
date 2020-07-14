@@ -245,12 +245,14 @@ switch fn
     data = data/pxpermm;
     units = parseunits('mm');
   case 'sin'
-    len = sqrt((x1-x2).^2 + (y1-y2).^2);
+    len = sqrt((x1-x2).^2 + (y1-y2).^2);    
     data = (x1-x2)./len;
+    data(len==0) = 0;
     units = parseunits('');
   case 'cos'
     len = sqrt((x1-x2).^2 + (y1-y2).^2);
     data = (y1-y2)./len;
+    data(len==0) = 0;
     units = parseunits('');
   case 'dtheta'
     if numel(x1) > 2
