@@ -1,4 +1,4 @@
-function ftrs = computeFeaturesParallel(moviename,trackfilename,stationary,method,params)
+function ftrs = computeSTFeaturesParallel(moviename,trackfilename,stationary,method,params)
 
 if nargin<3,
   stationary = false;
@@ -28,7 +28,7 @@ parfor ndx = 1:nblocks
   fstart = minfirst + (ndx-1)*blocksize;
   fend = min(maxlast,ndx*blocksize);
   tic;
-  allftrs{ndx} = genFeatures(readfcn,headerinfo,fstart,fend,tracks,stationary,method,params);
+  allftrs{ndx} = genSTFeatures(readfcn,headerinfo,fstart,fend,tracks,stationary,method,params);
   telapsed = toc;
   if fid>0
     fclose(fid);
@@ -58,7 +58,11 @@ for fnum = 1:numel(ff)
     count = 1;
     for bnum = 1:numel(allftrs)
       numframes = size(allftrs{bnum}.(ff{fnum}){flynum});
-      numframes = numframes(end);
+      if numel(numframes)<4
+        numframes = 1;
+      else
+        numframes = numframes(end);
+      end
       if numframes < 1, continue; end
 %       ftrs.(ff{fnum}){flynum}(:,count:count+numframes-1) = ...
 %         single(reshape(allftrs{bnum}.(ff{fnum}){flynum},[],numframes));

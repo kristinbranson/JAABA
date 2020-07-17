@@ -308,6 +308,7 @@ handles.guidata.hflies_extra = ...
         handles.data.trxGraphicParams.nextra_markers, ...
         nPreviewAxes);
 handles.guidata.hfly_markers = zeros(handles.data.nTargetsInCurrentExp,nPreviewAxes);
+handles.guidata.hflies_apt = zeros(handles.data.nTargetsInCurrentExp,nPreviewAxes);
 % fly path
 handles.guidata.htrx = zeros(handles.guidata.nflies_label,nPreviewAxes);
 
@@ -416,6 +417,19 @@ for i = 1:nAx
            'marker','*', ...
            'color',handles.guidata.fly_colors(fly,:), ...
            'linewidth',3,...
+           'ButtonDownFcn', ...
+             @(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
+           'Visible','off');
+    handles.guidata.hflies_apt(fly,i) = ...
+      line('parent',handles.guidata.axes_previews(i), ...
+           'xdata',nan, ...
+           'ydata',nan, ...
+           'marker','.', ...
+           'color',handles.guidata.fly_colors(fly,:), ...
+           'MarkerFaceColor',handles.guidata.fly_colors(fly,:),...
+           'MarkerSize',10,...
+           'linewidth',3,...
+           'LineStyle','none',...
            'ButtonDownFcn', ...
              @(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
            'Visible','off');
@@ -609,6 +623,9 @@ if verLessThan('matlab','8.4.0')
   if ~isempty(handles.guidata.hflies_extra),
     set(handles.guidata.hflies_extra,'EraseMode','none');
   end
+  if ~isempty(handles.guidata.hflies_apt),
+    set(handles.guidata.hflies_apt,'EraseMode','none');
+  end
   set(handles.guidata.htrx,'EraseMode','none');
   set(handles.guidata.hfly_markers,'EraseMode','none');
 end
@@ -658,7 +675,7 @@ handles.guidata.cache_size=200;  % cache size
 if(handles.data.ismovie && ...
    handles.guidata.shouldOpenMovieIfPresent && ...
    handles.guidata.thisMoviePresent && ...
-   (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
+   (isempty(movie_filename) || any(~strcmp(movie_filename,handles.guidata.movie_filename))))
   movie_filename=handles.guidata.movie_filename;
   HWD = [handles.guidata.movie_maxy handles.guidata.movie_maxx handles.guidata.movie_depth];
 
@@ -1022,15 +1039,20 @@ for i = axes2,
           'MarkerFaceColor',handles.guidata.fly_colors(fly,:));
         set(handles.guidata.hfly_markers(idxfree(j),i),...
           'Color',handles.guidata.fly_colors(fly,:));
+        set(handles.guidata.hflies_apt(idxfree(j),:,i),...
+          'Color',handles.guidata.fly_colors(fly,:),...
+          'MarkerFaceColor',handles.guidata.fly_colors(fly,:));
       end
     end
     if handles.doplottracks,
       isinvisible = handles.guidata.idx2fly == 0;
       set(handles.guidata.hflies(isinvisible,i),'Visible','off');
       set(handles.guidata.hflies_extra(isinvisible,:,i),'Visible','off');
+      set(handles.guidata.hflies_apt(isinvisible,:,i),'Visible','off');
       set(handles.guidata.hfly_markers(isinvisible,i),'Visible','off');
       set(handles.guidata.hflies(~isinvisible,i),'Visible','on');
       set(handles.guidata.hflies_extra(~isinvisible,:,i),'Visible','on');
+      set(handles.guidata.hflies_apt(~isinvisible,:,i),'Visible','on');
       set(handles.guidata.hfly_markers(~isinvisible,i),'Visible','on');
     end
     
@@ -1076,7 +1098,7 @@ for i = axes2,
       pos = handles.data.GetTrxPos1(handles.data.expi,fly,t);
       j = handles.guidata.fly2idx(fly);
       UpdateTargetPosition(handles.data.targettype,handles.guidata.hflies(j,i),...
-        handles.guidata.hflies_extra(j,:,i),pos);
+        handles.guidata.hflies_extra(j,:,i),pos,handles.guidata.hflies_apt(j,i));
       
       % Fly Element Coloring, nontarget %
       if handles.guidata.showPredictionsAllFlies && handles.guidata.behaviorFocusOn
@@ -1091,6 +1113,9 @@ for i = axes2,
           'Color',curcolor);
         if ~isempty(handles.guidata.hflies_extra)
           set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
+        end
+        if ~isempty(handles.guidata.hflies_apt)
+          set(handles.guidata.hflies_apt(j,i),'Color',curcolor);
         end
       else
         % none; nontarget flies keep original color
@@ -1147,6 +1172,8 @@ for i = axes2,
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
           set(handles.guidata.hflies_extra(j,:,i),'Color',handles.guidata.labelunknowncolor,...
             'MarkerFaceColor',handles.guidata.labelunknowncolor);
+          set(handles.guidata.hflies_apt(j,:,i),'Color',handles.guidata.labelunknowncolor,...
+            'MarkerFaceColor',handles.guidata.labelunknowncolor);
         else % positive lblIdx
           if lblIdx==JLabelGUIData.LABELSTATE.NoneAll
             lblcolor = handles.guidata.labelnoneallcolor;
@@ -1154,6 +1181,7 @@ for i = axes2,
             lblcolor = handles.guidata.labelcolors(lblIdx,:);
           end
           set(handles.guidata.hflies(j,i),'Color',lblcolor,'MarkerFaceColor',lblcolor);
+          set(handles.guidata.hflies_apt(j,i),'Color',lblcolor,'MarkerFaceColor',lblcolor);
           % AL: not sure why we are not setting hfly_markers here and maybe
           % hflies_extra as well
         end
@@ -1255,7 +1283,12 @@ end
 handles.guidata.thisMoviePresent=false;
 if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
   [moviefilename,timestamp] = handles.data.GetFile('movie',expi);
-  if isinf(timestamp) && ~exist(moviefilename,'file'),
+  if isstr(moviefilename), 
+    mm = {moviefilename};
+  else
+    mm = moviefilename;
+  end
+  if any(isinf(timestamp)) && any(cellfun(@(x) ~exist(x,'file'),mm)),
     uiwait(warndlg(sprintf('Movie file %s does not exist for current experiment.  No movie will be shown.',moviefilename), ...
                    'Error setting movie'));
     handles.guidata.thisMoviePresent=false;             
@@ -1264,9 +1297,12 @@ if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
   end
 
   % close previous movie
-  if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)),
-    if ~isempty(handles.guidata.movie_fid) && handles.guidata.movie_fid > 0,
-      fclose(handles.guidata.movie_fid);
+  if ~isempty(handles.guidata.movie_fid) 
+    for ndx = 1:numel(handles.guidata.movie_fid)
+      movie_fid = handles.guidata.movie_fid(ndx);
+      if movie_fid > 0
+        fclose(movie_fid);
+      end
     end
   end
 
@@ -1311,7 +1347,7 @@ else
 end
 
 % load trx
-[success,msg] = handles.data.setCurrentTarget(expi,flies);
+[success,msg] = handles.data.setCurrentTarget(expi,flies,handles.guidata.movieheaderinfo);
 if ~success,
   uiwait(errordlg(sprintf('Error loading data for experiment %d: %s',expi,msg)));
   return;
@@ -1440,6 +1476,10 @@ if ~isempty(handles.guidata.hfly_markers),
   delete(handles.guidata.hfly_markers(ishandle(handles.guidata.hfly_markers)));
   handles.guidata.hfly_markers = [];
 end
+if ~isempty(handles.guidata.hflies_apt),
+  delete(handles.guidata.hflies_apt(ishandle(handles.guidata.hflies_apt)));
+  handles.guidata.hflies_apt = [];
+end
 
 % update plotted trx handles, as number of flies will change
 nPreviewAxes=numel(handles.guidata.axes_previews);
@@ -1462,6 +1502,12 @@ if verLessThan('matlab','8.4.0'),
   handles.guidata.hfly_markers = nan(maxnflies_curr,nPreviewAxes);
 else
   handles.guidata.hfly_markers = gobjects(maxnflies_curr,nPreviewAxes);
+end
+
+if verLessThan('matlab','8.4.0'),
+  handles.guidata.fly_apt = nan(maxnflies_curr,nPreviewAxes);
+else
+  handles.guidata.hflies_apt = gobjects(maxnflies_curr,nPreviewAxes);
 end
 
 handles.guidata.idx2fly = zeros(1,maxnflies_curr);
@@ -1513,6 +1559,20 @@ for i = 1:nPreviewAxes,
            'linewidth',3, ...
            'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
            'Visible','off');
+    handles.guidata.hflies_apt(fly,i) = ...
+      line('parent',handles.guidata.axes_previews(i), ...
+           'xdata',nan, ...
+           'ydata',nan, ...
+           'marker','.', ...
+           'color',handles.guidata.fly_colors(fly,:), ...
+           'MarkerFaceColor',handles.guidata.fly_colors(fly,:),...
+           'MarkerSize',10,...
+           'linewidth',3,...
+           'LineStyle','none',...
+           'ButtonDownFcn', ...
+             @(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
+           'Visible','off');
+
   end
 end
 
@@ -1564,9 +1624,13 @@ function handles = UnsetCurrentMovie(handles)
 handles.data.unsetCurrentTarget();
 
 % close previous movie
-if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)) && ...
-    handles.guidata.movie_fid~=0,
-  fclose(handles.guidata.movie_fid);
+if ~isempty(handles.guidata.movie_fid)
+  for ndx = 1:numel(handles.guidata.movie_fid)
+    movie_fid = handles.guidata.movie_fid(ndx);
+    if ~isempty(fopen(movie_fid)) && movie_fid~=0,
+      fclose(movie_fid);
+    end
+  end
 end
 
 % handles.data.expi = 0;
@@ -1587,6 +1651,10 @@ end
 if ~isempty(handles.guidata.hfly_markers),
   delete(handles.guidata.hfly_markers(ishandle(handles.guidata.hfly_markers)));
   handles.guidata.hfly_markers = [];
+end
+if ~isempty(handles.guidata.hflies_apt),
+  delete(handles.guidata.hflies_apt(ishandle(handles.guidata.hflies_apt)));
+  handles.guidata.hflies_apt = [];
 end
 
 syncStatusBarTextWhenClear(handles)
@@ -1646,7 +1714,7 @@ assert(isscalar(flies));
 
 data = handles.data;  % a ref
 oldFlies = data.flies;
-[success,msg] = data.setCurrentTarget(data.expi,flies);
+[success,msg] = data.setCurrentTarget(data.expi,flies,handles.guidata.movieheaderinfo);
 if ~success
   uiwait(waitdlg(sprintf('Error loading data for current set of flies: %s',msg)));
   return;
@@ -2948,9 +3016,12 @@ if ~proceed,
 end
 handles=guidata(hObject);
 
-if ~isempty(handles.guidata.movie_fid) && ...
-    handles.guidata.movie_fid > 1 && ~isempty(fopen(handles.guidata.movie_fid)),
-  fclose(handles.guidata.movie_fid);
+if ~isempty(handles.guidata.movie_fid) 
+  for mndx = 1:numel(handles.guidata.movie_fid)
+    if handles.guidata.movie_fid(mndx) > 1 && ~isempty(fopen(handles.guidata.movie_fid(mndx))),
+      fclose(handles.guidata.movie_fid(mndx));
+    end
+  end
   handles.guidata.movie_fid = [];
 end
 % try
@@ -8245,10 +8316,15 @@ handles=UnsetCurrentMovie(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
 
 % Close any open movie files
-if ~isempty(handles.guidata.movie_fid) && ...
-    handles.guidata.movie_fid > 1 && ...
-    ~isempty(fopen(handles.guidata.movie_fid)),
-  fclose(handles.guidata.movie_fid);
+if ~isempty(handles.guidata.movie_fid)
+  for ndx = 1:numel(handles.guidata.movie_fid)
+    movie_fid = handles.guidata.movie_fid(ndx);
+    if ~isempty(movie_fid) && ...
+        movie_fid > 1 && ...
+        ~isempty(fopen(movie_fid)),
+      fclose(movie_fid);
+    end
+  end
   handles.guidata.movie_fid = [];
 end
 

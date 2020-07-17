@@ -3701,11 +3701,10 @@ for b=bb
         cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
     num_indi=num_indi+length(feature_data.data);
 
-    ii=0;
     raw_parfor_tmp=cell(1,length(individual));
     parfor_tmp=cell(1,length(individual));
-    for i = individual
-      ii=ii+1;
+    for ii = 1:length(individual)
+      i=individual(ii);
       if(iscell(i))  i=char(i);  end
       tmp2=[];
       switch(i)
@@ -4322,7 +4321,7 @@ for b=bb
         end
       end
 
-      if(behaviornot)  tmp1=~tmp1;  end
+      if(behaviornot),  tmp1=~tmp1;  end
 
       partition_idx=[];
       switch(behavior_logic)
@@ -4715,13 +4714,12 @@ for b=bb
       parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart)+1);
     end
 
-    ii2=0;
     parfor_tmp2=cell(1,length(individual));
-    for i2 = individual
-      ii2=ii2+1;
-      if(iscell(i2))  i2=char(i2);  end
+    for ii2 = 1:length(individual)
+      i2 = individual(ii2);
+      if(iscell(i2)),  i2=char(i2);  end
       for i=1:length(behavior_data.allScores.t0s)   % individual
-        if(isnumeric(i2)&&(i2~=i))  continue;  end
+        if(isnumeric(i2)&&(i2~=i)),  continue;  end
 
         tmp1 = compute_behavior_logic(behavior_data.allScores, i);
 
@@ -5104,8 +5102,10 @@ for b=bb
   idx=cellfun(@isempty,collated_data);
   collated_data=collated_data(~idx);
 
-  exp_separators=[];  maxy=0;  k=[];  m=0;  ii=0;  table_data{end+1}=[];
-  for i = individual
+  exp_separators=[];  maxy=0;  k=[];  m=0;  ii=0;  
+  table_data{end+1}=[];
+  for idx = 1:lenght(individual)
+    i = individual(idx);
     if(iscell(i))  i=char(i);  end
     idx=handles.boutstats_style2*2-1;
     switch(i)

@@ -1,10 +1,10 @@
 function clipMovie(indir,outdir,startFrame,endFrame,varargin)
 % function clipMovie(indir,outdir,startFrame,endFrame,...)
 
-[moviename,trxfilename] = myparse(varargin,...
-  'moviename','movie.ufmf','trxfilename','trx.mat');
+[moviename,trxfilename,removeInvalid] = myparse(varargin,...
+  'moviename','movie.ufmf','trxfilename','trx.mat','removeInvalid',false);
 
-if ~exist(outdir,'dir'),
+if ~exist(outdir,'dir')
   mkdir(outdir,'perframe');
 end
 
@@ -21,16 +21,20 @@ selflds = {'x','y','theta','a','b','timestamps',...
   'x_mm','y_mm','theta_mm','a_mm','b_mm'};
 pfstart = [];
 pfend = [];
-for ndx = 1:numel(Q.trx)
+for ndx = numel(Q.trx):-1:1
   if Q.trx(ndx).firstframe > endFrame || Q.trx(ndx).endframe < startFrame
-    Q.trx(ndx).firstframe = startFrame;
-    Q.trx(ndx).endframe = startFrame;
-    for fnum = 1:numel(selflds)
-      Q.trx(ndx).(selflds{fnum}) = Q.trx(ndx).(selflds{fnum})(1);
+    if removeInvalid
+      Q.trx(ndx) = [];
+    else
+      Q.trx(ndx).firstframe = startFrame;
+      Q.trx(ndx).endframe = startFrame;
+      for fnum = 1:numel(selflds)
+        Q.trx(ndx).(selflds{fnum}) = Q.trx(ndx).(selflds{fnum})(1);
+      end
+      Q.trx(ndx).dt = 1;
+      Q.trx(ndx).nframes = 1;
+      pfstart(ndx) = 1; pfend(ndx) = 1;
     end
-    Q.trx(ndx).dt = 1;
-    Q.trx(ndx).nframes = 1;
-    pfstart(ndx) = 1; pfend(ndx) = 1;
   else
     curStart = max(Q.trx(ndx).firstframe,startFrame);
     curEnd = min(Q.trx(ndx).endframe,endFrame);
@@ -55,16 +59,18 @@ if ~exist(fullfile(outdir,'perframe'),'dir'),
   mkdir(fullfile(outdir,'perframe'));
 end
 
-dd = dir(fullfile(indir,'perframe','*.mat'));
-for pf = 1:numel(dd)
-  Q = load(fullfile(indir,'perframe',dd(pf).name));
-  for ndx = 1:numel(Q.data)
-    if isnan( pfstart(ndx))
-      Q.data{ndx} = [];
-    else
-      Q.data{ndx} = Q.data{ndx}(pfstart(ndx):pfend(end));
+if ~removeInvalid
+  dd = dir(fullfile(indir,'perframe','*.mat'));
+  for pf = 1:numel(dd)
+    Q = load(fullfile(indir,'perframe',dd(pf).name));
+    for ndx = 1:numel(Q.data)
+      if isnan( pfstart(ndx))
+        Q.data{ndx} = [];
+      else
+        Q.data{ndx} = Q.data{ndx}(pfstart(ndx):pfend(end));
+      end
     end
+    save(fullfile(outdir,'perframe',dd(pf).name),'-struct','Q');
+
   end
-  save(fullfile(outdir,'perframe',dd(pf).name),'-struct','Q');
-  
 end

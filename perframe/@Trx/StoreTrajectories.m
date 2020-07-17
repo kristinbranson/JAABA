@@ -154,3 +154,53 @@ if isfield(traj,'roi'),
 else
   obj.roi(flies) = 1;
 end
+
+count = 1;
+done = false;
+while ~done
+  if isfield(traj,sprintf('x_view%d',count))
+    fns = {'x','y','theta'};
+    for fndx = 1:numel(fns),
+      fn = sprintf('%s_view%d',fns{fndx},count);
+      filename = obj.GetPerFrameFile(fn,n);
+      data = {traj.(fn)}; %#ok<*NASGU>
+      switch fns{fndx},
+        case {'x','y','a','b'},
+          units = parseunits('px');
+        case {'theta','theta_mm','wing_anglel','wing_angler'},
+          units = parseunits('rad');
+      end
+      
+      try
+        fileexists = exist(filename,'file');
+        if ~fileexists && isunix,
+          [res,link] = unix(sprintf('readlink %s',filename));
+          if ~res && ~isempty(link),
+            warning('Deleting broken soft link from %s to %s.\n',filename,link);
+            unix(sprintf('rm %s',filename));
+          end
+        end
+
+        if dooverwrite && fileexists,
+          try
+            delete(filename);
+          catch ME,
+            warning('Could not delete file %s: %s',filename,getReport(ME));
+          end
+        end
+        if dooverwrite || ~fileexists,
+          save(filename,'data','units');
+        end
+      catch %#ok<CTCH>
+        if ~exist(filename,'file'),
+          error('Could not save to file %s',filename);
+        else
+          fprintf('Could not save to file %s, but file exists, so skipping\n',filename);
+        end
+      end
+    end
+  else
+    done = true;
+  end
+  count = count + 1;
+end
