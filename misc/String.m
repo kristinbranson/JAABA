@@ -17,6 +17,15 @@ classdef String
       end
     end
     
+    function s = cellstr2DelimList(c,d)
+      if isempty(c)
+        s = '';
+      else
+        pat = sprintf('%%s%s',d);
+        s = [sprintf(pat,c{1:end-1}) c{end}];
+      end
+    end
+    
     % see civilizedStringFromCellArrayOfStrings
     
     function s = niceUpperCase(s)

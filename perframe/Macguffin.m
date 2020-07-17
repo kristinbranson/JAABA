@@ -20,18 +20,42 @@ classdef Macguffin < handle
     gtSuggestions
     extra=struct()  % a structure that stores additional information
     version=''
+    
+    % details about APT projects
+    fromAPT=false;
+    aptInfo=struct(); %
+    
+    % details about ST features
+    stFeatures = false;
+    stInfo = [];
+    
       % 0.5.0 : Original
       % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
       %           flies_extra_marker, and flies_extra_linestyle fields in
       %           trxGraphicParams.
       % 0.6.0 : Multiclassifier and ST updates.
+      % 0.7.0 : APT support
   end
     
   % -----------------------------------------------------------------------
   methods (Access=private)
     % ---------------------------------------------------------------------
-    function initFromFeatureLexiconName(self,featureLexiconName)
-      [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
+    function initFromFeatureLexiconName(self,featureLexiconName,varargin)
+      [apt,stFeatures,stInfo] = myparse(varargin,...
+                'APT',[],'stFeatures',false,'stInfo',[]);              
+            
+      if ~isempty(apt)
+        featureLexicon = apt.featureLexicon;
+        self.fromAPT = true;
+        self.aptInfo = apt;
+        animalType = apt.animalType;
+      else
+        [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
+        self.fromAPT = false;
+      end
+
+      self.stInfo =stInfo;
+      self.stFeatures = stFeatures;
       self.featureLexiconName=featureLexiconName;
       self.behaviors.type=animalType;
       self.behaviors.names = {};  % no behaviors defined yet
@@ -132,14 +156,24 @@ classdef Macguffin < handle
       self.gtSuggestions.loadedGTSuggestions = jld.loadedGTSuggestions;
       self.gtSuggestions.balancedGTSuggestions = jld.balancedGTSuggestions ;
 
-
+      self.aptInfo = jld.aptInfo;
+      self.fromAPT = jld.fromAPT;
+      self.stFeatures = jld.stFeatures;
+      self.stInfo = jld.stInfo;
     end  % method
 
     
     % ---------------------------------------------------------------------
-    function initFromBasicDataStruct(self,basicDataStruct)
+    function initFromBasicDataStruct(self,basicDataStruct,varargin)
+      [apt] = myparse(varargin,'APT',[]);              
+
       % Init from the featureLexiconName to start
-      self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName);
+      if ~isfield(basicDataStruct,'stFeatures')
+        basicDataStruct.stFeatures = false;
+        basicDataStruct.stInfo = [];
+      end
+      self.initFromFeatureLexiconName(basicDataStruct.featureLexiconName,'APT',apt,...
+          'stFeatures',basicDataStruct.stFeatures,'stInfo',basicDataStruct.stInfo);
       % Copy over specific fields to start
       if isfield(basicDataStruct,'extra')
         self.extra=basicDataStruct.extra;
@@ -148,7 +182,7 @@ classdef Macguffin < handle
       fieldNames=fieldnames(basicDataStruct);
       for iField=1:length(fieldNames)
         fieldName=fieldNames{iField};
-        if ismember(fieldName,{'featureLexiconName' 'extra'})
+        if ismember(fieldName,{'featureLexiconName' 'extra' 'featureLexicon'})
           % already copied over
           continue
         elseif isprop(self,fieldName)
@@ -570,6 +604,38 @@ classdef Macguffin < handle
 %       classifierStuff.timeStamp=[];
       self.classifierStuff=classifierStuff;                            
     end  % method   
+    
+    function addSTFeatures(self)
+      featureLexicon = self.featureLexicon;
+      stFeatures = self.stFeatures;
+      stInfo = self.stInfo;
+      if stFeatures
+          psz = stInfo.psize;
+          base_st_params = struct('trans_types',{{'none'}},'type','spacetime');
+          mndx = find(strcmp(stInfo.methods,stInfo.cur_method));
+          flow_name = stInfo.flownames{mndx};
+          if stInfo.is_stationary
+              flow_name = [flow_name 's'];
+          end
+          for yy = 1:stInfo.npatches_y
+              for xx = 1:stInfo.npatches_x
+                  for oo = 1:stInfo.nbins
+                      cur_name = sprintf('st_hf_%02d_%02d_%d_ny%d_nx%d_ns%d',...
+                        yy,xx,oo,stInfo.npatches_y,stInfo.npatches_x,psz);
+                      featureLexicon.perframe.(cur_name) = base_st_params;
+                      cur_name = sprintf('st_%s_%02d_%02d_%d_ny%d_nx%d_ns%d',...
+                        flow_name, yy,xx,oo,stInfo.npatches_y,stInfo.npatches_x,psz);
+                      featureLexicon.perframe.(cur_name) = base_st_params;
+                  end
+              end
+          end
+      end
+      featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+      self.sublexiconPFNames = featureLexiconPFNames;
+      self.featureLexicon = featureLexicon;
+      
+    end
+    
   end  % private methods
   
   
@@ -587,6 +653,10 @@ classdef Macguffin < handle
       elseif length(varargin)==1 && isstruct(varargin{1})
         basicDataStruct=varargin{1};
         self.initFromBasicDataStruct(basicDataStruct);
+      elseif length(varargin)==2 && isstruct(varargin{1})
+        self.initFromBasicDataStruct(varargin{1},'APT',varargin{2});
+      elseif length(varargin)==2 && ischar(varargin{1})
+        self.initFromFeatureLexiconName(varargin{1},'APT',varargin{2});
       elseif length(varargin)==4 || length(varargin)==6
         projectParams=varargin{1};
         classifierParams=varargin{2};
@@ -609,6 +679,7 @@ classdef Macguffin < handle
         error('Macguffin:badArgumentsToConstructor', ...
               'The arguments to Macguffin() are no good');
       end
+      self.addSTFeatures;
     end  % constructor method
 
     % ---------------------------------------------------------------------
