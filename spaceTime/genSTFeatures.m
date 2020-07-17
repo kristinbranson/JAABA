@@ -1,16 +1,24 @@
-function ftrs = genFeatures(readfcn,headerinfo,fstart,fend,tracks,stationary,method,params)
+function ftrs = genSTFeatures(readfcn,headerinfo,fstart,fend,tracks,stationary,method,params)
+% stationary = true will center the animals before
+% computing the flow
 
-if nargin< 6,
-  stationary = false;
+if nargin< 6
+    if isfield(params,'is_stationary')
+        stationary=params.is_stationary;
+    else
+        stationary = false;
+    end
 end
 
 %% parameters
 
 % params = getParams;
-npatches = params.npatches;
+npatches_x = params.npatches_x;
+npatches_y = params.npatches_y;
 psize = params.psize;
 nbins = params.nbins; 
-patchsz = params.patchsz;
+patchsz_x = npatches_x*psize;
+patchsz_y = npatches_y*psize;
 
 optflowwinsig = params.optflowwinsig ;
 optflowsig = params.optflowsig ;
@@ -57,7 +65,7 @@ tread =toc;
 %% preallocate hogftrs and flowftrs
 
 nflies = numel(tracks);
-ftrsz = [npatches npatches nbins]; 
+ftrsz = [npatches_y npatches_x nbins]; 
 
 hogftrs = cell(1,nflies);
 flowftrs = cell(1,nflies);
@@ -88,7 +96,7 @@ else
 end
 
 % For background suppression
-params = struct;
+fr_params = struct;
 % bwimg = zeros(patchsz,patchsz);
 % ctr = [ceil( (patchsz+1)/2),ceil( (patchsz+1)/2)];
 % bwimg(ctr(1),ctr(2))=1;
@@ -104,23 +112,32 @@ for ndx = fstart:fend
       continue;
     end
     trackndx = ndx - tracks(fly).firstframe + 1;
-    locy = double(round(tracks(fly).y(trackndx)));
-    locx = double(round(tracks(fly).x(trackndx)));
-    curpatch = extractPatch(im(:,:, ndx-fstart + 1),...
-      locy,locx,tracks(fly).theta(trackndx),patchsz);
+%     locy = double(round(tracks(fly).y(trackndx)));
+%     locx = double(round(tracks(fly).x(trackndx)));
+%    curpatch = extractPatch(im(:,:, ndx-fstart + 1),...
+%      locy,locx,tracks(fly).theta(trackndx),patchsz);
+    locy = tracks(fly).y(trackndx);
+    locx = tracks(fly).x(trackndx);
+    curpatch = CropImAroundTrx(im(:,:, ndx-fstart + 1),...
+      locx,locy,tracks(fly).theta(trackndx)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
 
     if stationary && ndx<tracks(fly).endframe
-      locy = double(round(tracks(fly).y(trackndx+1)));
-      locx = double(round(tracks(fly).x(trackndx+1)));
+%       locy = double(round(tracks(fly).y(trackndx+1)));
+%       locx = double(round(tracks(fly).x(trackndx+1)));
+      locy = tracks(fly).y(trackndx+1);
+      locx = tracks(fly).x(trackndx+1);
     end
     
-    if methodC<3  || ~stationary || ndx==tracks(fly).endframe
-      % methodC<3 if for legacy mistake.
-      curpatch2 = extractPatch(im(:,:, ndx-fstart + 2),...
-        locy,locx,tracks(fly).theta(trackndx),patchsz);
+    if ~stationary || ndx==tracks(fly).endframe
+%       curpatch2 = extractPatch(im(:,:, ndx-fstart + 2),...
+%         locy,locx,tracks(fly).theta(trackndx),patchsz);
+      curpatch2 = CropImAroundTrx(im(:,:, ndx-fstart + 2),...
+        locx,locy,tracks(fly).theta(trackndx)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
     else
-      curpatch2 = extractPatch(im(:,:, ndx-fstart + 2),...
-        locy,locx,tracks(fly).theta(trackndx+1),patchsz);
+%       curpatch2 = extractPatch(im(:,:, ndx-fstart + 2),...
+%         locy,locx,tracks(fly).theta(trackndx+1),patchsz);
+      curpatch2 = CropImAroundTrx(im(:,:, ndx-fstart + 2),...
+        locx,locy,tracks(fly).theta(trackndx+1)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
     end
     
     
@@ -141,24 +158,29 @@ for ndx = fstart:fend
       curpatch = uint8(curpatch);
       curpatch2 = uint8(curpatch2);
       if ndx<tracks(fly).endframe
-        params.dx = round(tracks(fly).x(trackndx+1)) - round(tracks(fly).x(trackndx));
-        params.dy = round(tracks(fly).y(trackndx+1)) - round(tracks(fly).y(trackndx));
-        params.dtheta = tracks(fly).theta(trackndx+1) - tracks(fly).theta(trackndx);
-        params.rdx = tracks(fly).x(trackndx+1) - tracks(fly).x(trackndx)-params.dx;
-        params.rdy = tracks(fly).y(trackndx+1) - tracks(fly).y(trackndx)-params.dy;
+%         fr_params.dx = round(tracks(fly).x(trackndx+1)) - round(tracks(fly).x(trackndx));
+%         fr_params.dy = round(tracks(fly).y(trackndx+1)) - round(tracks(fly).y(trackndx));
+%         fr_params.dtheta = tracks(fly).theta(trackndx+1) - tracks(fly).theta(trackndx);
+%         fr_params.rdx = tracks(fly).x(trackndx+1) - tracks(fly).x(trackndx)-fr_params.dx;
+%         fr_params.rdy = tracks(fly).y(trackndx+1) - tracks(fly).y(trackndx)-fr_params.dy;
+        fr_params.dx = tracks(fly).x(trackndx+1) - tracks(fly).x(trackndx);
+        fr_params.dy = tracks(fly).y(trackndx+1) - tracks(fly).y(trackndx);
+        fr_params.dtheta = tracks(fly).theta(trackndx+1) - tracks(fly).theta(trackndx);
+        fr_params.rdx = tracks(fly).x(trackndx+1) - tracks(fly).x(trackndx)-fr_params.dx;
+        fr_params.rdy = tracks(fly).y(trackndx+1) - tracks(fly).y(trackndx)-fr_params.dy;
       else
-        params.dx = 0;
-        params.dy = 0;
-        params.dtheta = 0;
-        params.rdx = 0;
-        params.rdy = 0;
+        fr_params.dx = 0;
+        fr_params.dy = 0;
+        fr_params.dtheta = 0;
+        fr_params.rdx = 0;
+        fr_params.rdy = 0;
       end
-      params.theta = tracks(fly).theta(trackndx);
-      params.stationary = stationary;
+      fr_params.theta = tracks(fly).theta(trackndx);
+      fr_params.stationary = stationary;
       if methodC==3
-        [Vx,Vy] = computeFlowBkgSup(curpatch,curpatch2,params);
+        [Vx,Vy] = computeFlowBkgSup(curpatch,curpatch2,fr_params,params);
       elseif methodC==4
-        [Vx,Vy] = computeDeepFlowBkgSup(curpatch,curpatch2,params);        
+        [Vx,Vy] = computeDeepFlowBkgSup(curpatch,curpatch2,fr_params,params);        
       else
         error('Undefined method');
       end
