@@ -4347,9 +4347,9 @@ classdef JLabelData < matlab.mixin.Copyable
                   cur_trk = cur_trk(:,:,start_t:end_t);
                   cur_trk(:,1,:) = cur_trk(:,1,:) + prev_width;                  
                   trx(i).apt_trk{ndx} = cur_trk;
-                  if exist('headerinfo','var') && iscell(headerinfo)
-                    prev_width = prev_width + headerinfo{ndx}.nc;
-                  end
+                end
+                if exist('headerinfo','var') && iscell(headerinfo)
+                  prev_width = prev_width + headerinfo{ndx}.nc;
                 end
               end
               
