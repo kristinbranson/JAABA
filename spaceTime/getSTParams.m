@@ -6,6 +6,10 @@ params.scale = 6;
 params.npatches_x = 8;
 params.npatches_y = 8;
 params.psize = 12; % patch size for hog/hof
+params.x_center = 0;
+params.y_center = 0;
+params.imsz_display = params.psize*max(params.npatches_x,params.npatches_y);
+
 params.nbins = 8; % number of bins in hog/hof
 params.wd = 0.5; % width of hog features for visualization
 params.is_stationary = false;

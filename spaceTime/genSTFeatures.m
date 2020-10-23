@@ -17,8 +17,19 @@ npatches_x = params.npatches_x;
 npatches_y = params.npatches_y;
 psize = params.psize;
 nbins = params.nbins; 
+
+if ~isfield(params,'x_center')
+  params.x_center = 0;
+  params.y_center = 0;
+end
+x_c = params.x_center;
+y_c = params.y_center;
 patchsz_x = npatches_x*psize;
 patchsz_y = npatches_y*psize;
+hsz_x = patchsz_x/2;
+hsz_y = patchsz_y/2;
+patchsz_x = max(x_c + patchsz_x/2, -x_c + patchsz_x/2)*2;
+patchsz_y = max(y_c + patchsz_y/2, -y_c + patchsz_y/2)*2;
 
 optflowwinsig = params.optflowwinsig ;
 optflowsig = params.optflowsig ;
@@ -105,6 +116,11 @@ fr_params = struct;
 % aimg = atan2(-(yy-ctr(1)),-(xx-ctr(2)));
 % params.dimg = dimg; params.aimg = aimg;
 
+pstarty = (patchsz_y/2+y_c-hsz_y+1);
+pendy = (patchsz_y/2+y_c+hsz_y);
+pstartx = (patchsz_x/2+x_c-hsz_x+1);
+pendx = (patchsz_x/2+x_c+hsz_x);
+
 for ndx = fstart:fend
   
   for fly = 1:nflies
@@ -120,6 +136,7 @@ for ndx = fstart:fend
     locx = tracks(fly).x(trackndx);
     curpatch = CropImAroundTrx(im(:,:, ndx-fstart + 1),...
       locx,locy,tracks(fly).theta(trackndx)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
+    curpatch = curpatch(pstarty:pendy,pstartx:pendx);
 
     if stationary && ndx<tracks(fly).endframe
 %       locy = double(round(tracks(fly).y(trackndx+1)));
@@ -139,6 +156,7 @@ for ndx = fstart:fend
       curpatch2 = CropImAroundTrx(im(:,:, ndx-fstart + 2),...
         locx,locy,tracks(fly).theta(trackndx+1)-pi/2,(patchsz_x-1)/2,(patchsz_y-1)/2);
     end
+    curpatch2 = curpatch2(pstarty:pendy,pstartx:pendx);
     
     
     curpatch = single(curpatch);
