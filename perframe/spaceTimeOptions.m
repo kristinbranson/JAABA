@@ -22,7 +22,7 @@ function varargout = spaceTimeOptions(varargin)
 
 % Edit the above text to modify the response to help spaceTimeOptions
 
-% Last Modified by GUIDE v2.5 07-Feb-2020 04:14:22
+% Last Modified by GUIDE v2.5 22-Oct-2020 04:46:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -91,8 +91,14 @@ else
     handles.frame_num = randsample(nframes,1);
 end
 
+
 if isempty(prev_st)
     prev_st = getSTParams();
+end
+if ~isfield(prev_st,'x_center')
+  prev_st.x_center = 0;
+  prev_st.y_center = 0;
+  prev_st.imsz_display = prev_st.psize*max(prev_st.npatches_x,prev_st.npatches_y);
 end
 handles.params = prev_st;
 
@@ -115,14 +121,29 @@ set(handles.edit_horz,'String',sprintf('%d',params.npatches_x));
 set(handles.edit_vert,'String',sprintf('%d',params.npatches_y));
 set(handles.edit_frame,'String',sprintf('%d',handles.frame_num));
 set(handles.edit_trx,'String',sprintf('%d',handles.cur_fly));
+set(handles.edit_x_center,'String',sprintf('%d',params.x_center));
+set(handles.edit_y_center,'String',sprintf('%d',params.y_center));
 method_ndx = find(strcmp(handles.params.methods,handles.params.cur_method));
 set(handles.menu_methods,'String',handles.params.method_names);
 set(handles.menu_methods,'Value',method_ndx);
+
+function handles = updateimsz(handles)
+params = handles.params;
+grid_sz_x = params.npatches_x*params.psize;
+grid_sz_y = params.npatches_y*params.psize;
+x_c = params.x_center; y_c = params.y_center;
+max_sz_x = max(x_c+grid_sz_x/2,-x_c+grid_sz_x/2);
+max_sz_y = max(y_c+grid_sz_y/2,-y_c+grid_sz_y/2);
+max_sz = max(max_sz_x,max_sz_y)*2;
+params.imsz_display = max(params.imsz_display,max_sz);
+handles.params = params;
+set(handles.edit_imsz,'String',sprintf('%d',params.imsz_display));
 
 
 function handles = updatePlots(handles)
 
 set(handles.figure1, 'pointer', 'watch')
+handles = updateimsz(handles);
 trx = handles.trx;
 cur_fly = handles.cur_fly;
 frame_num = handles.frame_num;
@@ -132,11 +153,18 @@ cur_frame = rfn(frame_num);
 x = trx(cur_fly).x(trx_fn);
 y = trx(cur_fly).y(trx_fn);
 theta = trx(cur_fly).theta(trx_fn);
-patch_sz = handles.params.psize;
+psize = handles.params.psize;
+nbins = handles.params.nbins;
+
 ncells_x = handles.params.npatches_x;
 ncells_y = handles.params.npatches_y;
-winwidth = patch_sz*ncells_x;
-winheight = patch_sz*ncells_y;
+x_c = handles.params.x_center;
+y_c = handles.params.y_center;
+winwidth = handles.params.imsz_display;
+winheight = handles.params.imsz_display;
+hsz = handles.params.imsz_display/2;
+grid_hsz_x = ncells_x*psize/2;
+grid_hsz_y = ncells_y*psize/2;
 handles.cur_im = CropImAroundTrx(cur_frame,x,y,theta-pi/2,...
     (winwidth-1)/2,(winheight-1)/2);
 cla(handles.axes_hog);
@@ -148,8 +176,6 @@ ftrs = genSTFeatures(handles.rfn,handles.headerinfo,frame_num,frame_num+1,...
 % hog ftrs
 scale = 6;
 im1 = handles.cur_im;
-psize = handles.params.psize;
-nbins = handles.params.nbins;
 
 axes(handles.axes_hog);
 him = imshow(imresize(im1,scale));
@@ -173,13 +199,13 @@ bincenters = bincenters(1:nbins);
 dt = mean(diff(bincenters));
 binedges = [bincenters(1)-dt/2,(bincenters(1:end-1)+bincenters(2:end))/2,bincenters(end)+dt/2];
 
-for xi = 1:ceil(nc/psize)
-  cx = (psize/2 + (xi-1)*psize)*scale+ 1 ;
+for xi = 1:ncells_x
+  cx = (psize/2 + (xi-1)*psize - grid_hsz_x + x_c + hsz )*scale+ 1 ;
   if cx+psize/2 > nc*scale
     break;
   end
-  for yi = 1:ceil(nr/psize)
-    cy = (psize/2 + (yi-1)*psize)*scale+ 1 ;
+  for yi = 1:ncells_y
+    cy = (psize/2 + (yi-1)*psize - grid_hsz_y + y_c + hsz)*scale+ 1 ;
     if cy+psize/2 > nr*scale
       break;
     end
@@ -196,12 +222,18 @@ for xi = 1:ceil(nc/psize)
   end
 end
 
-for xi = 1:(ceil(nc/psize)-1)
-    plot([xi*psize*scale,xi*psize*scale],[0,nr*scale],'Color',[0.3,0.3,0.3,0.2]);
+for xi = 0:ncells_x
+    plot([(xi*psize+x_c + hsz- grid_hsz_x)*scale,(xi*psize+x_c+hsz-grid_hsz_x)*scale],...
+      [ (y_c+hsz-grid_hsz_y)*scale,(y_c+ncells_y*psize+hsz-grid_hsz_y)*scale],...
+      'Color',[0.3,0.3,0.3,0.2]);
 end
-for yi = 1:(ceil(nr/psize)-1)
-    plot([0,nc*scale],[yi*psize*scale,yi*psize*scale],'Color',[0.3,0.3,0.3,0.2]);
+for yi = 0:ncells_y
+    plot([(x_c+hsz-grid_hsz_x)*scale,(x_c+ncells_x*psize+hsz-grid_hsz_x)*scale],...
+      [ (yi*psize+y_c+hsz-grid_hsz_y)*scale,(yi*psize+y_c+hsz-grid_hsz_y)*scale],...
+      'Color',[0.3,0.3,0.3,0.2]);
 end
+scatter(hsz*scale,hsz*scale,'marker','*');
+scatter((x_c+hsz)*scale,(y_c+hsz)*scale,'marker','o');
 
 
 % Flow (hof) ftrs
@@ -240,13 +272,13 @@ bincenters2 = bincenters*2;
 dt = mean(diff(bincenters2));
 binedges2 = [bincenters2(1)-dt/2,(bincenters2(1:end-1)+bincenters2(2:end))/2,bincenters2(end)+dt/2];
 
-for xi = 1:ceil(nc/psize)
-  cx = (psize/2  + (xi-1)*psize)*scale+ 1;
+for xi = 1:ncells_x
+  cx = (psize/2  + (xi-1)*psize  + x_c +hsz-grid_hsz_x)*scale+ 1;
   if cx+psize/2 > nc*scale
     break;
   end
-  for yi = 1:ceil(nr/psize)
-    cy = (psize/2 + (yi-1)*psize)*scale+ 1;
+  for yi = 1:ncells_y
+    cy = (psize/2 + (yi-1)*psize + y_c+hsz-grid_hsz_y)*scale+ 1;
     if cy+psize/2 > nr*scale
       break;
     end
@@ -260,12 +292,18 @@ for xi = 1:ceil(nc/psize)
     
   end
 end
-for xi = 1:(ceil(nc/psize)-1)
-    plot([xi*psize*scale,xi*psize*scale],[0,nr*scale],'Color',[0.3,0.3,0.3,0.2]);
+for xi = 0:ncells_x
+    plot([(xi*psize+x_c+hsz-grid_hsz_x)*scale,(xi*psize+x_c+hsz-grid_hsz_x)*scale],...
+      [ (y_c+hsz-grid_hsz_y)*scale,(y_c+ncells_y*psize+hsz-grid_hsz_y)*scale],...
+      'Color',[0.3,0.3,0.3,0.2]);
 end
-for yi = 1:(ceil(nr/psize)-1)
-    plot([0,nc*scale],[yi*psize*scale,yi*psize*scale],'Color',[0.3,0.3,0.3,0.2]);
+for yi = 0:ncells_y
+    plot([(x_c+hsz-grid_hsz_x)*scale,(x_c+ncells_x*psize+hsz-grid_hsz_x)*scale],...
+      [ (yi*psize+y_c+hsz-grid_hsz_y)*scale,(yi*psize+y_c+hsz-grid_hsz_y)*scale],...
+      'Color',[0.3,0.3,0.3,0.2]);
 end
+scatter(hsz*scale,hsz*scale,'marker','*');
+scatter((x_c+hsz)*scale,(y_c+hsz)*scale,'marker','o');
 
 set(handles.figure1, 'pointer', 'arrow')
 
@@ -549,6 +587,120 @@ function menu_methods_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_x_center_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_x_center (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_x_center as text
+%        str2double(get(hObject,'String')) returns contents of edit_x_center as a double
+ncells = str2double(get(hObject,'String'));
+prev_cells = handles.params.x_center;
+if isempty(ncells) || isnan(ncells) || round(ncells)~=ncells 
+    warndlg('Cell size must be a integer');
+    set(handles.edit_x_center,'String',sprintf('%d',prev_cells));
+    return;
+end
+handles.params.x_center = ncells;
+handles = updatePlots(handles);
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_x_center_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_x_center (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_y_center_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_y_center (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_y_center as text
+%        str2double(get(hObject,'String')) returns contents of edit_y_center as a double
+ncells = str2double(get(hObject,'String'));
+prev_cells = handles.params.y_center;
+if isempty(ncells) || isnan(ncells) || round(ncells)~=ncells 
+    warndlg('Cell size must be a integer');
+    set(handles.edit_y_center,'String',sprintf('%d',prev_cells));
+    return;
+end
+handles.params.y_center = ncells;
+handles = updatePlots(handles);
+guidata(hObject,handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_y_center_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_y_center (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_imsz_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_imsz (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_imsz as text
+%        str2double(get(hObject,'String')) returns contents of edit_imsz as a double
+ncells = str2double(get(hObject,'String'));
+prev_cells = handles.params.imsz_display;
+if isempty(ncells) || isnan(ncells) || round(ncells)~=ncells || ncells < 1
+    warndlg('Cell size must be a positive integer');
+    set(handles.edit_imsz,'String',sprintf('%d',prev_cells));
+    return;
+end
+params = handles.params;
+grid_sz_x = params.npatches_x*params.psize;
+grid_sz_y = params.npatches_y*params.psize;
+x_c = params.x_center; y_c = params.y_center;
+max_sz_x = max(x_c+grid_sz_x/2,-x_c+grid_sz_x/2);
+max_sz_y = max(y_c+grid_sz_y/2,-y_c+grid_sz_y/2);
+max_sz = max(max_sz_x,max_sz_y)*2;
+prev_sz = params.imsz_display;
+if ncells < max_sz
+  warndlg('Input size cannot include the whole grid. Select a size large enough to include the whole grid');
+  set(handles.edit_imsz,'String',sprintf('%d',prev_sz));
+  return;
+end
+
+handles.params.imsz_display = ncells;
+handles = updatePlots(handles);
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_imsz_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_imsz (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
