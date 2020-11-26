@@ -13,7 +13,7 @@ R = [cos(theta+pi/2),-sin(theta+pi/2),0
   0,0,1];
 
 A = T*R;
-tform = maketform('affine',A);
+tform = maketform('affine',double(A));
 
 imcrop = imtransform(im,tform,interp,'udata',[1,imsz(2)],'vdata',[1,imsz(1)],...
   'xdata',[-winwidth,winwidth],'ydata',[-winheight,winheight],'fillvalues',fillvalues);
