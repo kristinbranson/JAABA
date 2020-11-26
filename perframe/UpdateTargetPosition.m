@@ -1,4 +1,4 @@
-function UpdateTargetPosition(targettype,hfly,hfly_extra,pos)
+function UpdateTargetPosition(targettype,hfly,hfly_extra,pos,hflies_apt)
 switch targettype,
   case 'fly',
     updatefly(hfly,pos.x,pos.y,pos.theta,pos.a,pos.b);
@@ -20,4 +20,9 @@ switch targettype,
   case 'wingedfly_and_landmarks',
     updatewingedfly([],hfly_extra(:,1,:),pos);
     updatelandmarks(hfly,hfly_extra(:,2,:),pos);
+end
+
+if isfield(pos,'trk_x')
+  % has APT trk 
+  set(hflies_apt,'XData',pos.trk_x,'YData',pos.trk_y);
 end

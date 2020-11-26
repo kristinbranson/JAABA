@@ -130,3 +130,10 @@ end;
 % Uncomment below  to remove 'utils/' to your
 %   matlab search path
 % rmpath(genpath('utils'));
+
+%%
+[Ux,Uy,~] = optFlowLk(curpatch,curpatch2,[],...
+  optflowwinsig,optflowsig/2,optreliability/100);
+figure;
+subplot(1,2,1);imshow(uint8(flowToColor(cat(3,Vx,Vy))));
+subplot(1,2,2);imshow(uint8(flowToColor(cat(3,Ux,Uy))));

@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 22-Apr-2013 21:12:40
+% Last Modified by GUIDE v2.5 07-Feb-2020 04:27:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -248,6 +248,9 @@ end
 
 % Update the select feature dictionary name
 indexOfFeatureLexicon = find(strcmp(handles.basicParamsStruct.featureLexiconName,handles.featureLexiconNameList));
+if isempty(indexOfFeatureLexicon),
+  indexOfFeatureLexicon = 1;
+end
 set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
 tfST = handles.featureLexiconNameListIsST(indexOfFeatureLexicon);
 if tfST
@@ -275,7 +278,7 @@ function handles = fileNameEditTwiddled(handles,editName)
 varName=editName(5:end);  % trim 'edit' off of start
 newFileName=strtrim(get(handles.(editName),'String'));
 allowEmpty = ismember(varName,{'moviefilename'});
-allowMulti = ismember(varName,{'scorefilename'});
+allowMulti = ismember(varName,{'scorefilename','moviefilename'});
 [handles,whatHappened]=setFileName(handles,varName,newFileName,allowEmpty,allowMulti);
 warnIfInvalid(varName,whatHappened);
 updateFileNameEdit(handles,editName);
@@ -356,7 +359,7 @@ basicParamsStruct = handles.basicParamsStruct;
 fields2remove = {'featureLexicon','windowFeaturesParams','scoreFeatures', ...
                  'sublexiconPFNames','labels','gtLabels','expDirNames', ...
                  'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
-                 'windowFeaturesParams'};
+                 'windowFeaturesParams','aptInfo'};
 if ~handles.new
   editModeRemove = {'featureLexiconName' 'behaviors.names' 'behaviors.type' ...
     'behaviors.nbeh' 'file.trxfilename' 'extra.perframe'};
@@ -602,7 +605,11 @@ if nbehavior~=nscorefile
 end
 
 % if movie is an mjpg, ask for an index file
-[~,~,ext] = fileparts(handles.basicParamsStruct.file.moviefilename);
+if ischar(handles.basicParamsStruct.file.moviefilename)
+  [~,~,ext] = fileparts(handles.basicParamsStruct.file.moviefilename);
+else
+  [~,~,ext] = fileparts(handles.basicParamsStruct.file.moviefilename{1});  
+end
 if ismember(lower(ext),{'.mjpg','.mjpeg'}),
   
   res = questdlg('Is this an indexed MJPG file? If so, you will be prompted to select the corresponding index file location.');
@@ -643,7 +650,21 @@ end
 basicParamsStruct = handles.basicParamsStruct;
 % AL: Not sure why we return a Macguffin vs just the struct, prob doesn't
 % make a difference
-everythingParams = Macguffin(basicParamsStruct); 
+if basicParamsStruct.fromAPT
+  behaviorName=basicParamsStruct.behaviors.names;
+  movieFileName=basicParamsStruct.file.moviefilename;
+  movieIndexFileName=basicParamsStruct.file.movieindexfilename;
+  trackFileName=basicParamsStruct.file.trxfilename;
+  scoreFileName=basicParamsStruct.file.scorefilename;
+  everythingParams = Macguffin(basicParamsStruct.featureLexiconName,basicParamsStruct.aptInfo);
+  everythingParams.behaviors.names=behaviorName;
+  everythingParams.file.moviefilename=movieFileName;
+  everythingParams.file.movieindexfilename=movieIndexFileName;
+  everythingParams.file.trxfilename=trackFileName;
+  everythingParams.file.scorefilename=scoreFileName;
+else
+  everythingParams = Macguffin(basicParamsStruct); 
+end
 assert(~isempty(handles.handleobj));
 handles.handleobj.data = everythingParams;
 
@@ -779,28 +800,36 @@ return
 function pushbutton_perframe_Callback(hObject, eventdata, handles)  %#ok
 featureLexiconName=handles.basicParamsStruct.featureLexiconName;
 sublexiconPFNames = handles.basicParamsStruct.sublexiconPFNames;
-[featureLexiconPFNames,isSelected,missingPFNames] = ...
-  GetAllPerframeList(featureLexiconName,sublexiconPFNames);
 
-% If some to-be-calculated PFs are not in the lexicon, warn the user.
-if ~isempty(missingPFNames),
-  list = naturalLanguageListFromStringList(missingPFNames);
-  if length(missingPFNames)==1
-    wstr = ...
-      sprintf(['Perframe feature %s is defined in the project file ' ...
-               'but is not defined for the current target type.\n' ...
-               'Ignoring it.'],...
-              list);
-  else
-    wstr = ...
-      sprintf(['Perframe features %s are defined in the project file ' ...
-               'but are not defined for the current target type.\n' ...
-               'Ignoring them.'],...
-              list);
+if ~get(handles.radiobutton_apt,'Value')
+  featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
+  [featureLexiconPFNames,isSelected,missingPFNames] = ...
+    GetAllPerframeList(featureLexicon,sublexiconPFNames);
+
+  % If some to-be-calculated PFs are not in the lexicon, warn the user.
+  if ~isempty(missingPFNames),
+    list = naturalLanguageListFromStringList(missingPFNames);
+    if length(missingPFNames)==1
+      wstr = ...
+        sprintf(['Perframe feature %s is defined in the project file ' ...
+                 'but is not defined for the current target type.\n' ...
+                 'Ignoring it.'],...
+                list);
+    else
+      wstr = ...
+        sprintf(['Perframe features %s are defined in the project file ' ...
+                 'but are not defined for the current target type.\n' ...
+                 'Ignoring them.'],...
+                list);
+    end
+    uiwait(warndlg(wstr)); 
   end
-  uiwait(warndlg(wstr)); 
+else
+  featureLexicon = handles.basicParamsStruct.featureLexicon;
+  [featureLexiconPFNames,isSelected,missingPFNames] = ...
+    GetAllPerframeList(featureLexicon,sublexiconPFNames);  
+  assert(isempty(missingPFNames),'No PF feature should be missing');
 end
-
 % Put up the dialog that allows users to pick which PFs will be computed
 
 [isSelected,ok] = listdlg('ListString',featureLexiconPFNames, ...
@@ -822,7 +851,7 @@ return
 
 % -------------------------------------------------------------------------
 function [featureLexiconPFNames,isSelected,missingPFNames]= ...
-  GetAllPerframeList(featureLexiconName,sublexiconPFNames)
+  GetAllPerframeList(featureLexicon,sublexiconPFNames)
 % Returns the list of all per-frame feature names in the lexicon indicated
 % by featureLexiconName.  Also returns isSelected, a boolean array of the
 % same size as featureLexiconPFNames, which is true iff that PF is in the
@@ -832,7 +861,6 @@ function [featureLexiconPFNames,isSelected,missingPFNames]= ...
 
 %featureLexiconName=handles.basicParamsStruct.featureLexiconName;
 %featureconfigfile = basicParamsStruct.file.featureconfigfile;
-featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
 %basicParamsStruct = ReadXMLParams(featureconfigfile);
 %allPfList = fieldnames(basicParamsStruct.perframe);
 featureLexiconPFNames = fieldnames(featureLexicon.perframe);
@@ -998,3 +1026,125 @@ if isequal(eventdata.Key,'f') && isControlLike(eventdata.Modifier)
 end
 
 return
+
+
+% --- Executes when selected object is changed in uibuttongroup1.
+function uibuttongroup1_SelectionChangedFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in uibuttongroup1 
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~get(handles.radiobutton_apt,'Value')
+  set(handles.featureconfigpopup,'Enable','on');
+  set(handles.text_apt,'Visible','Off');
+  featureconfigpopup_Callback(handles.featureconfigpopup, eventdata, handles)
+  return;
+end
+% Do stuff if init from APT project is selected
+[fname,fpath] = uigetfile('*.lbl','Select APT project File..');
+if fname == 0
+  set(handles.radiobutton_apt,'Value',0);
+  set(handles.radiobutton_list,'Value',1);
+  return;
+end
+% Get the detail of APT
+lbl_file = fullfile(fpath,fname);
+aptStruct = APTProject('lbl_file',lbl_file);
+if isempty(aptStruct.featureLexicon)
+  set(handles.radiobutton_apt,'Value',0);
+  set(handles.radiobutton_list,'Value',1);
+  return;  
+end
+% Update the GUI.
+set(handles.featureconfigpopup,'Enable','off');
+set(handles.text_apt,'Visible','On');
+set(handles.text_apt,'String',aptStruct.featureLexiconName);
+
+% Save the current values of the main four fields
+% (Note that any changes in the advanced part of the window will be lost.)
+behaviorName=handles.basicParamsStruct.behaviors.names;
+movieFileName=handles.basicParamsStruct.file.moviefilename;
+movieIndexFileName=handles.basicParamsStruct.file.movieindexfilename;
+trackFileName=handles.basicParamsStruct.file.trxfilename;
+scoreFileName=handles.basicParamsStruct.file.scorefilename;
+% Replace basicParamsStruct with one appropriate to the new feature lexicon
+% name
+old=warning('query','MATLAB:structOnObject');
+warning('off','MATLAB:structOnObject');  % turn off annoying warning
+handles.basicParamsStruct = struct(Macguffin(aptStruct.origFeatureLexiconName,aptStruct));
+warning(old);  % restore annoying warning  
+% Now restore fields from the old basicParamsStruct
+handles.basicParamsStruct.behaviors.names=behaviorName;
+handles.basicParamsStruct.file.moviefilename=movieFileName;
+handles.basicParamsStruct.file.movieindexfilename=movieIndexFileName;
+handles.basicParamsStruct.file.trxfilename=trackFileName;
+handles.basicParamsStruct.file.scorefilename=scoreFileName;
+guidata(hObject,handles);
+updateConfigTable(handles);
+updateEditsListboxesAndPopupmenus(handles);
+
+
+% --- Executes on button press in radiobutton_list.
+function radiobutton_list_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_list (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_list
+
+
+% --- Executes on button press in radiobutton_apt.
+function radiobutton_apt_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_apt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_apt
+
+
+% --- Executes on button press in checkbox_st.
+function checkbox_st_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_st (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_st
+
+if ~get(hObject,'Value')
+   handles.basicParamsStruct.stFeatures = false;
+   guidata(hObject,handles);
+   return;
+end
+
+fname = uigetdir('.','Select an example JAABA experiment directory');
+if fname == 0
+  mov_file = '';
+  trx_file = '';
+  set(hObject,'Value',0);
+  return
+else
+  mov_file = fullfile(fname,handles.basicParamsStruct.file.moviefilename);
+  trx_file = fullfile(fname,handles.basicParamsStruct.file.trxfilename);
+  if ~exist(mov_file,'file')
+      errmsg = sprintf('Movie file %s does not exist',mov_file);
+      errordlg(errmsg);
+      set(hObject,'Value',0);
+      return;
+  end
+  if ~exist(trx_file,'file'),trx_file=''; end
+end
+
+set(handles.figureProjectSetup, 'pointer', 'watch')
+[useST,stInfo] = spaceTimeOptions('mov_file',mov_file,...
+                    'trx_file',trx_file,...
+                    'prev_st',handles.basicParamsStruct.stInfo);
+
+set(handles.figureProjectSetup, 'pointer', 'arrow')                  
+if useST
+    handles.basicParamsStruct.stFeatures = true;
+    handles.basicParamsStruct.stInfo = stInfo;
+else
+    handles.basicParamsStruct.stFeatures = false;
+    set(hObject,'Value',0);
+end
+guidata(hObject,handles);
