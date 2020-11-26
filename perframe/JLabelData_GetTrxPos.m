@@ -8,6 +8,8 @@ pos = struct;
 if all(expi ~= obj.expi),
   % TODO: generalize to multiple flies
   [success,msg] = obj.PreLoad(expi,fly);
+  % MK 20190302: PreLoad doesn't exist anymore. It should be
+  % setCurrentTarget. But since JAABA doesn't error out I guess this is ok.
   if ~success,
     error('Error loading trx for experiment %d: %s',expi,msg);
   end
@@ -223,5 +225,55 @@ switch obj.targettype,
     pos.yskeleton = nan(numel(obj.trx(fly).skeleton_edges),size(pos.xlandmarks,2));
     pos.xskeleton(obj.trx(fly).skeleton_edges~=0,:) = pos.xlandmarks(obj.trx(fly).skeleton_edges(obj.trx(fly).skeleton_edges~=0),:);
     pos.yskeleton(obj.trx(fly).skeleton_edges~=0,:) = pos.ylandmarks(obj.trx(fly).skeleton_edges(obj.trx(fly).skeleton_edges~=0),:);
+
+  case 'apt',
     
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      pos.theta = obj.trx(fly).theta;
+      pos.a = obj.trx(fly).a;
+      pos.b = obj.trx(fly).b;
+      return;
+      count = 1;
+      fields = {'x','y','theta'};
+      while isfield(obj.trx,sprintf('x_view%d', count))
+        for fndx = 1:numel(fields)
+          cur_f = sprintf('%s_view%d', fields{fndx},count);
+          pos.(cur_f) = obj.trx(fly).(cur_f);
+        end
+        count = count + 1;
+      end
+
+    end
+    
+    pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+    pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+    pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+    pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
+    pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
+    
+    count = 1;
+    fields = {'x','y','theta'};
+    while isfield(obj.trx,sprintf('x_view%d', count))
+      for fndx = 1:numel(fields)
+        cur_f = sprintf('%s_view%d', fields{fndx},count);
+        pos.(cur_f) = obj.trx(fly).(cur_f)(ts + obj.trx(fly).off);
+      end
+      count = count + 1;
+    end
+
+end
+
+if obj.fromAPT && nargin > 3
+  % this seems to be always called with ts. Not including apt trk info if t
+  % is not specified. Which shoudln't occur anyway -- MK 20190305
+  off = obj.trx(fly).off;
+  trk_x = []; trk_y = [];
+  for ndx = 1:numel(obj.trx(fly).apt_trk)
+    curx = obj.trx(fly).apt_trk{ndx}(:,1,ts + off);
+    cury = obj.trx(fly).apt_trk{ndx}(:,2,ts + off);
+    trk_x = [trk_x ;curx]; trk_y = [trk_y ;cury];
+  end
+  pos.trk_x = trk_x; pos.trk_y = trk_y;
 end

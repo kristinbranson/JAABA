@@ -2,6 +2,7 @@ function data = LoadPerFrameData(obj,fn,n)
 
 islabelfile = regexp(fn,'[lL]abels','once');
 isscoresfile = regexp(fn,'[sS]cores','once');
+isspacetime = ~isempty(regexp(fn,'^st_(.*)','tokens','once'));
 if islabelfile,
   labelfilestr = [fn,'.mat'];
   filename = fullfile(obj.expdirs{n},labelfilestr);
@@ -36,6 +37,11 @@ else
   filename = obj.GetPerFrameFile(fn,n);
   if exist(filename,'file')
     x = load(filename,'data','units');
+    if isspacetime
+       if ~isequal(obj.stInfo,x.params),
+           error('Space Time settings used to generate the perframe features are differnt than current parameters');
+       end
+    end
   else
     [x.data,x.units] = obj.ComputePerFrameData(fn,n);
   end

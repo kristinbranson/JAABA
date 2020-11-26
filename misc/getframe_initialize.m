@@ -41,7 +41,7 @@ end
 %hardcopy needs to use zbuffer
 warnstate = warning('off');
 gfdata.warnstate = warnstate;
-noanimate('save',get(haxes,'parent'));
+% noanimate('save',get(haxes,'parent'));
 gfdata.hardcopy_args = {haxes,['-d',renderer],['-r',num2str(round(pixelsperinch))]};
 
 % TODO: put this in cleanup

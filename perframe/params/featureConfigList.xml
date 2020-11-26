@@ -18,6 +18,7 @@
 <larva_highres file="params/featureConfigLarvaehighres.xml" animal="larvacontour"/>
 <center_and_orientation file="params/featureConfig_center_and_orientation.xml" animal="center_and_orientation"/>
 <flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
+<mice_withrois file="params/featureConfig_mice_rois.xml" animal="fly"/>
 <!--flies_hoghof file="params/featureConfigHoghof.xml" animal="fly"/>
 <flies_hoghofplus file="params/featureConfigHoghofplus_modernNames.xml" animal="fly"/>
 <flies_hoghofstationary file="params/featureConfigHoghofplusStationary_modernNames_hsflow.xml" animal="fly"/-->
@@ -28,4 +29,5 @@
 <flies_st_katie file="params/featureConfigHoghof_katie.xml" animal="fly"/>
 <adam_mice file="params/featureConfigAdamMice.xml" animal="fly"/>
 <wingedfly_and_landmarks file="params/featureConfigAPTfly17pts.xml" animal="wingedfly_and_landmarks"/>
+<apt file="params/apt.xml" animal="apt"/>
 </params>

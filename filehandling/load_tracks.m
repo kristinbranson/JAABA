@@ -19,7 +19,7 @@ if isinteractive,
   matname = [matpath,matname];
 end
 
-tmp = load(matname);
+tmp = load(matname,'-mat');
 if verbose,
   fprintf('loaded %s\n',matname);
 end

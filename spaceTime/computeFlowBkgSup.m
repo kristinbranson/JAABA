@@ -1,11 +1,10 @@
-function [Vx,Vy] = computeFlowBkgSup(im1curr,im2curr,params)
+function [Vx,Vy] = computeFlowBkgSup(im1curr,im2curr,params,gparams)
 % function [Vx,Vy] = computeFlowBkgSup(im1curr,im2curr,params)
 % Computes flow and then suppresses flow in the background.
 
 %There is some flow towards the center that can't be estimated
 % properly. The flow increases as we go away from the center.
 % d_err is to account for that.
-gparams = getParams;
 
 sz = round(size(im1curr));
 bwimg = zeros(sz(1),sz(2));
