@@ -5415,6 +5415,8 @@ classdef JLabelData < matlab.mixin.Copyable
       numFlies = obj.GetNumFlies(expi);
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
+      
+      [~,firstFly] = max(tEndAll-tStartAll+1);
       perframefile = obj.GetPerframeFiles(expi);
       allperframefns = obj.allperframefns;
       clsNames = obj.classifiernames;
@@ -5443,7 +5445,7 @@ classdef JLabelData < matlab.mixin.Copyable
           classifier = obj.fastPredict(iCls).classifier;
           if ~obj.fastPredict(iCls).wfidx_valid
             [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-              allperframefns,perframefile,1,windowfeaturescellparams,1,1);
+              allperframefns,perframefile,firstFly,windowfeaturescellparams,1,1);
             obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(...
               obj.fastPredict(iCls),feature_names);
           end

@@ -1,5 +1,7 @@
 function h = polarimagesc(edges_r,edges_theta,center,v,varargin)
 
+[a,b,extra] = myparse_nocheck(varargin,'a',1,'b',1);
+
 ninterptheta = 5;
 nbinsr = length(edges_r)-1;
 nbinstheta = length(edges_theta)-1;
@@ -11,12 +13,12 @@ for binr = 1:nbinsr,
     rplot = [repmat(edges_r(binr+1),[1,ninterptheta]),repmat(edges_r(binr),[1,ninterptheta])];
     thetainterp = linspace(edges_theta(bintheta),edges_theta(bintheta+1),ninterptheta);
     thetaplot = [thetainterp,fliplr(thetainterp)];
-    xplot(:,binr,bintheta) = rplot.*cos(thetaplot);
-    yplot(:,binr,bintheta) = rplot.*sin(thetaplot);
+    xplot(:,binr,bintheta) = a*rplot.*cos(thetaplot);
+    yplot(:,binr,bintheta) = b*rplot.*sin(thetaplot);
   end
 end
 xplot = xplot + center(1);
 yplot = yplot + center(2);
 faces = reshape(1:nbinsr*nbinstheta*2*ninterptheta,[2*ninterptheta,nbinsr*nbinstheta])';
 verts = [xplot(:),yplot(:)];
-h = patch('Faces',faces,'Vertices',verts,'FaceColor','flat','FaceVertexCData',v(:),'EdgeColor','none',varargin{:});
+h = patch('Faces',faces,'Vertices',verts,'FaceColor','flat','FaceVertexCData',v(:),'EdgeColor','none',extra{:});
