@@ -222,6 +222,7 @@ classdef JLabelGUIData < handle
     
     defaultmoviefilename = 0;
     defaulttrxfilename = 0;
+    defaultlbl_file = 0; % APT lbl file 
     rcfilename = '';
     rc = struct;
 
@@ -288,7 +289,7 @@ classdef JLabelGUIData < handle
       obj.gdata = rmfield(handles,flds2Rm);
       
       if verLessThan('matlab','8.3.0.532'),
-        obj.computation_threads = max(1,matlabpool('size'));        
+        obj.computation_threads = max(1,matlabpool('size'));         %#ok<DPOOL>
       else
         if isempty(gcp('nocreate')),
           obj.computation_threads = 0;
@@ -636,7 +637,7 @@ classdef JLabelGUIData < handle
       hJAABA = findall(0,'type','figure','name','JAABA');
       gd = guidata(hJAABA);
       pnl = gd.panel_labelbuttons;
-      hButton = findobj(pnl,'type','uicontrol');
+      hButton = findobj(pnl,'type','uicontrol'); %#ok<NASGU>
 
       tb_behs = obj.togglebutton_label_behaviors;
       tb_unks = obj.togglebutton_unknown_behaviors;

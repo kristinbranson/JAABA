@@ -2857,6 +2857,10 @@ try
     handles.guidata.defaulttrxfilename = handles.guidata.rc.trxfilename;
   end
   
+  if isfield(handles.guidata.rc,'lbl_file'),
+    handles.guidata.defaultlbl_file = handles.guidata.rc.lbl_file;
+  end
+  
 %   % load the default configfilename, if present
 %   if isfield(handles.guidata.rc,'previousConfigFileName'),
 %     handles.guidata.previousConfigFileName = ...
@@ -2942,8 +2946,15 @@ function handles = SaveRC(handles)
   if ischar(handles.data.trxfilename),
     rc.trxfilename = handles.data.trxfilename;
   end
+
+  if isstruct(handles.data.aptInfo) && ...
+      isfield(handles.data.aptInfo,'lbl_file') && ...
+      ischar(handles.data.aptInfo.lbl_file) && ...
+      ~isempty(handles.data.aptInfo.lbl_file),
+    rc.lbl_file = handles.data.aptInfo.lbl_file;
+  end
   
-  
+
   % % save the configfilename, if present
   % if ~isempty(handles.guidata.configfilename),
   %   rc.previousConfigFileName = handles.guidata.configfilename;
@@ -8416,6 +8427,7 @@ hobj = HandleObj;
 uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaultmoviefilename',handles.guidata.defaultmoviefilename,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename,...
+  'defaultlbl_file',handles.guidata.defaultlbl_file,...
   'handleobj',hobj));
 
 if isempty(hobj.data)

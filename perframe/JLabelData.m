@@ -4316,7 +4316,7 @@ classdef JLabelData < matlab.mixin.Copyable
             if obj.fromAPT
               trkfilename = obj.GetFile('trk',expi);
               if any(cellfun(@(x) ~exist(x,'file'),trkfilename))
-                msg = sprintf('APT Trk file %s does not exist',trxfilename);
+                msg = sprintf('APT Trk file %s does not exist',trkfilename);
                 success = false;
                 return;
               end
