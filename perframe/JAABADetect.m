@@ -11,16 +11,21 @@ function [classifierinfo,allScores] = JAABADetect(expdir,varargin)
 % Example usage:
 % JAABADetect('testExp','jabfiles',{'ChaseClassifier.jab'});
 
-if ~isdeployed,
+if ~isdeployed() ,
   SetUpJAABAPath;
 end
 
-[blockSize,jabfiles,jablistfile,forcecompute,DEBUG] = ...
+[blockSize,jabfiles,jablistfile,forcecompute,DEBUG,doteardownpath] = ...
   myparse(varargin,'blockSize',10000,...
   'jabfiles',{},...
   'jablistfile',0,...
   'forcecompute',false,...
-  'debug',false);
+  'debug',false, ...
+  'doteardownpath', false);
+
+if ~isdeployed() && doteardownpath ,
+    cleaner = onCleanup(@TearDownJAABAPath) ;
+end
 
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
