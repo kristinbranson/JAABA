@@ -62,7 +62,15 @@ for i = 1:numel(featureNames),
   radius(i) = featureNames{i}{radius_namei};
   offset(i) = featureNames{i}{offset_namei};
   if numel(featureNames{i}) >= extra_namei,
-    extra(i) = featureNames{i}{extra_namei};
+    % ALT is responsible for the questionable choices made in this block
+    % He added them on or around 2021-03-04.
+    temp = featureNames{i}{extra_namei} ;
+    if ~isscalar(temp) ,
+      fprintf('In windowFeatureNames2Codes(), featureNames{%d}{%d} is non-scalar:\n', i, extra_namei) ;
+      disp(temp) ;
+      fprintf('This will cause an error that is (usually) silently ignored by Matlab if it happens during loading of an object without a loadobj() method.\n') ;
+    end
+    extra(i) = temp ;
   end
 end
 
