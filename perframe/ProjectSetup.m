@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 07-Feb-2020 04:27:21
+% Last Modified by GUIDE v2.5 11-Dec-2020 11:13:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -75,6 +75,7 @@ handles.output = hObject;
  defaultmoviefilename,...
  defaultmovieindexfilename,...
  defaulttrxfilename,...
+ defaultlbl_file,...
  handles.handleobj] = ...
    myparse(varargin,...
            'figureJLabel',[],...
@@ -82,6 +83,7 @@ handles.output = hObject;
            'defaultmoviefilename',0,...
            'defaultmovieindexfilename',0,...
            'defaulttrxfilename',0,...
+           'defaultlbl_file',0,...
            'handleobj',[]);
 
 handles.new = isempty(basicParamsStruct);
@@ -121,6 +123,9 @@ if isempty(basicParamsStruct)
   if ischar(defaulttrxfilename)
     handles.basicParamsStruct.file.trxfilename = defaulttrxfilename;
   end  
+  if ischar(defaultlbl_file),
+    handles.basicParamsStruct.lbl_file = defaultlbl_file;
+  end
 else
   warnst = warning('off','MATLAB:structOnObject');
   handles.basicParamsStruct = struct(basicParamsStruct);
@@ -1043,11 +1048,18 @@ function uibuttongroup1_SelectionChangedFcn(hObject, eventdata, handles)
 if ~get(handles.radiobutton_apt,'Value')
   set(handles.featureconfigpopup,'Enable','on');
   set(handles.text_apt,'Visible','Off');
+  set(handles.pushbutton_edit_APT,'Visible','off');
   featureconfigpopup_Callback(handles.featureconfigpopup, eventdata, handles)
   return;
 end
 % Do stuff if init from APT project is selected
-[fname,fpath] = uigetfile('*.lbl','Select APT project File..');
+if isfield(handles.basicParamsStruct,'lbl_file') && ...
+    ischar(handles.basicParamsStruct.lbl_file),
+  defaultlbl_file = handles.basicParamsStruct.lbl_file;
+else
+  defaultlbl_file = '';
+end
+[fname,fpath] = uigetfile('*.lbl','Select APT project File..',defaultlbl_file);
 if fname == 0
   set(handles.radiobutton_apt,'Value',0);
   set(handles.radiobutton_list,'Value',1);
@@ -1065,6 +1077,7 @@ end
 set(handles.featureconfigpopup,'Enable','off');
 set(handles.text_apt,'Visible','On');
 set(handles.text_apt,'String',aptStruct.featureLexiconName);
+set(handles.pushbutton_edit_APT,'Visible','on');
 
 % Save the current values of the main four fields
 % (Note that any changes in the advanced part of the window will be lost.)
@@ -1077,7 +1090,7 @@ scoreFileName=handles.basicParamsStruct.file.scorefilename;
 % name
 old=warning('query','MATLAB:structOnObject');
 warning('off','MATLAB:structOnObject');  % turn off annoying warning
-handles.basicParamsStruct = struct(Macguffin(aptStruct.origFeatureLexiconName,aptStruct));
+handles.basicParamsStruct = struct(Macguffin(handles.basicParamsStruct,aptStruct));
 warning(old);  % restore annoying warning  
 % Now restore fields from the old basicParamsStruct
 handles.basicParamsStruct.behaviors.names=behaviorName;
@@ -1154,3 +1167,24 @@ else
     set(hObject,'Value',0);
 end
 guidata(hObject,handles);
+
+
+% --- Executes on button press in pushbutton_edit_APT.
+function pushbutton_edit_APT_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_edit_APT (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Do stuff if init from APT project is selected
+[fname,fpath] = uigetfile('*.lbl','Select APT project File..',handles.basicParamsStruct.aptInfo.lbl_file);
+if fname == 0,
+  return;
+end
+% Get the detail of APT
+lbl_file = fullfile(fpath,fname);
+aptStruct = APTProject('lbl_file',lbl_file,'aptStruct',handles.basicParamsStruct.aptInfo);
+if isempty(aptStruct.featureLexicon)
+  set(handles.radiobutton_apt,'Value',0);
+  set(handles.radiobutton_list,'Value',1);
+  return;  
+end

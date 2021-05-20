@@ -11,7 +11,7 @@ function [classifierinfo,allScores] = JAABADetect(expdir,varargin)
 % Example usage:
 % JAABADetect('testExp','jabfiles',{'ChaseClassifier.jab'});
 
-if ~isdeployed,
+if ~isdeployed() ,
   SetUpJAABAPath;
 end
 
