@@ -53,15 +53,19 @@ for fndx = 1:nflies
   dt = trx(flies(fndx)).dt;
   trk_fly_ndx = find(trk.pTrkiTgt==fndx);
   assert(numel(trk_fly_ndx)==1, 'Trk file %s does not have data for fly %d',trkfile,fndx);
-  apt_data = trk.pTrk(:,:,:, trk_fly_ndx);
-  n_parts = size(apt_data,1);
   apt_frm = trk.pTrkFrm(1,:);
   nframes = trx(flies(fndx)).nframes;
   pxpermm = trx.pxpermm;
+  if iscell(trk.pTrk)
+    mod_apt_data = trk.pTrk{trk_fly_ndx};
+  else
+    apt_data = trk.pTrk(:,:,:, trk_fly_ndx);
+    start_fr = find(apt_frm == trx(flies(fndx)).firstframe);
+    end_fr =  find(apt_frm == trx(flies(fndx)).endframe);
+    mod_apt_data = apt_data(:,:,start_fr:end_fr);
+  end
+  n_parts = size(mod_apt_data,1);
   
-  start_fr = find(apt_frm == trx(flies(fndx)).firstframe);
-  end_fr =  find(apt_frm == trx(flies(fndx)).endframe);
-  mod_apt_data = apt_data(:,:,start_fr:end_fr);
 %   mod_apt_data = nan(n_parts,2,nframes);
 %   off = trx(flies(fndx)).off;
 %   % put the maybe out of order frames in trk back in order

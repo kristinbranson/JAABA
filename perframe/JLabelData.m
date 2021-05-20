@@ -4329,22 +4329,25 @@ classdef JLabelData < matlab.mixin.Copyable
                 is_ordered = all(dd==1);
                 assert(is_ordered, 'Trk file should be ordered');
                 for i = 1:numel(trx)
-                  trx_ndx = find(trk.pTrkiTgt==i);
-                  cur_trk = trk.pTrk(:,:,:,trx_ndx);
-                  if isempty(trx_ndx) 
-                    msg = sprintf('APT trk %s does not tracking results for animal %d',trkfilename,i);
-                    success = false;
-                    return;
-                  end
-                  start_t = find(frms==trx(i).firstframe);
-                  end_t = find(frms==trx(i).endframe);
-                  if isempty(start_t) || isempty(end_t)
-                    msg = sprintf('APT trk %s does not have tracking info for all the frames for animal %d',trkfilename,i);
-                    success = false;
-                    return;
-                  end
-
-                  cur_trk = cur_trk(:,:,start_t:end_t);
+                    trx_ndx = find(trk.pTrkiTgt==i);
+                    if isempty(trx_ndx) 
+                      msg = sprintf('APT trk %s does not tracking results for animal %d',trkfilename,i);
+                      success = false;
+                      return;
+                    end
+                    if iscell(trk.pTrk)
+                      cur_trk = trk.pTrk{trx_ndx};
+                    else
+                      cur_trk = trk.pTrk(:,:,:,trx_ndx);
+                      start_t = find(frms==trx(i).firstframe);
+                      end_t = find(frms==trx(i).endframe);
+                      if isempty(start_t) || isempty(end_t)
+                        msg = sprintf('APT trk %s does not have tracking info for all the frames for animal %d',trkfilename,i);
+                        success = false;
+                        return;
+                      end
+                      cur_trk = cur_trk(:,:,start_t:end_t);
+                    end
                   cur_trk(:,1,:) = cur_trk(:,1,:) + prev_width;                  
                   trx(i).apt_trk{ndx} = cur_trk;
                 end
