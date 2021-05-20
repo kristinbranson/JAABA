@@ -1,4 +1,4 @@
-function UpdateTargetPosition(targettype,hfly,hfly_extra,pos,hflies_apt)
+function UpdateTargetPosition(targettype,hfly,hfly_extra,pos,hflies_apt,apt_info)
 switch targettype,
   case 'fly',
     updatefly(hfly,pos.x,pos.y,pos.theta,pos.a,pos.b);
@@ -24,5 +24,15 @@ end
 
 if isfield(pos,'trk_x')
   % has APT trk 
-  set(hflies_apt,'XData',pos.trk_x,'YData',pos.trk_y);
+  set(hflies_apt(1),'XData',pos.trk_x,'YData',pos.trk_y);
+  if ~isempty(apt_info.skeletonEdges)
+    sk = apt_info.skeletonEdges;
+    curdat = nan(3*size(sk,1),2);
+    curdat(1:3:end,1) = pos.trk_x(sk(:,1));
+    curdat(2:3:end,1) = pos.trk_x(sk(:,2));
+    curdat(1:3:end,2) = pos.trk_y(sk(:,1));
+    curdat(2:3:end,2) = pos.trk_y(sk(:,2));
+    set(hflies_apt(2),'XData',curdat(:,1),'YData',curdat(:,2));
+    
+  end
 end

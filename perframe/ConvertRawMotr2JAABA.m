@@ -224,6 +224,7 @@ arenacenterx_mm = 0;
 arenacentery_mm = 0;
 trx = SetLandmarkParameters(trx,arenatype,arenacenterx_mm,arenacentery_mm,...
   arenaradius_mm,arenawidth_mm,arenaheight_mm,roi2);
+trx = SetLandmarkParameters_px(trx,arenatype,arenacenterx,arenacentery,arenaradius); 
 
 if strcmpi(arenatype,'Circle')
   msg{end+1} = sprintf('Set circular arena parameters. Center = (0,0) mm, radius = %.1f mm.',arenaradius_mm);

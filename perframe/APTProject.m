@@ -100,6 +100,7 @@ handles.apt = apt;
 handles.has_trx = apt.projectHasTrx;
 handles.has_crops = ~isempty(apt.movieFilesAllCropInfo{1});
 aptStruct.n_pts = apt.cfg.NumLabelPoints;
+aptStruct.skeletonEdges = apt.skeletonEdges;
 if handles.has_trx
   handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
   sz = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.Radius;
@@ -213,24 +214,33 @@ apt = handles.apt;
 has_ref_img = false;
 for ndx = 1:size(apt.movieFilesAll,1)
   has_label = false;
-  s = apt.labeledpos{ndx};
+  s = apt.labels{ndx};
   assert(isstruct(s));
-  cur_pts = nan(s.size);
-  cur_pts(s.idx) = s.val; % scalar expansion for 'log'
+  cur_pts = s.p;
+%   cur_pts = nan(s.size);
+%   cur_pts(s.idx) = s.val; % scalar expansion for 'log'
 
   tndx_to_use = 1;
   locs = [];
-  for tndx = 1:size(cur_pts,4)
-    frm = find(~isnan(cur_pts(1,1,:,tndx)),1);
-    if isempty(frm)
-      continue;
-    else
-      has_label = true;
-      tndx_to_use = tndx;
-      locs = cur_pts(:,:,frm,tndx);
-      break;
-    end
+  if numel(s.frm)>0
+    has_label = true;
+    frm = s.frm(1);
+    tndx_to_use = s.tgt(1);
+    locs = reshape(s.p(:,1),[s.npts,2]);
+  else
+    has_label = false;
   end
+%   for tndx = 1:size(s.frm,1)
+%     frm = find(~isnan(cur_pts(1,1,:,tndx)),1);
+%     if isempty(frm)
+%       continue;
+%     else
+%       has_label = true;
+%       tndx_to_use = tndx;
+%       locs = cur_pts(:,:,frm,tndx);
+%       break;
+%     end
+%   end
   if ~has_label
     continue;
   end
@@ -419,7 +429,7 @@ if isempty(handles.im)
 end
 axes(handles.axes1);
 img = handles.im;
-ll = handles.locs;
+ll = double(handles.locs);
 
 imshow(img);
 hold on;

@@ -652,16 +652,22 @@ basicParamsStruct = handles.basicParamsStruct;
 % make a difference
 if basicParamsStruct.fromAPT
   behaviorName=basicParamsStruct.behaviors.names;
+  labelColors=basicParamsStruct.behaviors.labelcolors;
   movieFileName=basicParamsStruct.file.moviefilename;
   movieIndexFileName=basicParamsStruct.file.movieindexfilename;
   trackFileName=basicParamsStruct.file.trxfilename;
   scoreFileName=basicParamsStruct.file.scorefilename;
+  wfparams=basicParamsStruct.windowFeaturesParams;
+  cstuff=basicParamsStruct.classifierStuff;
   everythingParams = Macguffin(basicParamsStruct.featureLexiconName,basicParamsStruct.aptInfo);
   everythingParams.behaviors.names=behaviorName;
+  everythingParams.behaviors.labelcolors=labelColors;
   everythingParams.file.moviefilename=movieFileName;
   everythingParams.file.movieindexfilename=movieIndexFileName;
   everythingParams.file.trxfilename=trackFileName;
   everythingParams.file.scorefilename=scoreFileName;
+  everythingParams.windowFeaturesParams=wfparams;
+  everythingParams.classifierStuff=cstuff;
 else
   everythingParams = Macguffin(basicParamsStruct); 
 end
