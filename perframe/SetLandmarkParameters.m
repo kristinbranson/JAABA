@@ -3,7 +3,6 @@ function trx = SetLandmarkParameters(trx,arenatype,arenacenterx,arenacentery,...
 
 switch lower(arenatype),
   case 'none',
-    return;
   case 'circle',
     for i = 1:numel(trx),
       trx(i).arena.arena_radius_mm = arenaradius;
