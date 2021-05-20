@@ -366,6 +366,9 @@ else
         end
 
         headerinfo.nframes = nframes;
+        frame_rate = headerinfo.FrameRate ;  % Hz
+        dt = 1/frame_rate ;  % s 
+        headerinfo.timestamps = dt * (0:(nframes-1)) ;  % s
         
         if preload,
           

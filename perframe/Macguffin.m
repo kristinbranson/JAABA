@@ -180,6 +180,8 @@ classdef Macguffin < handle
       end
       % Now overwrite other properties defined in the struct
       fieldNames=fieldnames(basicDataStruct);
+      % remove apt features, since those should have been set in init
+      fieldNames = setdiff(fieldNames,{'fromAPT','aptInfo'});
       for iField=1:length(fieldNames)
         fieldName=fieldNames{iField};
         if ismember(fieldName,{'featureLexiconName' 'extra' 'featureLexicon'})

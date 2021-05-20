@@ -20,6 +20,10 @@
 % background_center, background_dev, movie_height, movie_width
 function varargout = read_ann(filename,varargin)
 
+if ~exist(filename,'file'),
+  error('Ann file %s does not exist',filename);
+end
+    
 if nargin == 1,
   readall = true;
   params = struct;

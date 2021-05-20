@@ -55,17 +55,41 @@ function APTProject_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for APTProject
 handles.output = hObject;
 
-lbl_file = myparse(varargin,'lbl_file','');
-aptStruct = struct();
+[lbl_file,aptStruct] = myparse(varargin,'lbl_file','','aptStruct',struct());
+
 aptStruct.lbl_file = lbl_file;
-aptStruct.featureLexicon = [];
-aptStruct.featureLexiconName = '';
-aptStruct.origFeatureLexiconName = '';
-aptStruct.animalType = '';
-aptStruct.n_pts = 0;
-aptStruct.n_view = 0;
-aptStruct.projname = '';
-aptStruct.trkfilename = '';
+if isfield(aptStruct,'featureLexicon'),
+  
+else
+  aptStruct.featureLexicon = [];
+  aptStruct.featureLexiconName = '';
+end
+
+if isfield(aptStruct,'origFeatureLexiconName'),
+else
+  aptStruct.origFeatureLexiconName = '';
+end
+if isfield(aptStruct,'animalType'),
+else
+  aptStruct.animalType = '';
+end
+if isfield(aptStruct,'n_pts'),
+else
+  aptStruct.n_pts = 0;
+end
+if isfield(aptStruct,'n_view'),
+else
+  aptStruct.n_view = 0;
+end
+if isfield(aptStruct,'projname'),
+else
+  aptStruct.projname = '';
+end
+if isfield(aptStruct,'trkfilename'),
+else
+  aptStruct.trkfilename = '';
+end
+
 handles.aptStruct = aptStruct;
 % Update handles structure
 guidata(hObject, handles);
@@ -191,7 +215,12 @@ set(handles.text_centroid,'Visible',onoffif(~handles.has_trx));
 
 if handles.has_trx
   set(handles.trx_pop,'String',handles.trxList{1})
-  set(handles.trx_pop,'Value',1);
+  trx_type_ndx = find(strcmp(handles.aptStruct.origFeatureLexiconName,handles.trxList{1}),1);
+  if ~isempty(trx_type_ndx),
+    set(handles.trx_pop,'Value',trx_type_ndx);
+  else
+    set(handles.trx_pop,'Value',1);
+  end
   set(handles.trx_checkbox,'Value',true);
 else
   set(handles.trx_pop,'String',{''})
@@ -284,16 +313,52 @@ else
   handles.locs = [];
 end
 
-trkfilename = reset_trk_edit(handles);
 set(handles.text_centroid,'String','');
+
+npts = apt.cfg.NumLabelPoints;
+if isfield(handles.aptStruct,'pairs') && ~isempty(handles.aptStruct.pairs),
+  isvalid = all(cellfun(@(x) all(x==round(x)) && numel(x) == 2 && x(1) ~= x(2) && ...
+    all(x>=1) && all(x<=npts),handles.aptStruct.pairs));
+  if isvalid,
+    pairstr = sprintf('%d %d, ',handles.aptStruct.pairs{:});
+    pairstr = pairstr(1:end-2);
+    set(handles.edit_pair,'String',pairstr);
+  end
+end
+
+if isfield(handles.aptStruct,'triads') && ~isempty(handles.aptStruct.triads),
+  isvalid = all(cellfun(@(x) all(x==round(x)) && numel(x) == 3 && numel(unique(x))==3 && ...
+    all(x>=1) && all(x<=npts),handles.aptStruct.triads));
+  if isvalid,
+    str = sprintf('%d %d %d, ',handles.aptStruct.triads{:});
+    str = str(1:end-2);
+    set(handles.edit_triad,'String',str);
+  end
+end
+
+if isfield(handles.aptStruct,'custom_list') && ~isempty(handles.aptStruct.custom_list),
+  str = sprintf('%s, ',handles.aptStruct.custom_list{:});
+  str = str(1:end-2);
+  set(handles.edit_custom,'String',str);
+end
+
+isvalid = ~isempty(handles.aptStruct.trkfilename) && ...
+  isvalid_default_trkfilename(handles,handles.aptStruct.trkfilename);
+if isvalid,
+  str = sprintf('%s, ',handles.aptStruct.trkfilename{:});
+  str = str(1:end-2);
+  set(handles.edit_trk,'String',str);
+else
+  trkfilename = reset_trk_edit(handles);
+  handles.aptStruct.trkfilename = trkfilename;
+end
 
 handles.aptStruct.n_pts = apt.cfg.NumLabelPoints;
 handles.aptStruct.n_view = apt.cfg.NumViews;
 handles.aptStruct.projname = apt.projname;
-handles.aptStruct.featureLexicon = [];
-handles.aptStruct.featureLexiconName = '';
-handles.aptStruct.animalType = '';
-handles.aptStruct.trkfilename = trkfilename;
+% handles.aptStruct.featureLexicon = [];
+% handles.aptStruct.featureLexiconName = '';
+% handles.aptStruct.animalType = '';
 handles.aptStruct.view = 1;
 handles = UpdateHandles(handles);
 UpdatePlots(handles)
@@ -454,9 +519,9 @@ axis(handles.axes1,'off');
 function all_trkfilenames = reset_trk_edit(handles)
 apt = handles.apt;
 trk_file_str = '';
-all_trkfilenames = {};
+all_trkfilenames = cell(1,size(apt.movieFilesAll,2));
 for ndx = 1:size(apt.movieFilesAll,2)
-  mov_file = apt.movieFilesAll{1,ndx};
+  %mov_file = apt.movieFilesAll{1,ndx};
   [~,movfilename,~] = fileparts(apt.movieFilesAll{1,ndx});
   [~,projfile,~] = fileparts(handles.aptStruct.lbl_file);
   trkfilename = [movfilename '_' projfile '.trk'];
@@ -469,6 +534,24 @@ for ndx = 1:size(apt.movieFilesAll,2)
 end
 set(handles.edit_trk,'String',trk_file_str)
 
+function isvalid = isvalid_default_trkfilename(handles,trkfilename)
+apt = handles.apt;
+isvalid = false;
+% check number of views
+if numel(trkfilename) ~= size(apt.movieFilesAll,2),
+  return;
+end
+
+[~,projfile,~] = fileparts(handles.aptStruct.lbl_file);
+for ndx = 1:size(apt.movieFilesAll,2),
+  [~,movfilename,~] = fileparts(apt.movieFilesAll{1,ndx});
+  basename = [movfilename '_' projfile];
+  if ~startsWith(trkfilename{ndx},basename) || ~endsWith(trkfilename{ndx},'.trk'),
+    return;
+  end
+  
+end
+isvalid = true;
 
 function onoff = onoffif(in)
 if in
@@ -793,7 +876,7 @@ handles.aptStruct.has_trx = handles.has_trx;
 handles.aptStruct.has_crops = handles.has_crops;
 handles.aptStruct.pairs = handles.pairs;
 handles.aptStruct.triads = handles.triads;
-handles.aptStruct.cutstom_list = handles.custom_list;
+handles.aptStruct.custom_list = handles.custom_list;
 
 if ~handles.has_trx
   if get(handles.rb_frame,'Value')

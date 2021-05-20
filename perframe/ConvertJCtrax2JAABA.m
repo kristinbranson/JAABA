@@ -3,13 +3,14 @@ function [success,msg] = ConvertJCtrax2JAABA(varargin)
 success = false;
 msg = {};
 
-[inmoviefile,intrxfile,infofile,...
+[inmoviefile,intrxfile,infofile,inctraxfile,...
   expdir,moviefilestr,trxfilestr,perframedirstr,...
   dosoftlink,...
   doflipud,dofliplr,dotransposeimage,...
   sex,movieheight,moviewidth] = myparse(varargin,...
   'inmoviefile','','intrxfile','',...
   'infofile','',...
+  'inctraxfile','',...
   'expdir','','moviefilestr','movie.avi','trxfilestr','trx.mat','perframedirstr','perframe',...
   'dosoftlink',false,...
   'doflipud',false,'dofliplr',false,'dotransposeimage',false,...
@@ -35,7 +36,7 @@ if isempty(intrxfile),
   msg = 'Input trx mat file is empty';
   return;
 end
-if isempty(infofile),
+if isempty(infofile) && isempty(inctraxfile),
   msg = 'Info mat file is empty';
   return;
 end
@@ -64,24 +65,39 @@ if doflipud || dofliplr && (isempty(movieheight) || isempty(moviewidth)),
     fclose(fid);
   end
 end
-infodata = load(infofile);
 
 msg{end+1} = sprintf('Loaded trajectories from file %s',trxfile);
 
 %% read arena parameters, pxpermm, and fps
 
-fps = infodata.hinfo.FPS;
-pxpermm = infodata.hinfo.PPM;
-r = any(infodata.hinfo.mask,2);
-arenar1 = find(r,1);
-arenar2 = find(r,1,'last');
-c = any(infodata.hinfo.mask,1);
-arenac1 = find(c,1);
-arenac2 = find(c,1,'last');
-arenacenterx = (arenac1+arenac2)/2;
-arenacentery = (arenar1+arenar2)/2;
-arenaradius = ((arenar2-arenar1+1)+(arenac2-arenac1+1))/2;
-arenatype = 'Circle';
+if ~isempty(infofile),
+
+  infodata = load(infofile);
+  
+  fps = infodata.hinfo.FPS;
+  pxpermm = infodata.hinfo.PPM;
+  r = any(infodata.hinfo.mask,2);
+  arenar1 = find(r,1);
+  arenar2 = find(r,1,'last');
+  c = any(infodata.hinfo.mask,1);
+  arenac1 = find(c,1);
+  arenac2 = find(c,1,'last');
+  arenacenterx = (arenac1+arenac2)/2;
+  arenacentery = (arenar1+arenar2)/2;
+  arenaradius = ((arenar2-arenar1+1)+(arenac2-arenac1+1))/2;
+  arenatype = 'Circle';
+
+else
+  
+  ctraxdata = load(inctraxfile);
+  fps = median([ctraxdata.trx.fps]);
+  pxpermm = median([ctraxdata.trx.pxpermm]);
+  arenacenterx = median(cellfun(@(x) x.x, {ctraxdata.trx.arena}));
+  arenacentery = median(cellfun(@(x) x.y, {ctraxdata.trx.arena}));
+  arenaradius = median(cellfun(@(x) x.r, {ctraxdata.trx.arena}));
+  arenatype = 'Circle';
+  
+end
 
 %% convert
 
@@ -104,7 +120,16 @@ idxnums.fgarea = find(strcmp(td.trk.names,'fg area'));
 idxnums.imgcontrast = find(strcmp(td.trk.names,'img contrast'));
 idxnums.minfgdist = find(strcmp(td.trk.names,'min fg dist'));
 
-timestamps = td.trk.frame_ids/fps;
+if isfield(td.trk,'frame_ids'),
+  timestamps = td.trk.frame_ids/fps;
+elseif ~isempty(inctraxfile),
+  timestamps = ctraxdata.timestamps;
+  td.trk.frame_ids = (0:size(td.trk.data,2)-1);
+else
+  timestamps = (0:size(td.trk.data,2)-1)/fps;
+  td.trk.frame_ids = (0:size(td.trk.data,2)-1);
+end
+  
 
 trx = struct;
 pd = struct;

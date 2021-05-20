@@ -4316,7 +4316,7 @@ classdef JLabelData < matlab.mixin.Copyable
             if obj.fromAPT
               trkfilename = obj.GetFile('trk',expi);
               if any(cellfun(@(x) ~exist(x,'file'),trkfilename))
-                msg = sprintf('APT Trk file %s does not exist',trxfilename);
+                msg = sprintf('APT Trk file %s does not exist',trkfilename);
                 success = false;
                 return;
               end
@@ -5555,6 +5555,8 @@ classdef JLabelData < matlab.mixin.Copyable
       numFlies = obj.GetNumFlies(expi);
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
+      
+      [~,firstFly] = max(tEndAll-tStartAll+1);
       perframefile = obj.GetPerframeFiles(expi);
       allperframefns = obj.allperframefns;
       clsNames = obj.classifiernames;
@@ -5583,7 +5585,7 @@ classdef JLabelData < matlab.mixin.Copyable
           classifier = obj.fastPredict(iCls).classifier;
           if ~obj.fastPredict(iCls).wfidx_valid
             [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-              allperframefns,perframefile,1,windowfeaturescellparams,1,1);
+              allperframefns,perframefile,firstFly,windowfeaturescellparams,1,1);
             obj.fastPredict(iCls) = Predict.fastPredictFindWfidx(...
               obj.fastPredict(iCls),feature_names);
           end
@@ -7785,9 +7787,13 @@ classdef JLabelData < matlab.mixin.Copyable
       % verify windowFeatureNames in classifierStuff
       for iBeh = 1:nrealbeh
         cs = classifierStuff(iBeh);
-        if ~isempty(cs.featureNames) && ...
-           ~isempty(cs.featureNames{1}) && ...
-           ~isequal(cs.featureNames,self.windowdata(iBeh).featurenames)
+        % KB 20201208
+        % changing featureNames to a dependent variable, try not to create
+        % it many times
+        featureNames = cs.featureNames;
+        if ~isempty(featureNames) && ...
+           ~isempty(featureNames{1}) && ...
+           ~isequal(featureNames,self.windowdata(iBeh).featurenames)
           warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier ''%s'' shouldn''t be used; retrain a new classifier.',...
             self.labelnames{iBeh});
           uiwait(warndlg(warnstr));
