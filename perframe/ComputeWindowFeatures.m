@@ -285,6 +285,12 @@ nx = x(~isnan(x));
 if numel(nx)>nsamples,
   sx = round(linspace(1,numel(nx),nsamples));
   relativeBins = prctile(nx(sx),prcBins);
+elseif isempty(nx),
+  % dummy value -- these don't do anything
+  relativeBins = linspace(0,1,numel(prcBins));
+elseif min(nx) == max(nx),
+  % everything will be in the middle bin
+  relativeBins = linspace(min(nx)-.1,max(nx)+.1,numel(prcBins));
 else
   relativeBins = prctile(nx,prcBins);
 end  

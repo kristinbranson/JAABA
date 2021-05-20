@@ -10,11 +10,28 @@ classdef ClassifierStuff < handle
     scoreNorm % AL does windowdata.scoreNorm dup .scoreNorm?
     postProcessParams
     trainingParams
-    featureNames
+    %featureNames
     windowdata 
     savewindowdata
     predictOnlyCurrentFly
     selFeatures
+  end
+  
+  % store featureCodes instead
+  properties (Dependent)
+    
+    featureNames
+    
+  end
+  
+  % use featureCode instead of featureNames to save space
+  properties (Access = public)
+    
+    featureCodes
+    perframeFeatureNames
+    statNames
+    transNames
+    
   end
   
   methods
@@ -44,7 +61,14 @@ classdef ClassifierStuff < handle
                'baseClassifierTypes','Decision Stumps', ...
                'baseClassifierSelected',1,...
                'nselfeatures',1000);
-      self.featureNames = {};
+             
+      % KB 20201208
+      % replace featureNames with a code, make featureNames be dependent
+      % variable
+      self.featureCodes = nan(0,5);
+      self.perframeFeatureNames = {};
+      self.statNames = {};
+      self.transNames = {};
       self.windowdata = WindowData.windowdata(0);
       self.savewindowdata = false;
       self.predictOnlyCurrentFly = false;
@@ -140,6 +164,17 @@ classdef ClassifierStuff < handle
           tfmodified = true;
       end
       
+    end
+    
+    function set.featureNames(obj,featureNames)
+      
+      [obj.featureCodes,obj.perframeFeatureNames,obj.statNames,obj.transNames] = ...
+        windowFeatureNames2Codes(featureNames);
+      
+    end
+    
+    function featureNames = get.featureNames(obj)
+      featureNames = windowFeatureCodes2Names(obj.featureCodes,obj.perframeFeatureNames,obj.statNames,obj.transNames);
     end
     
   end 

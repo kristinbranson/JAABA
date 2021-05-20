@@ -4,18 +4,18 @@ function outfiles = split_ufmf(infile,outfilestr,chunksize,varargin)
   myparse(varargin,'startframe',1,'endframe',inf,'dooverwrite',false);
 
 % read in the header
-header = ufmf_read_header(infile);
-endframe = min(endframe,header.nframes);
+input_header = ufmf_read_header(infile);
+endframe = min(endframe,input_header.nframes);
 noutfiles = ceil((endframe-startframe+1)/chunksize);
 
 % find the end of the header
 headerstart = 0;
 % loc of something after the header
-headerend = min(min(header.mean2file),min(header.frame2file));
+headerend = min(min(input_header.mean2file),min(input_header.frame2file));
 
 % read in the header
-fseek(header.fid,headerstart,'bof');
-headerbytes = fread(header.fid,headerend-headerstart);
+fseek(input_header.fid,headerstart,'bof');
+headerbytes = fread(input_header.fid,headerend-headerstart);
 
 outfiles = cell(1,noutfiles);
 for outi = 1:noutfiles,
@@ -27,26 +27,29 @@ for outi = 1:noutfiles,
   if exist(outfiles{outi},'file') && ~dooverwrite,
     res = input(sprintf('File %s exists. Overwrite? (y/N): ',outfiles{outi}),'s');
     if ~strcmpi(res,'y'),
-      fclose(header.fid);
+      fclose(input_header.fid);
       return;
     end
   end
   
-  fidout = fopen( outfiles{outi}, 'wb' , 'ieee-le');
-  assert(fidout > 0);
+  output_fid = fopen( outfiles{outi}, 'wb' , 'ieee-le');
+  if output_fid < 0 ,
+    error('Unable to open output file %s', output_file_name) ;
+  end
+  cleaner = onCleanup(@()(fclose(output_fid))) ;
   
   % write the header
-  fwrite(fidout,headerbytes);
+  fwrite(output_fid,headerbytes);
   
   lastmean = nan;
   
   index = struct;
   index.frame = struct;
-  index.frame.loc = [];
-  index.frame.timestamp = header.timestamps(t0:t1);
+  index.frame.loc = int64([]);
+  index.frame.timestamp = input_header.timestamps(t0:t1);
   index.keyframe = struct;
   index.keyframe.mean = struct;
-  index.keyframe.mean.loc = [];
+  index.keyframe.mean.loc = int64([]);
   index.keyframe.mean.timestamp = [];
   
 
@@ -54,31 +57,39 @@ for outi = 1:noutfiles,
   for t = t0:t1,
 
     % write a mean
-    if header.frame2mean(t) ~= lastmean,
-      meanstart = header.mean2file(header.frame2mean(t));
-      meanend = min([min(header.mean2file(header.mean2file>meanstart)),...
-        min(header.frame2file(header.frame2file>meanstart)),...
-        header.indexloc]);
+    if input_header.frame2mean(t) ~= lastmean,
+      meanstart = input_header.mean2file(input_header.frame2mean(t));
+      meanend = min([min(input_header.mean2file(input_header.mean2file>meanstart)),...
+        min(input_header.frame2file(input_header.frame2file>meanstart)),...
+        input_header.indexloc]);
       assert(~isempty(meanend) && ~isnan(meanend));
-      index.keyframe.mean.loc(end+1) = ftell(fidout);
-      index.keyframe.mean.timestamp(end+1) = header.mean_timestamps(header.frame2mean(t));
-      fseek(header.fid,meanstart,'bof');
-      fwrite(fidout,fread(header.fid,meanend-meanstart));
-      lastmean = header.frame2mean(t);
+      index.keyframe.mean.loc(end+1) = ftell(output_fid);
+      index.keyframe.mean.timestamp(end+1) = input_header.mean_timestamps(input_header.frame2mean(t));
+      fseek(input_header.fid,meanstart,'bof');
+      fwrite(output_fid,fread(input_header.fid,meanend-meanstart));
+      lastmean = input_header.frame2mean(t);
     end
     
-    framestart = header.frame2file(t);
-    frameend = min([min(header.mean2file(header.mean2file>framestart)),...
-        min(header.frame2file(header.frame2file>framestart)),...
-        header.indexloc]);
+    framestart = input_header.frame2file(t);
+    frameend = min([min(input_header.mean2file(input_header.mean2file>framestart)),...
+        min(input_header.frame2file(input_header.frame2file>framestart)),...
+        input_header.indexloc]);
     assert(~isempty(frameend) && ~isnan(frameend));
-    fseek(header.fid,framestart,'bof');
-    index.frame.loc(end+1) = ftell(fidout);
-    fwrite(fidout,fread(header.fid,frameend-framestart));
+    fseek(input_header.fid,framestart,'bof');
+    index.frame.loc(end+1) = ftell(output_fid);
+    fwrite(output_fid,fread(input_header.fid,frameend-framestart));
   end
   
-  % write the index
-  wrapupUFMF(fidout,index,header.indexlocloc);
-  fclose(fidout);
+%   % write the index
+%   wrapupUFMF(fidout,index,header.indexlocloc);
+%   fclose(fidout);
   
+  % write the index
+  index_offset = ftell(output_fid) ;
+  ufmf_write_struct(output_fid, index) ; 
+  
+  % overwrite the index location in the header
+  offset = input_header.indexlocloc ;  % The offset where we should write the index offset
+  fseek(output_fid, offset, 'bof') ;
+  fwrite(output_fid, index_offset, 'uint64') ;  
 end
