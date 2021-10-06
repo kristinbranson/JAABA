@@ -131,6 +131,8 @@ handles.has_crops = ~isempty(apt.movieFilesAllCropInfo{1});
 aptStruct.n_pts = apt.cfg.NumLabelPoints;
 aptStruct.skeletonEdges = apt.skeletonEdges;
 if handles.is_ma
+  handles.use_theta = false;
+  
   assert 'APT multi-animal projects not yet implemented';
 elseif handles.has_trx
   handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
