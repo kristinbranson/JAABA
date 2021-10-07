@@ -3435,7 +3435,7 @@ scores = handles.data.NormalizeScores(scoresidx);
 
 % Set the x,y for the predictions to nan, so they don't show up except
 % where we set them below
-labelsPlotOffset = handles.guidata.labels_plot.off;
+labelsPlotOffset = double(handles.guidata.labels_plot.off);
 iFirst = t0+labelsPlotOffset;
 iLast = t1+labelsPlotOffset;
 

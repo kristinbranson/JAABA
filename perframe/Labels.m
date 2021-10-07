@@ -717,8 +717,8 @@ classdef Labels
       if labelidx.nTL==1
         [i0s,i1s] = get_interval_ends(labelidx.imp);
         if ~isempty(i0s)
-          labelsShort.imp_t0s = i0s - labelidx.off;
-          labelsShort.imp_t1s = i1s - labelidx.off;
+          labelsShort.imp_t0s = i0s - double(labelidx.off);
+          labelsShort.imp_t1s = i1s - double(labelidx.off);
         end
       else
         % ALXXX EXTENDED
