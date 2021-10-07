@@ -104,9 +104,9 @@ classdef LabelsPlot
         
         idx = find(tfBeh);
         if isempty(idx)
-          idx1 = labels_plot.n;
+          idx1 = double(labels_plot.n);
         else
-          idx1 = min(idx+1,labels_plot.n);
+          idx1 = min(idx+1,double(labels_plot.n));
         end
         labels_plot.x(1,idx,ibeh,ifly) = x(idx);
         labels_plot.x(2,idx,ibeh,ifly) = x(idx1);
