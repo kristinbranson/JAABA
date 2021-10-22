@@ -8,7 +8,8 @@ try
   fprintf('... done with untar.\n');
   rawLblFile = fullfile(tname,'label_file.lbl');
 catch ME
-  if strcmp(ME.identifier,'MATLAB:untar:invalidTarFile')
+  if strcmp(ME.identifier,'MATLAB:untar:invalidTarFile') || ...
+      strcmp(ME.identifier,'MATLAB:io:archive:untar:invalidTarFile')
     warningNoTrace('Label file %s is not bundled. Using it in raw (mat) format.',lbl_file);
     rawLblFile = lbl_file;
   else
