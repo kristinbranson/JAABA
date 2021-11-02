@@ -11,6 +11,6 @@ addpath(fullfile(jlabelpath,'compute_perframe_features'));
 addpath(fullfile(baseDir,'perframe','params'));
 addpath(fullfile(baseDir,'tests'));
 st_dir = fullfile(baseDir,'spaceTime'); 
-addpath(st_dir);
 addpath(genpath(st_dir));
-addpath(genpath(st_dir));
+adam_dir = fullfile(baseDir,'spaceTime','adamMice'); 
+rmpath(genpath(adam_dir));
