@@ -3455,11 +3455,11 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       if nargin < 3,
-        t0 = obj.firstframes_per_exp{expi};
+        t0 = double(obj.firstframes_per_exp{expi});
         return;
       end
 
-      t0 = obj.firstframes_per_exp{expi}(flies);
+      t0 = double(obj.firstframes_per_exp{expi}(flies));
       
     end
 
@@ -3475,11 +3475,11 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       if nargin < 3,
-        t1 = obj.endframes_per_exp{expi};
+        t1 = double(obj.endframes_per_exp{expi});
         return;
       end
 
-      t1 = obj.endframes_per_exp{expi}(flies);
+      t1 = double(obj.endframes_per_exp{expi}(flies));
       
     end
     
@@ -3963,7 +3963,7 @@ classdef JLabelData < matlab.mixin.Copyable
               for j = 1:numel(labels_curr.t0s),
                 ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
               end
-              assert(isequal(sort(ts+labelIdx.off),sort(find(labelIdxVals{flyi}))));
+              assert(isequal(sort(ts+double(labelIdx.off)),sort(find(labelIdxVals{flyi}))));
             else
               % Just use labelIdxVals{flyi} and trust that it is the right
               % thing.
@@ -3977,8 +3977,8 @@ classdef JLabelData < matlab.mixin.Copyable
               idxcurr = obj.FlyNdx(expi,flies,iCls);
               tscurr = obj.windowdata(iCls).t(idxcurr); % object{flyi}.windowdata_t_flyndx
               t0_labelidx = labelIdxT0{flyi};
-              obj.windowdata(iCls).labelidx_new(idxcurr) = labelIdxVals{flyi}(tscurr-t0_labelidx+1);
-              obj.windowdata(iCls).labelidx_imp(idxcurr) = labelIdxImp{flyi}(tscurr-t0_labelidx+1);
+              obj.windowdata(iCls).labelidx_new(idxcurr) = labelIdxVals{flyi}(tscurr-double(t0_labelidx)+1);
+              obj.windowdata(iCls).labelidx_imp(idxcurr) = labelIdxImp{flyi}(tscurr-double(t0_labelidx)+1);
               missingts{flyi} = setdiff(ts,tscurr);
             end
 
@@ -5750,12 +5750,12 @@ classdef JLabelData < matlab.mixin.Copyable
         if nargin < 4,
           prediction = struct('predictedidx',obj.predictedidx,...
                               'scoresidx', obj.scoresidx);
-          T0 = obj.t0_curr;
-          T1 = obj.t1_curr;
+          T0 = double(obj.t0_curr);
+          T1 = double(obj.t1_curr);
         else
           if T0<obj.t0_curr || T1>obj.t1_curr
-            T0 = max(obj.t0_curr,T0);
-            T1 = min(obj.t1_curr,T1);
+            T0 = double(max(obj.t0_curr,T0));
+            T1 = double(min(obj.t1_curr,T1));
           end
           prediction = struct(...
             'predictedidx', obj.predictedidx(:,T0+obj.labelidx_off:T1+obj.labelidx_off),...
@@ -6065,7 +6065,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % predictism(i) is whether t0+idxism(i)-1 is in predictdata
       % predictidx(i) is the location in predictdata{expi}{flies} of
       % t0+idxism-1
-      [predictism,predictidx] = ismember(t0+idxism-1,obj.predictdata{expi}{flies}(clsIdx).t);
+      [predictism,predictidx] = ismember(double(t0)+idxism-1,obj.predictdata{expi}{flies}(clsIdx).t);
       assert(all(predictism),'There are ts requested that are not in predictdata');
       obj.predictdata{expi}{flies}(clsIdx).cur(predictidx) = scores;
       obj.predictdata{expi}{flies}(clsIdx).timestamp(predictidx) = obj.classifierTS(clsIdx);
@@ -6133,7 +6133,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus('Predicting for classifier %s...',obj.labelnames{iCls});
       
       pd = obj.predictdata{expi}{flies}(iCls);
-      missingts = pd.t(pd.t>=t0 & pd.t<=t1);
+      missingts = double(pd.t(pd.t>=t0 & pd.t<=t1));
       nmissingts = inf;
       
       DEBUG = false;
@@ -6147,7 +6147,7 @@ classdef JLabelData < matlab.mixin.Copyable
         % - Choose a frame missing window data
         % - Try to use an existing predict block if available
         
-        t = missingts(1);
+        t = double(missingts(1));
         curblockndx = obj.predictblocks(iCls).expi==expi & obj.predictblocks(iCls).flies==flies;
         curbs_t0 = obj.predictblocks(iCls).t0(curblockndx);
         curbs_t1 = obj.predictblocks(iCls).t1(curblockndx);

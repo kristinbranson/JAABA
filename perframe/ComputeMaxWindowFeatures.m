@@ -110,9 +110,9 @@ relativeParams = [];
 % initialize feature_types already computed to empty
 %feature_types = {};
 
-if N == 0,
-  return;
-end
+% if N == 0,
+%   return;
+% end
 
 %% parse parameters
 
