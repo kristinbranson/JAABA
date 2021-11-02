@@ -102,6 +102,7 @@ if docompute,
       % histogram
       for i = 0:nbehaviors,
         idx = ~isnan(x) & labelidx == i;
+        if ~any(idx), continue; end
         n(i+1) = n(i+1) + nnz(idx);
         counts_curr = histc(x(idx),edges);
         counts(i+1,:) = counts(i+1,:) + counts_curr(1:end-1);
