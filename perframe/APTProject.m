@@ -131,6 +131,8 @@ handles.has_crops = ~isempty(apt.movieFilesAllCropInfo{1});
 aptStruct.n_pts = apt.cfg.NumLabelPoints;
 aptStruct.skeletonEdges = apt.skeletonEdges;
 if handles.is_ma
+  handles.use_theta = false;
+  
   assert 'APT multi-animal projects not yet implemented';
 elseif handles.has_trx
   handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
@@ -248,6 +250,7 @@ end
 % load a reference image and point locations.
 apt = handles.apt;
 has_ref_img = false;
+has_mov = true;
 for ndx = 1:size(apt.movieFilesAll,1)
   has_label = false;
   tndx_to_use = 1;
@@ -284,15 +287,55 @@ for ndx = 1:size(apt.movieFilesAll,1)
   if ~has_label
     continue;
   end
-
+  
+  mov_files = {};
+  trx_files = {};
+  for m_ndx = 1:size(apt.movieFilesAll,2)
+    mov_file = unMacroise(apt.movieFilesAll{ndx,m_ndx},apt);
+    if ~exist(mov_file,'file')      
+      [bdir,mname,mext] =fileparts(mov_file);
+      qstr = sprintf('JAABA needs movie file %s%s to show a reference labeled example, but it does not exist at location %s. Browse to movie? If you select no, no reference image will be shown.',mname,mext,bdir);
+      res = questdlg(qstr,'Missing movie file...','Yes','No','Cancel','Yes');
+      if strcmp(res,'Yes')
+        [fname,fpath] = uigetfile('',['Missing ' mov_file]);
+        if ~isequal(fname,0)
+          mov_files{end+1} = fullfile(fpath,fname);
+          if handles.has_trx
+            trx_file = getTrxFile(apt.trxFilesAll{ndx},mov_file);
+            [fname,fpath] = uigetfile('',['Missing ' trx_file]);
+            trx_files{end+1} = fullfile(fpath,fname);
+          end
+        else
+          has_mov = false;
+          break;
+        end
+      else
+        has_mov = false;
+        break;
+      end
+    else
+      mov_files{end+1} = mov_file;
+    end
+  end
+  
+  if ~has_mov
+    break;
+  end
+  
   has_ref_img = true;
   img = []; all_locs = []; prev_width = 0;
   for m_ndx = 1:size(apt.movieFilesAll,2)
-    mov_file = unMacroise(apt.movieFilesAll{ndx,m_ndx},apt);
-    rfn = get_readframe_fcn(mov_file);
-    cur_img = rfn(frm);
+    mov_file = mov_files{m_ndx};
+    if has_mov
+      rfn = get_readframe_fcn(mov_file);
+      cur_img = rfn(frm);
+    else
+      nr = apt.movieInfoAll{ndx,m_ndx}.info.nr;
+      nc = apt.movieInfoAll{ndx,m_ndx}.info.nc;
+      cur_img = zeros(nr,nc);
+    end
     if handles.has_trx,
-      trx = load(getTrxFile(apt.trxFilesAll{ndx},mov_file),'-mat');
+      trx = load(trx_files{m_ndx},'-mat');
       trx = trx.trx(tndx_to_use);
       off = trx.off;
       x = trx.x(frm+off);

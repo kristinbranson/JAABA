@@ -1884,19 +1884,25 @@ if gdata.behaviorFocusOn
     
     [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predFoc ~= 0 & ...
       labelidx.vals ~= predFoc);
-    error_t0s = error_t0s + jldata.t0_curr - 1.5;
-    error_t1s = error_t1s + jldata.t0_curr - 1.5;
+    if ~isempty(error_t0s)
+      error_t0s = error_t0s + jldata.t0_curr - 1.5;
+      error_t1s = error_t1s + jldata.t0_curr - 1.5;
+    end
     gdata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
     set(gdata.htimeline_errors,'XData',gdata.labels_plot.error_xs,...
       'YData',zeros(size(gdata.labels_plot.error_xs))+1.5);
 
     [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predFoc ~= 0);
+    if ~isempty(suggest_t0s)
     suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
     suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
+    end
     gdata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
     [suggest_t0s,suggest_t1s] = get_interval_ends(jldata.GetGTSuggestionIdx(jldata.expi,jldata.flies));
+    if ~isempty(suggest_t0s)
     suggest_t0s = suggest_t0s + jldata.t0_curr - 1.5;
     suggest_t1s = suggest_t1s + jldata.t0_curr - 1.5;
+    end
     gdata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
     if ~jldata.IsGTMode,
       set(gdata.htimeline_suggestions,'XData',gdata.labels_plot.suggest_xs,...
@@ -3429,7 +3435,7 @@ scores = handles.data.NormalizeScores(scoresidx);
 
 % Set the x,y for the predictions to nan, so they don't show up except
 % where we set them below
-labelsPlotOffset = handles.guidata.labels_plot.off;
+labelsPlotOffset = double(handles.guidata.labels_plot.off);
 iFirst = t0+labelsPlotOffset;
 iLast = t1+labelsPlotOffset;
 
