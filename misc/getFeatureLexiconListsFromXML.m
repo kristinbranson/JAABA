@@ -1,7 +1,7 @@
 function [featureLexiconNameList, ...
           featureLexiconFileNameList, ...
           featureLexiconAnimalTypeList] = ...
-  getFeatureLexiconListsFromXML()
+  getFeatureLexiconListsFromXML(jaabarootdir)
 
 % Figure out the name of the XML file holding the list of the possible
 % feature lexicons
@@ -9,6 +9,10 @@ if isdeployed,
   filename = deployedRelative2Global('params/featureConfigList.xml');
 else
   filename = 'featureConfigList.xml';
+  if nargin >= 1,
+    filename = fullfile(jaabarootdir,'perframe','params',filename);
+  end
+
 end
 % Read in the XML file
 featureLexiconListThing = ReadXMLParams(filename);
@@ -28,6 +32,9 @@ featureLexiconAnimalTypeList=cell(nFeatureLexicons,1);
 for i=1:nFeatureLexicons
   featureLexiconName=featureLexiconNameList{i};
   featureLexiconFileNameList{i}=featureLexiconListThing.(featureLexiconName).file;
+  if nargin >= 1,
+    featureLexiconFileNameList{i} = fullfile(jaabarootdir,'perframe',featureLexiconFileNameList{i});
+  end
   featureLexiconAnimalTypeList{i}=featureLexiconListThing.(featureLexiconName).animal;
 end
 
