@@ -13,7 +13,7 @@ nonebehavior = data.nobehaviornames;
 info.allnames = [behaviors,nonebehavior];
 nbehaviors = numel(info.allnames);
 
-expinfo = regexp(expnames,'^(?<type>.*)(_Rig(?<rig>\w))?_(?<timestamp>\d{8}T\d{6})$','names','once');  
+expinfo = regexp(expnames,'^(?<type>.*)_Rig(?<rig>\w)_(?<timestamp>\d{8}T\d{6})$','names','once');  
   
 expinfo = [expinfo{:}];
 [info.types,~,typeidx] = unique({expinfo.type});
