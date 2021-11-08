@@ -83,8 +83,9 @@ fprintf('\nLabels per experiment:\n');
 expnamelens = cellfun(@numel,expnames);
 maxexpnamelen = max(expnamelens);
 for expi = 1:numel(expinfo),
+  labeli = find(strcmp(info.labels,expinfo(expi).label),1);
   for behi = 1:nbehaviors,
-    fprintf('%s%s %s%s:\t',expnames{expi},repmat(' ',[1,maxexpnamelen-expnamelens(expi)]),...
+    fprintf('%s%s %s%s %s%s:\t',expinfo(expi).label,repmat(' ',[1,maxlabellen-labellens(labeli)]),expnames{expi},repmat(' ',[1,maxexpnamelen-expnamelens(expi)]),...
       info.allnames{behi},repmat(' ',[1,maxnamelen-namelens(behi)]));
     fprintf('%3d flies, %6d bouts, %6d frames\n',info.nlabelfliesperexp(expi,behi),info.nlabelboutsperexp(expi,behi),info.nlabelframesperexp(expi,behi));
   end
