@@ -1,4 +1,4 @@
-% [X,Y] = ellipsepoints(a,b,x0,y0,phi)
+% [X,Y] = ellipsepoints(a,b,x0,y0,phi,[npoints])
 function [X,Y,theta] = ellipsepoints(a,b,x0,y0,phi,npoints)
 
 if (nargin < 2)||(nargin > 6),
