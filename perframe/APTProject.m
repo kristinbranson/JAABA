@@ -58,15 +58,12 @@ handles.output = hObject;
 [lbl_file,aptStruct] = myparse(varargin,'lbl_file','','aptStruct',struct());
 
 aptStruct.lbl_file = lbl_file;
-if isfield(aptStruct,'featureLexicon'),
-  
-else
+if ~isfield(aptStruct,'featureLexicon')
   aptStruct.featureLexicon = [];
   aptStruct.featureLexiconName = '';
 end
 
-if isfield(aptStruct,'origFeatureLexiconName'),
-else
+if ~isfield(aptStruct,'origFeatureLexiconName')
   aptStruct.origFeatureLexiconName = '';
 end
 if isfield(aptStruct,'animalType'),
@@ -135,8 +132,13 @@ if handles.is_ma
   
   assert 'APT multi-animal projects not yet implemented';
 elseif handles.has_trx
-  handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
-  sz = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.Radius;
+  if isfield(apt.trackParams.ROOT.ImageProcessing.MultiTarget,'TargetCrop')
+    handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
+    sz = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.Radius;
+  else
+    handle.use_theta = apt.trackParams.ROOT.MultiAnimal.TargetCrop.AlignUsingTrxTheta;
+    sz = apt.trackParams.ROOT.MultiAnimal.TargetCrop.ManualRadius;
+  end
   handles.sz = [sz,sz];
 elseif handles.has_crops
   % dont use theta if there is no trx file. 
@@ -315,6 +317,7 @@ for ndx = 1:size(apt.movieFilesAll,1)
       end
     else
       mov_files{end+1} = mov_file;
+      trx_files{end+1} = unMacroise(apt.trxFilesAll{ndx,m_ndx},apt);
     end
   end
   
