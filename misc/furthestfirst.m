@@ -43,6 +43,13 @@ if isnumeric(start) && ~isempty(start)
 elseif strcmpi(start,'mean'),
   mu(1,:) = sum( x.*repmat(weights,[1,d]), 1 ) / sum(weights);
   mu_idx(1) = nan;
+elseif strcmpi(start,'nearmean'),
+  % compute the mean
+  m = sum( x.*repmat(weights,[1,d]), 1 ) / sum(weights);
+  % find the point closest to the mean
+  dm = distfun(x,m,distance);
+  [~,mu_idx(1)] = min(dm);
+  mu(1,:) = x(mu_idx(1),:);
 else
   i = randsample(n,1,true,weights);
   mu(1,:) = x(i,:);
