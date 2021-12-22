@@ -1,20 +1,31 @@
-function info = getJAABALabelStats(expinfo,info)
+function info = getJAABALabelStats(expinfo,info,jabfile)
 %%
 
-isinfo = nargin >= 2;
+isinfo = nargin >= 2 && ~isempty(info);
+isjabfile = nargin >= 3;
 
 hfig = findall(0,'type','figure','Name','JAABA');
 assert(numel(hfig)==1);
 
-
-gdata = guidata(hfig);
-data = gdata.data;
-data.GetLabels();
+if isjabfile,
+  data = loadAnonymous(jabfile);
+  expnames = cellfun(@fileBaseName,data.expDirNames,'Uni',0);
+  nbeh = numel(data.behaviors.names)/2;
+  behaviors = data.behaviors.names(1:nbeh);
+  nonebehavior = data.behaviors.names(nbeh+1:end);
+else
+  gdata = guidata(hfig);
+  data = gdata.data;
+  data.GetLabels();
+  expnames = data.expnames;
+  behaviors = data.classifiernames;
+  nonebehavior = data.nobehaviornames;
+end
 labels = data.labels;
-expnames = data.expnames;
-behaviors = data.classifiernames;
-nonebehavior = data.nobehaviornames;
-info.allnames = [behaviors,nonebehavior];
+
+if ~isinfo,
+  info.allnames = [behaviors,nonebehavior];
+end
 nbehaviors = numel(info.allnames);
 
 if nargin >= 1,
@@ -95,4 +106,22 @@ for expi = 1:numel(expinfo),
       info.allnames{behi},repmat(' ',[1,maxnamelen-namelens(behi)]));
     fprintf('%3d flies, %6d bouts, %6d frames\n',info.nlabelfliesperexp(expi,behi),info.nlabelboutsperexp(expi,behi),info.nlabelframesperexp(expi,behi));
   end
+end
+
+%% code for comparing videos labeled in two jab files
+
+if false,
+%%
+
+currinfo = getJAABALabelStats(mabeinfo.exp_info);
+weislabeledexp = sum(wingextensioninfo.nlabelfliesperexp,2)>0;
+currislabeledexp = sum(currinfo.nlabelfliesperexp,2)>0;
+tolabel = ~currislabeledexp & weislabeledexp;
+expdirs2label = {mabeinfo.exp_info(tolabel).file_system_path};
+for i = 1:numel(expdirs2label),
+  fprintf('%s\n',fileBaseName(expdirs2label{i}));
+end
+
+
+%%
 end
