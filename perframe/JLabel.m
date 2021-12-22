@@ -1240,7 +1240,7 @@ for i = axes2,
         ypred = handles.guidata.labels_plot.predy(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
         set(handles.guidata.hpredicted(i,j),'XData',xpred(:),'YData',ypred(:));
       end
-      if handles.guidata.label_state~=0,
+      if handles.guidata.label_state~=0 && ~isempty(handles.label_t0),
         ts = sort([handles.label_t0,handles.guidata.ts(1)]);
         t0 = max(t0,ts(1));
         t1 = min(t1,ts(2)+1);
