@@ -4,9 +4,6 @@ function info = getJAABALabelStats(expinfo,info,jabfile)
 isinfo = nargin >= 2 && ~isempty(info);
 isjabfile = nargin >= 3;
 
-hfig = findall(0,'type','figure','Name','JAABA');
-assert(numel(hfig)==1);
-
 if isjabfile,
   data = loadAnonymous(jabfile);
   expnames = cellfun(@fileBaseName,data.expDirNames,'Uni',0);
@@ -14,6 +11,8 @@ if isjabfile,
   behaviors = data.behaviors.names(1:nbeh);
   nonebehavior = data.behaviors.names(nbeh+1:end);
 else
+  hfig = findall(0,'type','figure','Name','JAABA');
+  assert(numel(hfig)==1);
   gdata = guidata(hfig);
   data = gdata.data;
   data.GetLabels();
