@@ -16,8 +16,6 @@ perframe/.PrepareJAABAData_rc.mat
 *.pdf
 *.mat
 untitled*.m
-*tmp*
-*test*
 *txt
 *.dat
 *.png
