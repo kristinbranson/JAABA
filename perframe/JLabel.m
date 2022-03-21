@@ -1369,9 +1369,10 @@ end
 
 if handles.guidata.thisMoviePresent
   maxEndFrame = handles.data.GetMaxEndFrame();
+  
   if handles.guidata.nframes < maxEndFrame
-    warnstr = sprintf('Movie %s contains only %d frames, while trajectories extend to frame %d. Navigating past end of movie will cause an error.',...
-      handles.guidata.nframes,maxEndFrame);
+    warnstr = sprintf('Movie number %d contains only %d frames, while trajectories extend to frame %d. Navigating past end of movie will cause an error.',...
+      handles.data.GetExp(),handles.guidata.nframes,maxEndFrame);
     % ALTODO: not user-friendly to just harderror if they navigate past end
     % of movie. Enhancement, add method to JLabelData to crop
     % JLabelData.trx, JLabelData.endframes_per_exp.
