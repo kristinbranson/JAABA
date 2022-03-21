@@ -655,10 +655,14 @@ classdef JLabelData < matlab.mixin.Copyable
       nCls = obj.nclassifiers;
       oldNoBeh = obj.labelnames{iCls+nCls};
       newNoBeh = Labels.noneOrNoBehaviorName(newBeh,nCls);
-      assert(isequal(obj.labelidx.labelnames,obj.labelnames));
+      if isfield(obj.labelidx,'labelnames'),
+        assert(isequal(obj.labelidx.labelnames,obj.labelnames));
+      end
       obj.labelnames{iCls} = newBeh;
       obj.labelnames{iCls+nCls} = newNoBeh;
-      obj.labelidx.labelnames = obj.labelnames;
+      if isfield(obj.labelidx,'labelnames'),
+        obj.labelidx.labelnames = obj.labelnames;
+      end
       obj.labels = Labels.renameBehavior(obj.labels,oldBeh,newBeh,oldNoBeh,newNoBeh);
       
       if ~isempty(obj.otherModeLabelsEtc.labels)
@@ -2058,6 +2062,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
 %          try
            if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
+             fprintf('%s...\n',fn);
             perframetrx.(fn);
            end        
 %          catch excp
@@ -10192,7 +10197,7 @@ classdef JLabelData < matlab.mixin.Copyable
         fclose(vid);
         obj.version = vv{1}{1};
       catch ME
-        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  
+        warning('Cannot detect JAABA Version. Setting it to 0.0. Error:\n%s',getReport(ME));  
         obj.version = '0.0';
       end
       
