@@ -4,6 +4,8 @@ classdef file_object < handle
     
     properties (Access = protected)
         fid_ = []
+        uid_ = []
+        file_name_ = []
     end
     
     methods
@@ -11,6 +13,9 @@ classdef file_object < handle
             [fid, msg] = fopen(varargin{:}) ;
             if fid >= 0 ,
                 self.fid_ = fid ;
+                self.uid_ = randi([1 1000000]) ;
+                self.file_name_ = varargin{1} ;
+                %warning('In file_object with UID %d, on file %s, just fopened a file, got fid %d', self.uid_, self.file_name_, fid) ;
             else
                 error('file_object:unable_to_open', msg) ;
             end
@@ -71,12 +76,26 @@ classdef file_object < handle
         end
         
         function fclose(self)
-            if isempty(self.fid_) ,
+            fid = self.fid_ ;
+            if isempty(fid) ,
                 % make it the canonical empty array
                 self.fid_ = [] ;
             else
-                if self.fid_ >= 0 ,
-                    fclose(self.fid_) ;
+                if fid >= 0 ,
+%                     if isempty(self.uid_) ,
+%                         warning('In file_object with *empty* UID, on file %s, about to fclose a file with fid %d', self.file_name_, fid) ;
+%                     else
+%                         warning('In file_object with UID %d, on file %s, about to fclose a file with fid %d', self.uid_, self.file_name_, fid) ;
+%                     end
+                    %try
+                    fclose(fid) ;
+%                     catch me
+%                         if strcmp(me.identifier, 'MATLAB:FileIO:InvalidFid') ,
+%                             % ignore it
+%                         else
+%                             rethrow(me) ;
+%                         end
+%                     end
                 end
                 % make it the canonical empty array
                 self.fid_ = [] ;
