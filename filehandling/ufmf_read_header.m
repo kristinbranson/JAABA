@@ -6,13 +6,13 @@ MAXNMEANSCACHED = 5;
 header.filename = filename;
 
 % open the file for reading, binary, little-endian
+fp = fopen( filename, 'rb' , 'ieee-le');
 if ~exist(filename,'file'),
   error('File %s does not exist',filename);
 end
-fp = file_object(filename, 'rb' , 'ieee-le');
-% if fp < 0,
-%   error('File %s exists, but could not open it in rb mode',filename);
-% end
+if fp < 0,
+  error('File %s exists, but could not open it in rb mode',filename);
+end
 header.fid = fp;
 
 % ufmf: 4
