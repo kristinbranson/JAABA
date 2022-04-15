@@ -1,16 +1,30 @@
-function info = getJAABALabelStats(expinfo)
+function info = getJAABALabelStats(expinfo,info,jabfile)
 %%
-hfig = findall(0,'type','figure','Name','JAABA');
-assert(numel(hfig)==1);
 
-gdata = guidata(hfig);
-data = gdata.data;
-data.GetLabels();
+isinfo = nargin >= 2 && ~isempty(info);
+isjabfile = nargin >= 3;
+
+if isjabfile,
+  data = loadAnonymous(jabfile);
+  expnames = cellfun(@fileBaseName,data.expDirNames,'Uni',0);
+  nbeh = numel(data.behaviors.names)/2;
+  behaviors = data.behaviors.names(1:nbeh);
+  nonebehavior = data.behaviors.names(nbeh+1:end);
+else
+  hfig = findall(0,'type','figure','Name','JAABA');
+  assert(numel(hfig)==1);
+  gdata = guidata(hfig);
+  data = gdata.data;
+  data.GetLabels();
+  expnames = data.expnames;
+  behaviors = data.classifiernames;
+  nonebehavior = data.nobehaviornames;
+end
 labels = data.labels;
-expnames = data.expnames;
-behaviors = data.classifiernames;
-nonebehavior = data.nobehaviornames;
-info.allnames = [behaviors,nonebehavior];
+
+if ~isinfo,
+  info.allnames = [behaviors,nonebehavior];
+end
 nbehaviors = numel(info.allnames);
 
 if nargin >= 1,
@@ -22,47 +36,49 @@ else
   expinfo = regexp(expnames,'^(?<label>.*)_Rig(?<rig>\w)_(?<timestamp>\d{8}T\d{6})$','names','once');
   expinfo = [expinfo{:}];
 end
-  
-[info.labels,~,labelidx0] = unique({expinfo.label});
 
-info.nlabelframes = zeros(numel(info.labels),nbehaviors);
-info.nlabelbouts = zeros(numel(info.labels),nbehaviors);
-info.nlabelflies = zeros(numel(info.labels),nbehaviors);
-info.nlabelexps = zeros(numel(info.labels),nbehaviors);
-info.ntotalexps = zeros(numel(info.labels),1);
-info.nlabelframesperexp = zeros(numel(expinfo),nbehaviors);
-info.nlabelboutsperexp = zeros(numel(expinfo),nbehaviors);
-info.nlabelfliesperexp = zeros(numel(expinfo),nbehaviors);
-
-for labeli = 1:numel(info.labels),
+if ~isinfo,
+  [info.labels,~,labelidx0] = unique({expinfo.label});
   
-  idxcurr = find(labelidx0==labeli);
-  info.ntotalexps(labeli) = numel(idxcurr);
-  for jj = 1:numel(idxcurr),
-    islabeledexp = false(1,nbehaviors);
-    expi = idxcurr(jj);
-    for flyi = 1:numel(labels(expi).t0s),
-      if isempty(labels(expi).t0s(flyi)),
-        continue;
+  info.nlabelframes = zeros(numel(info.labels),nbehaviors);
+  info.nlabelbouts = zeros(numel(info.labels),nbehaviors);
+  info.nlabelflies = zeros(numel(info.labels),nbehaviors);
+  info.nlabelexps = zeros(numel(info.labels),nbehaviors);
+  info.ntotalexps = zeros(numel(info.labels),1);
+  info.nlabelframesperexp = zeros(numel(expinfo),nbehaviors);
+  info.nlabelboutsperexp = zeros(numel(expinfo),nbehaviors);
+  info.nlabelfliesperexp = zeros(numel(expinfo),nbehaviors);
+  
+  for labeli = 1:numel(info.labels),
+    
+    idxcurr = find(labelidx0==labeli);
+    info.ntotalexps(labeli) = numel(idxcurr);
+    for jj = 1:numel(idxcurr),
+      islabeledexp = false(1,nbehaviors);
+      expi = idxcurr(jj);
+      for flyi = 1:numel(labels(expi).t0s),
+        if isempty(labels(expi).t0s(flyi)),
+          continue;
+        end
+        if isempty(labels(expi).names{flyi}), continue; end
+        [ism,labelidx] = ismember(labels(expi).names{flyi},info.allnames);
+        assert(all(ism));
+        counts = hist(labelidx,1:nbehaviors);
+        info.nlabelflies(labeli,counts>0) = info.nlabelflies(labeli,counts>0) + 1;
+        info.nlabelbouts(labeli,:) = info.nlabelbouts(labeli,:) + counts;
+        info.nlabelfliesperexp(expi,counts>0) = info.nlabelfliesperexp(expi,counts>0) + 1;
+        info.nlabelboutsperexp(expi,:) = info.nlabelboutsperexp(expi,:) + counts;
+        islabeledexp(counts>0) = true;
+        for behi = 1:nbehaviors,
+          ncurr = sum((labels(expi).t1s{flyi}(labelidx==behi)-labels(expi).t0s{flyi}(labelidx==behi)));
+          info.nlabelframes(labeli,behi) = info.nlabelframes(labeli,behi) + ncurr;
+          info.nlabelframesperexp(expi,behi) = info.nlabelframesperexp(expi,behi) + ncurr;
+        end
       end
-      if isempty(labels(expi).names{flyi}), continue; end
-      [ism,labelidx] = ismember(labels(expi).names{flyi},info.allnames);
-      assert(all(ism));
-      counts = hist(labelidx,1:nbehaviors);      
-      info.nlabelflies(labeli,counts>0) = info.nlabelflies(labeli,counts>0) + 1;
-      info.nlabelbouts(labeli,:) = info.nlabelbouts(labeli,:) + counts;
-      info.nlabelfliesperexp(expi,counts>0) = info.nlabelfliesperexp(expi,counts>0) + 1;
-      info.nlabelboutsperexp(expi,:) = info.nlabelboutsperexp(expi,:) + counts;
-      islabeledexp(counts>0) = true;
-      for behi = 1:nbehaviors,
-        ncurr = sum((labels(expi).t1s{flyi}(labelidx==behi)-labels(expi).t0s{flyi}(labelidx==behi)));
-        info.nlabelframes(labeli,behi) = info.nlabelframes(labeli,behi) + ncurr;
-        info.nlabelframesperexp(expi,behi) = info.nlabelframesperexp(expi,behi) + ncurr;
-      end
+      info.nlabelexps(labeli,islabeledexp) = info.nlabelexps(labeli,islabeledexp) + 1;
     end
-    info.nlabelexps(labeli,islabeledexp) = info.nlabelexps(labeli,islabeledexp) + 1;
+    
   end
-  
 end
 
 fprintf('Labels per experiment type:\n');
@@ -89,4 +105,22 @@ for expi = 1:numel(expinfo),
       info.allnames{behi},repmat(' ',[1,maxnamelen-namelens(behi)]));
     fprintf('%3d flies, %6d bouts, %6d frames\n',info.nlabelfliesperexp(expi,behi),info.nlabelboutsperexp(expi,behi),info.nlabelframesperexp(expi,behi));
   end
+end
+
+%% code for comparing videos labeled in two jab files
+
+if false,
+%%
+
+currinfo = getJAABALabelStats(mabeinfo.exp_info);
+weislabeledexp = sum(wingextensioninfo.nlabelfliesperexp,2)>0;
+currislabeledexp = sum(currinfo.nlabelfliesperexp,2)>0;
+tolabel = ~currislabeledexp & weislabeledexp;
+expdirs2label = {mabeinfo.exp_info(tolabel).file_system_path};
+for i = 1:numel(expdirs2label),
+  fprintf('%s\n',fileBaseName(expdirs2label{i}));
+end
+
+
+%%
 end
