@@ -2,7 +2,6 @@ classdef Macguffin < handle
   % This holds all the stuff that gets saved to the .jab file.  In fact,
   % the .jab file is a .mat file holding one variable, x, which is a
   % Macguffin.
-  
   properties
     featureLexiconName
     featureLexicon
