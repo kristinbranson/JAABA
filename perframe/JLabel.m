@@ -1240,7 +1240,7 @@ for i = axes2,
         ypred = handles.guidata.labels_plot.predy(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
         set(handles.guidata.hpredicted(i,j),'XData',xpred(:),'YData',ypred(:));
       end
-      if handles.guidata.label_state~=0,
+      if handles.guidata.label_state~=0 && ~isempty(handles.label_t0),
         ts = sort([handles.label_t0,handles.guidata.ts(1)]);
         t0 = max(t0,ts(1));
         t1 = min(t1,ts(2)+1);
@@ -1369,9 +1369,10 @@ end
 
 if handles.guidata.thisMoviePresent
   maxEndFrame = handles.data.GetMaxEndFrame();
+  
   if handles.guidata.nframes < maxEndFrame
-    warnstr = sprintf('Movie %s contains only %d frames, while trajectories extend to frame %d. Navigating past end of movie will cause an error.',...
-      handles.guidata.nframes,maxEndFrame);
+    warnstr = sprintf('Movie number %d contains only %d frames, while trajectories extend to frame %d. Navigating past end of movie will cause an error.',...
+      handles.data.GetExp(),handles.guidata.nframes,maxEndFrame);
     % ALTODO: not user-friendly to just harderror if they navigate past end
     % of movie. Enhancement, add method to JLabelData to crop
     % JLabelData.trx, JLabelData.endframes_per_exp.

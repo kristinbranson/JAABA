@@ -32,7 +32,7 @@ if nargout > 1,
   %%% b = (lambda - S(1))/S(3)
   %%%   = S(2) / (lambda - S(4)) ?
  
-  varargout{2} = zeros(2,neigs,n2);
+  varargout{2} = zeros(2,2,n2);
 
   a = S(3,:);
   b = lambda(1,:) - S(1,:);
