@@ -858,7 +858,7 @@ if refresh_timeline_props,
     [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,v);
     set(handles.guidata.htimeline_data(propi),'XData',T0:T1,...
       'YData',perframedata);
-    ylim = [min(perframedata),max(perframedata)];
+    ylim = [nanmin(perframedata),nanmax(perframedata)];
     if ylim(2) <= ylim(1),
       ylim(2) = ylim(1)+1;
     end

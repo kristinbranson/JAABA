@@ -6,6 +6,7 @@ if ischar(trkfilename)
 end
 
 if aptInfo.is_ma
+  assert(exist(trkfilename{1},'file'),sprintf('Trkfile %s does not exist',trkfilename{1}));
   trk = TrkFile.load(trkfilename{1});
   trx= apt2trx(trk,aptInfo.ma_head_tail);
   return;

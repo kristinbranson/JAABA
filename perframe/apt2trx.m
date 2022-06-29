@@ -24,5 +24,8 @@ for fly = 1:nflies,
   trxcurr.off = 1-ff;
   trxcurr.kpts = reshape(xy(:,:,ff:ef),[size(xy,1)*size(xy,2),ef-ff+1]);
   trxcurr.trkInfo = apttrk.trkInfo;
+  trxcurr.dt = ones(1,ef-ff);
+  trxcurr.pxpermm = 1;
   trx = structappend(trx,trxcurr);
+ 
 end

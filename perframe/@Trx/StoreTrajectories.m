@@ -140,6 +140,19 @@ else
   obj.fps(n) = nan;
 end
 
+if isfield(traj,'trkInfo')
+  for ndx = 1:numel(flies)
+    obj.trkInfo(flies(ndx)) = {traj(ndx).trkInfo};
+  end
+end
+
+if isfield(traj(1),'kpts') 
+  for ndx = 1:numel(flies)
+    obj.kpts(flies(ndx)) = {traj(ndx).kpts};
+  end
+end
+
+
 % if isfield(traj,'landmark_params')
 %   obj.landmark_params{n} = traj.landmark_params;
 % else
@@ -199,6 +212,13 @@ while ~done
         end
       end
     end
+    kfield = sprintf('kpts_view%d',count);
+    if isfield(traj(1),kfield)
+      for ndx = 1:numel(flies)
+        obj.(kfield)(flies) = traj(ndx).(kfield);
+      end
+    end
+
   else
     done = true;
   end
