@@ -4,41 +4,21 @@ flies = trx.exp2flies{n};
 nflies = numel(flies);
 all_data = cell(1,nflies);
 all_units = cell(1,nflies);
-expdir = trx.expdirs{n};
-trkname = trx.trkfilestr;
-all_trkfiles = fullfile(expdir, trkname);
 parts = strsplit(fn,'_');
 view_str = regexp(parts{1},'view(\d*)','tokens');
 view = str2double(view_str{1}{1});
 fn_type = parts{2};
 comp_type = parts{3};
 
-trkfile = all_trkfiles{view};
-global global_trkfile global_trk
-if ~isempty(global_trkfile) && strcmp(trkfile,global_trkfile)
-  trk = global_trk;
-else
-  try
-    trk = load(trkfile,'-mat');
-  catch ME
-    error('Could not load trkfile %s:%s', trkfile, ME.message)
-  end
-  global_trk = trk;
-  global_trkfile = trkfile;
-end
-
-apt_info = trk.trkInfo;
-if isfield(trk.trkInfo,'crop_loc') && ~isempty(trk.trkInfo.crop_loc)
-  crop_loc = trk.trkInfo.crop_loc;
-  x_center = mean(trk.trkInfo.crop_loc(1:2));
-  y_center = mean(trk.trkInfo.crop_loc(3:4));
+apt_info = trx(flies(1)).trkInfo;
+if isfield(apt_info,'crop_loc') && ~isempty(apt_info.crop_loc)
+  crop_loc = apt_info.crop_loc;
+  x_center = mean(crop_loc(1:2));
+  y_center = mean(crop_loc(3:4));
   global_center = [y_center x_center];
 else
   global_center = double(cell2mat(trk.trkInfo.params.imsz))/2;
 end
-
-apt_frm = trk.pTrkFrm(1,:);
-assert(all(diff(apt_frm)==1)), 'Tracked frames should be in order';
 
 for fndx = 1:nflies
   if view > 1 
@@ -51,27 +31,11 @@ for fndx = 1:nflies
     theta = trx(flies(fndx)).theta;
   end
   dt = trx(flies(fndx)).dt;
-  trk_fly_ndx = find(trk.pTrkiTgt==fndx);
-  assert(numel(trk_fly_ndx)==1, 'Trk file %s does not have data for fly %d',trkfile,fndx);
-  apt_frm = trk.pTrkFrm(1,:);
   nframes = trx(flies(fndx)).nframes;
   pxpermm = trx.pxpermm;
-  if iscell(trk.pTrk)
-    mod_apt_data = trk.pTrk{trk_fly_ndx};
-  else
-    apt_data = trk.pTrk(:,:,:, trk_fly_ndx);
-    start_fr = find(apt_frm == trx(flies(fndx)).firstframe);
-    end_fr =  find(apt_frm == trx(flies(fndx)).endframe);
-    mod_apt_data = apt_data(:,:,start_fr:end_fr);
-  end
-  n_parts = size(mod_apt_data,1);
-  
-%   mod_apt_data = nan(n_parts,2,nframes);
-%   off = trx(flies(fndx)).off;
-%   % put the maybe out of order frames in trk back in order
-%   for ndx = 1:nframes
-%     mod_apt_data(:,:,ndx) = apt_data(:,:,apt_frm== (ndx - off));
-%   end
+  n_parts = apt_info.params.n_classes;
+  mod_apt_data = trx(flies(fndx)).kpts;
+  mod_apt_data = reshape(mod_apt_data,n_parts,[],nframes);
   
   switch fn_type
     case 'global'
