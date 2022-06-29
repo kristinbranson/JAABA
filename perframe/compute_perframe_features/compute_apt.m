@@ -11,13 +11,13 @@ fn_type = parts{2};
 comp_type = parts{3};
 
 apt_info = trx(flies(1)).trkInfo;
-if isfield(apt_info,'crop_loc') && ~isempty(apt_info.crop_loc)
+if isfield(apt_info,'crop_loc') && ~isempty(apt_info.crop_loc) && numel(apt_info.crop_loc)==4
   crop_loc = apt_info.crop_loc;
   x_center = mean(crop_loc(1:2));
   y_center = mean(crop_loc(3:4));
   global_center = [y_center x_center];
 else
-  global_center = double(cell2mat(trk.trkInfo.params.imsz))/2;
+  global_center = double(cell2mat(apt_info.params.imsz))/2;
 end
 
 for fndx = 1:nflies
