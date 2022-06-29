@@ -269,11 +269,10 @@ if obj.fromAPT && nargin > 3
   % this seems to be always called with ts. Not including apt trk info if t
   % is not specified. Which shoudln't occur anyway -- MK 20190305
   off = obj.trx(fly).off;
-  trk_x = []; trk_y = [];
-  for ndx = 1:numel(obj.trx(fly).apt_trk)
-    curx = obj.trx(fly).apt_trk{ndx}(:,1,ts + off);
-    cury = obj.trx(fly).apt_trk{ndx}(:,2,ts + off);
-    trk_x = [trk_x ;curx]; trk_y = [trk_y ;cury];
-  end
+  nframes = obj.trx(fly).nframes;
+  npts = double(trk.trkInfo.params.n_classes);
+  kpts = reshape(obj.trx(fly).kpts,npts,[],nframes);
+  trk_x = reshape(kpts(:,1,:),npts,nframes);
+  trk_y = reshape(kpts(:,2,:),npts,nframes);
   pos.trk_x = trk_x; pos.trk_y = trk_y;
 end
