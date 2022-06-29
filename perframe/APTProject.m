@@ -128,9 +128,16 @@ handles.has_crops = ~isempty(apt.movieFilesAllCropInfo{1});
 aptStruct.n_pts = apt.cfg.NumLabelPoints;
 aptStruct.skeletonEdges = apt.skeletonEdges;
 if handles.is_ma
-  handles.use_theta = false;
+  if ~isempty(apt.skelHead)
+    handles.head_tail = [apt.skelHead apt.skelTail];
+    handles.use_theta = true;
+  else
+    handles.head_tail = [];
+    handles.use_theta = false;
+  end
+  sz = apt.trackParams.ROOT.MultiAnimal.TargetCrop.ManualRadius;
   
-  assert 'APT multi-animal projects not yet implemented';
+%  assert 'APT multi-animal projects not yet implemented';
 elseif handles.has_trx
   if isfield(apt.trackParams.ROOT.ImageProcessing.MultiTarget,'TargetCrop')
     handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
@@ -213,18 +220,19 @@ figure1_CloseRequestFcn(hObject,eventdata,handles);
 
 
 function handles = initialize(handles)
-set(handles.trx_pop,'Enable',onoffif(handles.has_trx));
-set(handles.trx_pop,'Visible',onoffif(handles.has_trx));
-set(handles.trx_checkbox,'Visible',onoffif(handles.has_trx));
-set(handles.trx_checkbox,'Value',handles.has_trx);
-set(handles.group_notrx,'Visible',onoffif(~handles.has_trx));
-set(handles.rb_centroid,'Visible',onoffif(~handles.has_trx));
-set(handles.rb_frame,'Visible',onoffif(~handles.has_trx));
-set(handles.rb_crop,'Visible',onoffif(~handles.has_trx));
-set(handles.rb_custom,'Visible',onoffif(~handles.has_trx));
-set(handles.text_centroid,'Visible',onoffif(~handles.has_trx));
+is_multi = handles.has_trx|handles.is_ma;
+set(handles.trx_pop,'Enable',onoffif(is_multi));
+set(handles.trx_pop,'Visible',onoffif(is_multi));
+set(handles.trx_checkbox,'Visible',onoffif(is_multi));
+set(handles.trx_checkbox,'Value',is_multi);
+set(handles.group_notrx,'Visible',onoffif(~is_multi));
+set(handles.rb_centroid,'Visible',onoffif(~is_multi));
+set(handles.rb_frame,'Visible',onoffif(~is_multi));
+set(handles.rb_crop,'Visible',onoffif(~is_multi));
+set(handles.rb_custom,'Visible',onoffif(~is_multi));
+set(handles.text_centroid,'Visible',onoffif(~is_multi));
 
-if handles.has_trx
+if is_multi
   set(handles.trx_pop,'String',handles.trxList{1})
   trx_type_ndx = find(strcmp(handles.aptStruct.origFeatureLexiconName,handles.trxList{1}),1);
   if ~isempty(trx_type_ndx),
@@ -337,7 +345,7 @@ for ndx = 1:size(apt.movieFilesAll,1)
       nc = apt.movieInfoAll{ndx,m_ndx}.info.nc;
       cur_img = zeros(nr,nc);
     end
-    if handles.has_trx,
+    if handles.has_trx
       trx = load(trx_files{m_ndx},'-mat');
       trx = trx.trx(tndx_to_use);
       off = trx.off;
@@ -349,6 +357,25 @@ for ndx = 1:size(apt.movieFilesAll,1)
       ll(:,2) = ll(:,2)+aff_mat(3,2) + handles.sz(1) + 0.5;
       ll(:,1) = ll(:,1)+aff_mat(3,1) + handles.sz(2) + 0.5;
       ll(:,1) = ll(:,1) + prev_width;
+    elseif handles.is_ma
+      if ~isempty(handles.head_tail)
+        h_pt = locs(handles.head_tail(1),:);
+        t_pt = locs(handles.head_tail(2),:);
+        x = (h_pt(1)+t_pt(1))/2;
+        y = (h_pt(2)+t_pt(2))/2;
+        dy = (t_pt(2)-h_pt(2));
+        dx = (t_pt(1)-h_pt(1));
+        theta = atan2( dy,dx );
+      else
+        x = mean(locs(:,1));
+        y = mean(locs(:,2));
+        theta = 0;
+      end
+      [cur_img, aff_mat] = CropImAroundTrx(cur_img,x,y,theta,handles.sz(2),handles.sz(1));
+      ll = locs*aff_mat(1:2,1:2);
+      ll(:,2) = ll(:,2)+aff_mat(3,2) + handles.sz(1) + 0.5;
+      ll(:,1) = ll(:,1)+aff_mat(3,1) + handles.sz(2) + 0.5;
+      ll(:,1) = ll(:,1) + prev_width;      
     else
       n_pts = handles.aptStruct.n_pts;
       st = (m_ndx-1)*n_pts + 1; en = m_ndx*n_pts;
@@ -414,6 +441,7 @@ end
 handles.aptStruct.n_pts = apt.cfg.NumLabelPoints;
 handles.aptStruct.n_view = apt.cfg.NumViews;
 handles.aptStruct.projname = apt.projname;
+handles.aptStruct.head_tail = handles.head_tail;
 % handles.aptStruct.featureLexicon = [];
 % handles.aptStruct.featureLexiconName = '';
 % handles.aptStruct.animalType = '';
@@ -936,7 +964,13 @@ handles.aptStruct.pairs = handles.pairs;
 handles.aptStruct.triads = handles.triads;
 handles.aptStruct.custom_list = handles.custom_list;
 
-if ~handles.has_trx
+if handles.has_trx
+  handles.aptStruct.apt_trx_type = '';
+elseif handles.is_ma
+  handles.aptStruct.apt_trx_type = 'ma';
+  handles.aptStruct.ma_head_tail = handles.head_tail;
+  handles.aptStruct.ma_use_theta = handles.use_theta;
+else
   if get(handles.rb_frame,'Value')
     handles.aptStruct.apt_trx_type = 'frame';
   elseif  get(handles.rb_crop,'Value')
@@ -948,8 +982,6 @@ if ~handles.has_trx
     handles.aptStruct.apt_trx_centers = handles.apt_trx_centers;
     handles.aptStruct.apt_trx_orient = handles.apt_trx_orient;    
   end
-else
-  handles.aptStruct.apt_trx_type = '';
 end
 guidata(hObject,handles);
 uiresume(handles.figure1);
