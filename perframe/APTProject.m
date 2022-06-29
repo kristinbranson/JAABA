@@ -136,7 +136,7 @@ if handles.is_ma
     handles.use_theta = false;
   end
   sz = apt.trackParams.ROOT.MultiAnimal.TargetCrop.ManualRadius;
-  
+  handles.sz = [sz,sz];
 %  assert 'APT multi-animal projects not yet implemented';
 elseif handles.has_trx
   if isfield(apt.trackParams.ROOT.ImageProcessing.MultiTarget,'TargetCrop')
@@ -363,8 +363,8 @@ for ndx = 1:size(apt.movieFilesAll,1)
         t_pt = locs(handles.head_tail(2),:);
         x = (h_pt(1)+t_pt(1))/2;
         y = (h_pt(2)+t_pt(2))/2;
-        dy = (t_pt(2)-h_pt(2));
-        dx = (t_pt(1)-h_pt(1));
+        dy = (h_pt(2)-t_pt(2));
+        dx = (h_pt(1)-t_pt(1));
         theta = atan2( dy,dx );
       else
         x = mean(locs(:,1));
@@ -446,6 +446,7 @@ handles.aptStruct.head_tail = handles.head_tail;
 % handles.aptStruct.featureLexiconName = '';
 % handles.aptStruct.animalType = '';
 handles.aptStruct.view = 1;
+handles.aptStruct.is_ma = handles.is_ma;
 handles = UpdateHandles(handles);
 UpdatePlots(handles)
 
