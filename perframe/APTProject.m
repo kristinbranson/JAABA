@@ -147,6 +147,7 @@ elseif handles.has_trx
     sz = apt.trackParams.ROOT.MultiAnimal.TargetCrop.ManualRadius;
   end
   handles.sz = [sz,sz];
+  handles.head_tail = [apt.skelHead apt.skelTail];
 elseif handles.has_crops
   % dont use theta if there is no trx file. 
   % might need updating later.
