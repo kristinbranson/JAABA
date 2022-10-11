@@ -455,7 +455,7 @@ UpdatePlots(handles)
 
 function handles = UpdateHandles(handles)
 handles.use_trx = get(handles.trx_checkbox,'Value');
-if handles.has_trx
+if handles.has_trx || handles.is_ma
   trx_type_ndx = get(handles.trx_pop,'Value');
   featureLexiconName = handles.trxList{1}{trx_type_ndx};
   [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
@@ -464,7 +464,7 @@ else
   animalType = 'apt';
 end
 handles.aptStruct.origFeatureLexiconName = featureLexiconName;
-if handles.has_trx
+if handles.has_trx || handles.is_ma
   handles.aptStruct.featureLexiconName = [featureLexiconName '_' handles.aptStruct.projname];
 else
   handles.aptStruct.featureLexiconName = featureLexiconName;
@@ -821,7 +821,7 @@ function done_pb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = UpdateHandles(handles);
 handles.perframe = struct;
-if handles.has_trx
+if handles.has_trx || handles.is_ma
   featureLexiconName = handles.aptStruct.origFeatureLexiconName;
   [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
   if ~handles.use_trx
