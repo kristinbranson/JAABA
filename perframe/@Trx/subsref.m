@@ -120,6 +120,10 @@ elseif strcmp(fn,'endframe'),
   res = {obj.endframes(idx)};
 elseif strcmp(fn,'off'),
   res = {1-obj.firstframes(idx)};
+elseif strcmp(fn,'trkInfo')
+  res = {obj.trkInfo{idx}};
+elseif (numel(fn)>=4) && strcmp(fn(1:4),'kpts')
+  res = {obj.(fn){idx}};
 else
   res = cell(1,numel(idx));
   for j = 1:numel(idx),

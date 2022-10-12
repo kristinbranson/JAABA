@@ -25,7 +25,7 @@ end
 if isfield(pos,'trk_x')
   % has APT trk 
   set(hflies_apt(1),'XData',pos.trk_x,'YData',pos.trk_y);
-  if ~isempty(apt_info.skeletonEdges)
+  if isfield(apt_info,'skeletonEdges') && (~isempty(apt_info.skeletonEdges))
     sk = apt_info.skeletonEdges;
     curdat = nan(3*size(sk,1),2);
     curdat(1:3:end,1) = pos.trk_x(sk(:,1));
