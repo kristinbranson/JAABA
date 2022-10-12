@@ -1059,15 +1059,22 @@ if isfield(handles.basicParamsStruct,'lbl_file') && ...
 else
   defaultlbl_file = '';
 end
-[fname,fpath] = uigetfile('*.lbl','Select APT project File..',defaultlbl_file);
-if fname == 0
-  set(handles.radiobutton_apt,'Value',0);
-  set(handles.radiobutton_list,'Value',1);
-  return;
+debug = false;
+if debug
+  Q = load('~/temp/aptprojdata');
+  aptStruct = Q.qq;
+else
+  [fname,fpath] = uigetfile('*.lbl','Select APT project File..',defaultlbl_file);
+  if fname == 0
+    set(handles.radiobutton_apt,'Value',0);
+    set(handles.radiobutton_list,'Value',1);
+    return;
+  end
+  % Get the detail of APT
+  lbl_file = fullfile(fpath,fname);
+  aptStruct = APTProject('lbl_file',lbl_file);
 end
-% Get the detail of APT
-lbl_file = fullfile(fpath,fname);
-aptStruct = APTProject('lbl_file',lbl_file);
+
 if isempty(aptStruct.featureLexicon)
   set(handles.radiobutton_apt,'Value',0);
   set(handles.radiobutton_list,'Value',1);

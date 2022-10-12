@@ -1,12 +1,20 @@
 function trx = create_trx_apt(trkfilename, aptInfo)
 
+
 if ischar(trkfilename)
   trkfilename = {trkfilename};
 end
 
+if aptInfo.is_ma
+  assert(exist(trkfilename{1},'file')>0,sprintf('Trkfile %s does not exist',trkfilename{1}));
+  trk = TrkFile.load(trkfilename{1});
+  trx= apt2trx(trk,aptInfo.ma_head_tail);
+  return;
+end
+
 trx = struct();
 for view = 1:numel(trkfilename)
-  trk = load(trkfilename{view},'-mat');
+  trk = TrkFile.load(trkfilename{view});
   frms = trk.pTrkFrm;
   dd = frms(2:end)-frms(1:end-1);
   assert(all(dd==1),'Frames in trkfile should be in order')
@@ -16,6 +24,10 @@ for view = 1:numel(trkfilename)
   end
 
   t = ones(1,numel(frms));
+  temp_pts = trk.getPtrkTgt(fly);
+  ff = apttrk.startframes(fly);
+  ef = apttrk.endframes(fly);
+  temp_pts = temp_pts(:,:,ff:ef);
   switch aptInfo.apt_trx_type
     case 'crop'
       crop_loc = trk.trkInfo.crop_loc;
@@ -29,7 +41,7 @@ for view = 1:numel(trkfilename)
       theta = t*0;
     case 'trk'
       sel_pts = aptInfo.apt_trx_centers;
-      temp = trk.pTrk(sel_pts,:,:,1);
+      temp = temp_pts(sel_pts,:,:);
       temp = mean(temp,1);
       temp = shiftdim(temp,1);
       x = temp(1,:);
@@ -37,15 +49,16 @@ for view = 1:numel(trkfilename)
       if aptInfo.apt_trx_orient < 1
         theta = t*0;
       else
-        t_pt = squeeze(trk.pTrk(aptInfo.apt_trx_orient,:,:,1));
+        t_pt = squeeze(temp_pts(aptInfo.apt_trx_orient,:,:));
         theta = atan2(t_pt(1,:)-x,t_pt(2,:)-y);
       end
-      
+
   end
 
   trx.(sprintf('x_view%d',view)) = x;
   trx.(sprintf('y_view%d',view)) = y;
   trx.(sprintf('theta_view%d',view)) = theta;
+  trx.(sprintf('kpts_view%d',view)) = reshape(temp_pts,[size(temp_pts,1)*size(temp_pts,2),ef-ff+1]);
 
   if view == 1
     trx.pxpermm = 1;
@@ -69,5 +82,6 @@ for view = 1:numel(trkfilename)
     trx.b = t;
     trx.a_mm = t;
     trx.b_mm = t;
+    trx.kpts = reshape(temp_pts,[size(temp_pts,1)*size(temp_pts,2),ef-ff+1]);
   end
 end
