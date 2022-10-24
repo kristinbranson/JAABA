@@ -155,11 +155,10 @@ global ISPLAYING;
 handles = guidata(hObject);
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 ISPLAYING = true;
-tic;
-t0 = now;
+
 fnext = handles.f;
-f0 = handles.f;
 while true,
+  tic;
   handles = guidata(hObject);
   if ~ISPLAYING || fnext > handles.nframes,
     break;
@@ -167,28 +166,25 @@ while true,
   f = fnext;
   handles.f = f;
   handles = update_frame(handles,hObject);
+  drawnow;
   guidata(hObject,handles);
   if handles.MaxFPS > 0,
-    tmp = toc;
-    t1 = now;
-    if tmp < handles.MinSPF
-      pause(handles.MinSPF - t1);
+    elapsedtime = toc;
+    if elapsedtime < handles.MinSPF,
+      dt = handles.MinSPF-elapsedtime;
+      pause(dt);
       fnext = f + 1;
-    elseif tmp > handles.MinSPF,
-      fnext = max(1,f0+round((t1-t0)*24*3600/handles.MinSPF));
-      %fprintf('setting fnext to %d\n',fnext);
+    else,
+      df = round(elapsedtime*handles.MaxFPS);
+      fnext = f + df;
       if fnext > handles.nframes,
         break;
       end
-      drawnow;
-    else
-      drawnow;
     end
   else
     fnext = f+1;
     drawnow;
   end
-  tic;
 end
 
 stop(hObject);
