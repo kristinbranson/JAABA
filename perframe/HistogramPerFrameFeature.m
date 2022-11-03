@@ -46,6 +46,7 @@ if docompute,
   % use current fly to choose hist edges
   if isempty(edges),
     x = data.perframedata{perframeidx};
+    x = x(~isnan(x));
     if isempty(minv),
       if isempty(minprctile),
         minv = min(x);
