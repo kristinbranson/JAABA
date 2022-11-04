@@ -152,7 +152,13 @@ if ~isempty(i),
   xtick = xtick(1:i);
   xticklabel = xticklabel(1:i);
 end
-xtick = [centers_plot(1),xtick,centers_plot(end)];
+xtick = xtick(xtick>centers_plot(1));
+xtick = xtick(xtick<centers_plot(end));
+if centers_plot(1)==centers_plot(end)
+  xtick = [centers_plot(1)];
+else
+  xtick = [centers_plot(1),xtick,centers_plot(end)];
+end
 xticklabel = [{sprintf('<%.1f',edges(1))};xticklabel;{sprintf('>=%.1f',edges(end))}];
 set(hax,'XTick',xtick,'XTickLabel',xticklabel);
 
