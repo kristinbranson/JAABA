@@ -82,6 +82,21 @@ if ~exist(obj.trxfiles{n},'file'),
 end
 traj = load_tracks(obj.trxfiles{n});
 
+% added to deal with .dt field being stored incorrectly by FlyTracker
+lastframe = max([traj.endframe]);
+for i = 1:numel(traj),
+  if numel(traj(i).dt) > traj(i).nframes-1,
+    % dt is for every frame: know how to fix this
+    if numel(traj(i).dt) == lastframe-1,
+      traj(i).dt = traj(i).dt(traj(i).firstframe:traj(i).endframe-1);
+    else
+      warning('dt for experiment %s target %d is of an unexpected size, trying anyways!',expdir,i);
+      meandt = nanmedian(traj(i).dt);
+      traj(i).dt = meandt + zeros(1,traj(i).nframes-1);
+    end
+  end
+end
+
 % set movie properties when there is no movie
 if ~openmovie || isempty(obj.moviefilestr),
   obj.nrs(n) = max([traj.y]);
