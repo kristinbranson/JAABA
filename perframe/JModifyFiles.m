@@ -224,6 +224,7 @@ for ndx = 1:numel(allexpdirs)
     
   catch ME
     
+    warning(getReport(ME,'extended','hyperlinks','off'));
     uiwait(warndlg(sprintf('Error adding expdir %s: %s:%s',expdir,ME.identifier,ME.message)));
     ClearStatusEditFiles(figureJModifyFiles);
     

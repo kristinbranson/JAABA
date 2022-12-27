@@ -85,7 +85,6 @@ handles.output = hObject;
            'defaulttrxfilename',0,...
            'defaultlbl_file',0,...
            'handleobj',[]);
-
 handles.new = isempty(basicParamsStruct);
 handles.figureJLabel = figureJLabel;
 handles.basicParamsStruct = basicParamsStruct;
@@ -95,11 +94,11 @@ adjustColorsIfMac(hObject);
 % Need to derive the basic and advanced sizes (part of the model) from
 % the current figure dimensions
 handles = setBasicAndAdvancedSizesToMatchFigure(handles);
-
 handles.mode = 'basic';
 handles = updateFigurePosition(handles);
-
 centerOnParentFigure(hObject,figureJLabel);
+% ADD THIS FOR DEBUGGING WITH AUTOMATION 
+set(handles.figureProjectSetup,'Position',[413   588   585   347]);
 
 % Initialize the list of possible feature lexicon names
 [handles.featureLexiconNameList,xmlList] = getFeatureLexiconListsFromXML();
