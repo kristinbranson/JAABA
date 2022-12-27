@@ -65,13 +65,16 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
  hsplash,...
  hsplashstatus,...
  jabfile,...
- nthreads] = ...
+ nthreads,...
+ pos] = ...
   myparse(varargin,...
           'defaultpath','',...
           'hsplash',[],...
           'hsplashstatus',[],...
           'jabfile','',...
-          'nthreads',struct);
+          'nthreads',struct, ...
+          'position',[]...
+          );
 
 % Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
 figureJLabel = handles.figure_JLabel;
@@ -169,6 +172,9 @@ handles = InitSelectionCallbacks(handles);
 guidata(hObject,handles);
 
 set(handles.figure_JLabel,'Visible','on');
+if ~isempty(pos)
+  set(handles.figure_JLabel,'Position',pos);
+end
 drawnow;
 
 if ~isempty(jabfile),
@@ -3365,6 +3371,7 @@ if behaviori<=0
   assert(important==0,'Importance should be zero when clearing labels');
   
   if behaviori==0
+    
     idxTL = 1:jld.labelidx.nTL;
     idxBeh = 1:jld.labelidx.nbeh;
   else
@@ -8797,6 +8804,12 @@ newbehs = inputdlg(behs,'Change behavior names',1,behs,'on');
 if isempty(newbehs) ... % cancel 
   || isequal(behs,newbehs)
   return;
+end
+for ndx = 1:numel(newbehs)
+  if ~JLabelData.isValidBehaviorName(newbehs{ndx})
+    errordlg(sprintf('Invalid behavior name %s',newbehs{ndx}));
+    return;
+  end
 end
 
 behs = behs(:);

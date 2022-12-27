@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
+<default file="params/featureConfigBase.xml" animal="fly"/>
 <flies file="params/featureConfig.xml" animal="fly"/>
 <flies_wing file="params/featureConfigWings.xml" animal="wingedfly"/>
 <flies_disco file="params/featureConfigDisco.xml" animal="wingedfly"/>
