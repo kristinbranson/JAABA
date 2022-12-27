@@ -20,6 +20,11 @@ else
   global_center = double(cell2mat(apt_info.params.imsz))/2;
 end
 
+if startsWith(fn_type,'social')
+  [all_data,units] = compute_apt_social(trx,n,fn,apt_info);
+  return;
+end
+
 for fndx = 1:nflies
   if view > 1 
     x = trx(flies(fndx)).(sprintf('x_view%d',view));
