@@ -98,7 +98,7 @@ handles.mode = 'basic';
 handles = updateFigurePosition(handles);
 centerOnParentFigure(hObject,figureJLabel);
 % ADD THIS FOR DEBUGGING WITH AUTOMATION 
-set(handles.figureProjectSetup,'Position',[413   588   585   347]);
+% set(handles.figureProjectSetup,'Position',[413   588   585   347]);
 
 % Initialize the list of possible feature lexicon names
 [handles.featureLexiconNameList,xmlList] = getFeatureLexiconListsFromXML();
