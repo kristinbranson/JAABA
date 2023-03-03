@@ -270,7 +270,7 @@ if obj.fromAPT && nargin > 3
   % is not specified. Which shoudln't occur anyway -- MK 20190305
   off = obj.trx(fly).off;
   nframes = obj.trx(fly).nframes;
-  npts = double(obj.trx(fly).trkInfo.params.n_classes);
+  npts = double(obj.aptInfo.n_pts);
   kpts = reshape(obj.trx(fly).kpts,npts,[],nframes);
   trk_x = squeeze(kpts(:,1,ts+off));
   trk_y = squeeze(kpts(:,2,ts+off));
