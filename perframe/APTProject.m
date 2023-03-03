@@ -329,7 +329,10 @@ for ndx = 1:size(apt.movieFilesAll,1)
       end
     else
       mov_files{end+1} = mov_file;
-      trx_files{end+1} = unMacroise(apt.trxFilesAll{ndx,m_ndx},apt);
+      tt = unMacroise(apt.trxFilesAll{ndx,m_ndx},apt);
+      aa = fileparts(mov_files{end});
+      tt = strrep(tt,'$movdir',aa);
+      trx_files{end+1} = tt;
     end
   end
   

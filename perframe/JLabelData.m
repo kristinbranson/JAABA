@@ -1353,7 +1353,7 @@ classdef JLabelData < matlab.mixin.Copyable
               expDirName);
       end
       
-      if obj.fromAPT && ~obj.aptInfo.has_trx && ~strcmp(obj.aptInfo.apt_trx_type,'custom')
+      if obj.fromAPT && ~strcmp(obj.aptInfo.apt_trx_type,'custom') % ~obj.aptInfo.has_trx && 
       % Maybe generate trx file if project is imported from APT and doesn't
       % have trx.
         trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
@@ -2017,9 +2017,7 @@ classdef JLabelData < matlab.mixin.Copyable
                         %'rootwritedir',expdir);
 %                        'rootwritedir',obj.rootoutputdir);
       
-      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
-      
-
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false,'aptInfo',obj.aptInfo,'fromAPT',obj.fromAPT);
       
       if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
         if expi>1,
@@ -4326,40 +4324,17 @@ classdef JLabelData < matlab.mixin.Copyable
 %                 return;
 %               end
               prev_width = 0;
-              for ndx = 1:numel(trkfilename),
+              for ndx = 1:numel(trkfilename)
                 %MK 20220629
                 % not required to load trk info anymore. 
                 % data is now stored in trx file in kpts
-                
-%                 trk = load(trkfilename{ndx},'-mat');
-%                 % check frames are in order
-%                 frms = trk.pTrkFrm;
-%                 dd = frms(2:end)-frms(1:end-1);
-%                 is_ordered = all(dd==1);
-%                 assert(is_ordered, 'Trk file should be ordered');
-%                 for i = 1:numel(trx)
-%                     trx_ndx = find(trk.pTrkiTgt==i);
-%                     if isempty(trx_ndx) 
-%                       msg = sprintf('APT trk %s does not tracking results for animal %d',trkfilename,i);
-%                       success = false;
-%                       return;
-%                     end
-%                     if iscell(trk.pTrk)
-%                       cur_trk = trk.pTrk{trx_ndx};
-%                     else
-%                       cur_trk = trk.pTrk(:,:,:,trx_ndx);
-%                       start_t = find(frms==trx(i).firstframe);
-%                       end_t = find(frms==trx(i).endframe);
-%                       if isempty(start_t) || isempty(end_t)
-%                         msg = sprintf('APT trk %s does not have tracking info for all the frames for animal %d',trkfilename,i);
-%                         success = false;
-%                         return;
-%                       end
-%                       cur_trk = cur_trk(:,:,start_t:end_t);
-%                     end
-%                   cur_trk(:,1,:) = cur_trk(:,1,:) + prev_width;                  
-%                   trx(i).apt_trk{ndx} = cur_trk;
-%                 end
+
+                % MK 20230303 - It seems we might have to add kpts for apt
+                % projects with trx in case the trx file doens't have them
+                if obj.aptInfo.has_trx && ~any(strcmp(fieldnames(trx),'kpts'))
+                  trx = addAPTTrk2Trx(trx,trkfilename{ndx},'view',ndx,'aptInfo',...
+                    obj.aptInfo,'prev_width',prev_width);
+                end
 
                 if exist('headerinfo','var') && iscell(headerinfo)
                   prev_width = prev_width + headerinfo{ndx}.nc;
