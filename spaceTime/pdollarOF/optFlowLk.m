@@ -1,5 +1,5 @@
 function [Vx,Vy,reliab]=optFlowLk( I1, I2, winN, ...
-  winSig, sigma, thr, show )
+  winSig, sigma, thr, show , winRadSmooth)
 % Calculate optical flow using Lucas & Kanade.  Fast, parallel code.
 %
 % Note that the window of integration can either be a hard square window of
@@ -46,6 +46,7 @@ if( nargin<4 || isempty(winSig));  winSig=[]; end
 if( nargin<5 || isempty(sigma)); sigma=1; end
 if( nargin<6 || isempty(thr)); thr=3e-6; end
 if( nargin<7 || isempty(show)); show=0; end
+if( nargin<8 || isempty(winRadSmooth)); winRadSmooth=2.25; end
 
 % error check inputs
 if( ~isempty(winN) && ~isempty(winSig))
@@ -73,8 +74,8 @@ else
 end;
 
 % smooth images (using the 'smooth' flag causes this to be slow)
-I1 = gaussSmooth(I1,sigma,'same');
-I2 = gaussSmooth(I2,sigma,'same');
+I1 = gaussSmooth(I1,sigma,'same',winRadSmooth);
+I2 = gaussSmooth(I2,sigma,'same',winRadSmooth);
 
 % Compute components of outer product of gradient of frame 1
 [Gx,Gy]=gradient(I1);
@@ -86,9 +87,9 @@ if( isempty(winSig) )
   Ayy=localSum(Gyy,maskWidth,'same') / maskArea;
 else
   winN = ceil(winSig);
-  Axx=gaussSmooth(Gxx,winSig,'same',2.25);
-  Axy=gaussSmooth(Gxy,winSig,'same',2.25);
-  Ayy=gaussSmooth(Gyy,winSig,'same',2.25);
+  Axx=gaussSmooth(Gxx,winSig,'same',winRadSmooth);
+  Axy=gaussSmooth(Gxy,winSig,'same',winRadSmooth);
+  Ayy=gaussSmooth(Gyy,winSig,'same',winRadSmooth);
 end;
 
 % Find determinant, trace, and eigenvalues of A'A
@@ -102,8 +103,8 @@ if( isempty(winSig) )
   ATbx=localSum(IxIt,maskWidth,'same') / maskArea;
   ATby=localSum(IyIt,maskWidth,'same') / maskArea;
 else
-  ATbx=gaussSmooth(IxIt,winSig,'same',2.25);
-  ATby=gaussSmooth(IyIt,winSig,'same',2.25);
+  ATbx=gaussSmooth(IxIt,winSig,'same',winRadSmooth);
+  ATby=gaussSmooth(IyIt,winSig,'same',winRadSmooth);
 end;
 
 % Compute components of velocity vectors
