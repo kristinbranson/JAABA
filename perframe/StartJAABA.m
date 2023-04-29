@@ -1,4 +1,4 @@
-% JAABA start up script.
+% JAABA start up function.
 %
 % This program is part of JAABA.
 %
@@ -17,6 +17,7 @@
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
+function jd = StartJAABA()
 
 SetUpJAABAPath;
 
@@ -35,4 +36,5 @@ catch ME
   
 end
 % Start JAABA.
-JLabel('nthreads',nthreads);
+fig = JLabel('nthreads',nthreads);
+jd = guidata(fig);
