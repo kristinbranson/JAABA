@@ -15,18 +15,18 @@ end
 trx = struct();
 for view = 1:numel(trkfilename)
   trk = TrkFile.load(trkfilename{view});
-  frms = trk.pTrkFrm;
-  dd = frms(2:end)-frms(1:end-1);
-  assert(all(dd==1),'Frames in trkfile should be in order')
+%   frms = trk.pTrkFrm;
+%   dd = frms(2:end)-frms(1:end-1);
+%   assert(all(dd==1),'Frames in trkfile should be in order')
   assert(size(trk.pTrk,4)==1, 'Cannot create trx file for trk with multiple animals');
   if aptInfo.has_trx
     warning('APT project already has trx. This might overwrite it');
   end
 
   t = ones(1,numel(frms));
-  temp_pts = trk.getPtrkTgt(fly);
-  ff = apttrk.startframes(fly);
-  ef = apttrk.endframes(fly);
+  temp_pts = trk.getPTrkTgt(fly);
+  ff = trk.startframes(fly);
+  ef = trk.endframes(fly);
   temp_pts = temp_pts(:,:,ff:ef);
   switch aptInfo.apt_trx_type
     case 'crop'
@@ -83,5 +83,6 @@ for view = 1:numel(trkfilename)
     trx.a_mm = t;
     trx.b_mm = t;
     trx.kpts = reshape(temp_pts,[size(temp_pts,1)*size(temp_pts,2),ef-ff+1]);
+    trx.trkInfo = trk.trkInfo;
   end
 end

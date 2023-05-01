@@ -630,11 +630,10 @@ classdef Macguffin < handle
                   end
               end
           end
-      end
-      featureLexiconPFNames = fieldnames(featureLexicon.perframe);
-      self.sublexiconPFNames = featureLexiconPFNames;
-      self.featureLexicon = featureLexicon;
-      
+        featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+        self.sublexiconPFNames = featureLexiconPFNames;
+        self.featureLexicon = featureLexicon;
+      end      
     end
     
   end  % private methods

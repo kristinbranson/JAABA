@@ -22,7 +22,7 @@ function varargout = APTProject(varargin)
 
 % Edit the above text to modify the response to help APTProject
 
-% Last Modified by GUIDE v2.5 07-Feb-2020 07:35:29
+% Last Modified by GUIDE v2.5 30-Nov-2022 05:02:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -222,6 +222,7 @@ figure1_CloseRequestFcn(hObject,eventdata,handles);
 
 function handles = initialize(handles)
 is_multi = handles.has_trx|handles.is_ma;
+handles.is_multi = is_multi;
 set(handles.trx_pop,'Enable',onoffif(is_multi));
 set(handles.trx_pop,'Visible',onoffif(is_multi));
 set(handles.trx_checkbox,'Visible',onoffif(is_multi));
@@ -242,6 +243,7 @@ if is_multi
     set(handles.trx_pop,'Value',1);
   end
   set(handles.trx_checkbox,'Value',true);
+  set(handles.edit_social,'Enable','on')
 else
   set(handles.trx_pop,'String',{''})
   set(handles.trx_pop,'Value',0)
@@ -256,6 +258,7 @@ else
     set(handles.rb_frame,'Value',true);
   end
   set(handles.rb_centroid,'Value',false);
+  set(handles.edit_social,'Enable','off')
 end
 
 % load a reference image and point locations.
@@ -326,7 +329,10 @@ for ndx = 1:size(apt.movieFilesAll,1)
       end
     else
       mov_files{end+1} = mov_file;
-      trx_files{end+1} = unMacroise(apt.trxFilesAll{ndx,m_ndx},apt);
+      tt = unMacroise(apt.trxFilesAll{ndx,m_ndx},apt);
+      aa = fileparts(mov_files{end});
+      tt = strrep(tt,'$movdir',aa);
+      trx_files{end+1} = tt;
     end
   end
   
@@ -386,6 +392,9 @@ for ndx = 1:size(apt.movieFilesAll,1)
     img = cat(2,img,cur_img);
     prev_width = size(img,2);
     all_locs = cat(1,all_locs,ll);
+  end
+  if is_multi
+    img = cat(1,img,img);
   end
   
   break
@@ -448,8 +457,9 @@ handles.aptStruct.head_tail = handles.head_tail;
 % handles.aptStruct.animalType = '';
 handles.aptStruct.view = 1;
 handles.aptStruct.is_ma = handles.is_ma;
+
 handles = UpdateHandles(handles);
-UpdatePlots(handles)
+%UpdatePlots(handles)
 
 
 
@@ -473,40 +483,7 @@ end
 handles.aptStruct.animalType = animalType;
 % pairs
 str = get(handles.edit_pair,'String');
-pair_str = strsplit(str,',');
-pairs = {};
-if ~isempty(pair_str{1}),
-  for ndx = 1:numel(pair_str)
-    cur_str = strtrim(pair_str{ndx});
-    cur_pair = strsplit(cur_str);
-    if numel(cur_pair)~=2
-      uiwait(errordlg('Incorrect format for specifying pairs.'));
-      pairs = {}; break;
-    end
-    pts = [];
-    is_error = false;
-    for pndx = 1:numel(cur_pair)
-      cur_p = str2double(cur_pair{pndx});
-      if round(cur_p) ~= cur_p || isnan(cur_p)
-        uiwait(errordlg('Please specify points as integer'));
-        pairs = {}; is_error = true; break;
-      end
-      if cur_p > handles.aptStruct.n_pts
-        uiwait(errordlg(sprintf('Points should be between 1 and %d',handles.n_pts)));
-        pairs = {};  is_error = true;break;
-      end
-      pts(end+1) = cur_p;
-    end
-    if is_error
-      pairs = {}; break;
-    end
-    if pts(1) == pts(2)
-      uiwait(errordlg('Cannot use same point in pairs'));
-      pairs = {}; break;
-    end
-    pairs{end+1} = pts;
-  end
-end
+pairs = parse_pairs(str,handles,true);
 handles.pairs = pairs;
 
 % triads
@@ -546,6 +523,13 @@ if ~isempty(pair_str{1}),
 end
 handles.triads = triads;
 
+if handles.is_multi
+  str = get(handles.edit_social,'String');
+  social_pairs = parse_pairs(str,handles,false);
+  handles.social_pairs = social_pairs;
+  
+end
+
 % custom
 str = get(handles.edit_custom,'String');
 pair_str = strsplit(str,',');
@@ -560,6 +544,43 @@ trk_file_str = strtrim(get(handles.edit_trk,'String'));
 trkfiles = strsplit(trk_file_str,',');
 handles.aptStruct.trkfilename = trkfiles;
 UpdatePlots(handles);  
+
+
+function pairs = parse_pairs(str,handles,check_match)
+pair_str = strsplit(str,',');
+pairs = {};
+if ~isempty(pair_str{1}),
+  for ndx = 1:numel(pair_str)
+    cur_str = strtrim(pair_str{ndx});
+    cur_pair = strsplit(cur_str);
+    if numel(cur_pair)~=2
+      uiwait(errordlg('Incorrect format for specifying pairs.'));
+      pairs = {}; break;
+    end
+    pts = [];
+    is_error = false;
+    for pndx = 1:numel(cur_pair)
+      cur_p = str2double(cur_pair{pndx});
+      if round(cur_p) ~= cur_p || isnan(cur_p)
+        uiwait(errordlg('Please specify points as integer'));
+        pairs = {}; is_error = true; break;
+      end
+      if cur_p > handles.aptStruct.n_pts
+        uiwait(errordlg(sprintf('Points should be between 1 and %d',handles.n_pts)));
+        pairs = {};  is_error = true;break;
+      end
+      pts(end+1) = cur_p;
+    end
+    if is_error
+      pairs = {}; break;
+    end
+    if (pts(1) == pts(2))&&check_match
+      uiwait(errordlg('Cannot use same point in pairs'));
+      pairs = {}; break;
+    end
+    pairs{end+1} = pts;
+  end
+end
 
 
 function filename = unMacroise(filename,apt)
@@ -580,16 +601,39 @@ if isempty(handles.im)
   axis(handles.axes1,'off');
   return
 end
+is_multi = handles.has_trx|handles.is_ma;
+
 axes(handles.axes1);
 img = handles.im;
 ll = double(handles.locs);
+hsz = size(img,1)/2;
 
-imshow(img);
+imh = imshow(img);
+if is_multi
+  if ndims(img)>2
+    alpha = img(:,:,1);
+  else
+    alpha = img;
+  end
+  alpha = double(alpha);
+  alpha(hsz+1:end,:) = 0.2;
+  alpha(1:hsz,:) = 1.;
+  imh.AlphaData = alpha;
+  text(12,12,'Current Animal');
+  text(12,hsz+12,'Other Animal');
+end
 hold on;
 scatter(ll(:,1),ll(:,2),'.');
 for ndx = 1:size(ll,1)
   cur_n = modrange(ndx,1,handles.aptStruct.n_pts+1);
   text(ll(ndx,1)+1,ll(ndx,2)+1,num2str(cur_n),'Color',[1 0 0]);
+end
+if is_multi
+  scatter(ll(:,1),ll(:,2)+hsz,'.')
+  for ndx = 1:size(ll,1)
+    cur_n = modrange(ndx,1,handles.aptStruct.n_pts+1);
+    text(ll(ndx,1)+1,ll(ndx,2)+1+hsz,num2str(cur_n),'Color',[0 1 0]);
+  end
 end
 for pndx = 1:numel(handles.pairs)
   for view = 1:handles.aptStruct.n_view
@@ -597,6 +641,18 @@ for pndx = 1:numel(handles.pairs)
     p = ll(handles.pairs{pndx}+(view-1)*n_pts,:);
     plot(p(:,1),p(:,2));
   end
+end
+if handles.is_multi
+  spair = handles.social_pairs;
+  for pndx = 1:numel(spair)
+    for view = 1:handles.aptStruct.n_view
+      p1 = ll(spair{pndx}(1),:);
+      p2 = ll(spair{pndx}(2),:);
+      p2(2) = p2(2) + hsz;
+      plot([p1(1) p2(1)],[p1(2) p2(2)],'Color',[0 0 1],'LineStyle',':');
+    end
+  end
+  
 end
 hold off;
 handles.im = img;
@@ -954,6 +1010,41 @@ for pndx = 1:numel(handles.triads)
   end
 end
 
+if handles.is_multi
+  social_struct = struct();
+  social_struct.trans_types=trans_type;
+  social_struct.type='apt_social';
+
+  for ndx = 1:n_pts
+    for view = 1:n_view
+      cur_ftr = sprintf('apt_view%d_social_dist_%d',view,ndx);
+      featureLexicon.perframe.(cur_ftr) = social_struct;
+      cur_ftr = sprintf('apt_view%d_social_ddist_%d',view,ndx);
+      featureLexicon.perframe.(cur_ftr) = social_struct;      
+      cur_ftr = sprintf('apt_view%d_social_sin_%d',view,ndx);
+      featureLexicon.perframe.(cur_ftr) = social_struct;
+      cur_ftr = sprintf('apt_view%d_social_cos_%d',view,ndx);
+      featureLexicon.perframe.(cur_ftr) = social_struct;      
+    end
+  end
+
+
+  % social pair features
+  for pndx = 1:numel(handles.social_pairs)
+    cur_p = handles.social_pairs{pndx};
+    for view = 1:n_view
+      cur_ftr = sprintf('apt_view%d_socialpair_dist_%d_%d',view,cur_p(1),cur_p(2));
+      featureLexicon.perframe.(cur_ftr) = social_struct;
+      cur_ftr = sprintf('apt_view%d_socialpair_ddist_%d_%d',view,cur_p(1),cur_p(2));
+      featureLexicon.perframe.(cur_ftr) = social_struct;
+      cur_ftr = sprintf('apt_view%d_socialpair_sin_%d_%d',view,cur_p(1),cur_p(2));
+      featureLexicon.perframe.(cur_ftr) = social_struct;
+      cur_ftr = sprintf('apt_view%d_socialpair_cos_%d_%d',view,cur_p(1),cur_p(2));
+      featureLexicon.perframe.(cur_ftr) = social_struct;
+    end
+  end
+end
+
 for pndx = 1:numel(handles.custom_list)
   trans_type = {'none' 'relative'}; 
   cur_ftr = handles.custom_list{pndx};
@@ -1162,3 +1253,31 @@ function pushbutton_help_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 web('https://github.com/kristinbranson/APT/wiki/Using-APT-tracking-data-in-JAABA','-browser');
+
+
+
+function edit_social_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_social (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_social as text
+%        str2double(get(hObject,'String')) returns contents of edit_social as a double
+handles = UpdateHandles(handles);
+guidata(hObject,handles)
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_social_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_social (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+

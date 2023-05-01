@@ -11,4 +11,4 @@ for i1 = 1:nflies
     trx(fly1).closestfly_ell2ell;
     data{i1} = trx(fly1).dell2ell;
 end
-units = parseunits('mm')
+units = parseunits('mm');

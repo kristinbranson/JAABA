@@ -2,7 +2,8 @@
 % Adds data associated with experiment expdir to the data represented by obj.
 function AddExpDir(obj,expdir,varargin)
 
-[dooverwrite,openmovie] = myparse(varargin,'dooverwrite',true,'openmovie',true);
+[dooverwrite,openmovie,aptInfo,fromAPT] = myparse(varargin,'dooverwrite',true,...
+  'openmovie',true,'aptInfo',[],'fromAPT',false);
 
 % remove trailing /
 if expdir(end) == '/' || (ispc && expdir(end) == '\'),
@@ -120,9 +121,18 @@ obj.datacached{n} = {};
 obj.fnscached{n} = {};
 obj.nfnscached(n) = 0;
 
+% Add apt stuff if it is missing
+if fromAPT && ~any(strcmp(fieldnames(traj),'kpts'))
+  trkfilename = fullfile(obj.expdirs{n},obj.trkfilestr);
+  for view = 1:numel(trkfilename)
+    traj = addAPTTrk2Trx(traj,trkfilename{view},'aptInfo',aptInfo,'view',view);
+  end
+end
+
 % store trajectories
 obj.StoreTrajectories(n,traj,dooverwrite);
 
 % movie size in mm
 obj.width_mms(n) = obj.ncs(n) / obj.pxpermm(n);
 obj.height_mms(n) = obj.nrs(n) / obj.pxpermm(n);
+
