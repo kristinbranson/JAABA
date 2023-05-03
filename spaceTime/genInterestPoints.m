@@ -4,7 +4,7 @@ function [success ips] = genInterestPoints(moviename,varargin)
   'doaskleftright',true);
 
 annObj = HandleObj; % handle obj to store annotation info
-hFig = playfmf_interestpoints('moviename',moviename,'annDataObj',annObj,'ipnames',ipnames,'doaskleftright',doaskleftright);
+hFig = playfmf('moviename',moviename,'annDataObj',annObj,'ipnames',ipnames,'doaskleftright',doaskleftright);
 waitfor(hFig);
 if isempty(annObj.data)
   success = false;
