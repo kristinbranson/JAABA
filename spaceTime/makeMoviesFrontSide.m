@@ -19,7 +19,7 @@ FRONT_MOVIE_NAME = 'movie_frt.avi';
 SIDE_MOVIE_NAME = 'movie_sde.avi';
 TRX_NAME = 'trx.mat';
 
-dd = dir(fullfile(edir,'*_front_*avi'));
+dd = dir(fullfile(edir,'*front_*avi'));
 for ndx = 1:numel(dd)
   if dd(ndx).isdir,
     continue;
@@ -30,8 +30,18 @@ for ndx = 1:numel(dd)
   
   % guid does not need to match
   m = regexp(name,'^(?<pre>.*)_front_(?<mid>.*)(?<guid>_guid_[a-f0-9]+)(?<post>_.*)?$','names','once');
+  if isempty(m),
+    m = regexp(name,'^(?<pre>.*)_?front_(?<mid>.*)(?<guid>_cam_[a-f0-9]+)(?<post>_.*)?$','names','once');
+  end
+
   if ~isempty(m),
-    shortname = [m.pre,'_front_',m.mid,m.post];
+    if ~isempty(m.pre),
+      m.pre = [m.pre,'_'];
+    end
+    if ~isempty([m.mid,m.post]),
+      m.mid = ['_',m.mid];
+    end
+    shortname = [m.pre,'front_',m.mid,m.post];
     re = fullfile(edir,[m.pre,'_side_',m.mid,'_guid_*',m.post,ext]);
     tmp = dir(re);
     if ~isempty(tmp),
