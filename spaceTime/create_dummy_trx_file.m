@@ -1,8 +1,17 @@
-function create_dummy_trx_file(expdir,x,y,names,varargin)
+function create_dummy_trx_file(expdir,ips,varargin)
 
-[movfilestr,trxfilestr,a,b,theta,fps,forcecompute,face] = myparse(varargin,...
+names = setdiff(fieldnames(ips),{'face'});
+x = nan(1,numel(names));
+y = nan(1,numel(names));
+for i = 1:numel(names),
+  x(i) = ips.(names{i})(1);
+  y(i) = ips.(names{i})(2);
+end
+face = ips.face;
+
+[movfilestr,trxfilestr,a,b,theta,fps,forcecompute] = myparse(varargin,...
   'movfilestr',[],'trxfilestr','trx.mat',...
-  'a',5,'b',2,'theta',0,'fps',400,'forcecompute',false,'face','right');
+  'a',5,'b',2,'theta',0,'fps',400,'forcecompute',false);
 
 defaultmovfilestrs = {
   'movie_comb.avi'
