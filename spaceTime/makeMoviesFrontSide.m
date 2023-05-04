@@ -28,49 +28,28 @@ for ndx = 1:numel(dd)
   [~,name,ext] = fileparts(frontnameext);
   fullfrontname = fullfile(edir,frontnameext);
   
-  % guid does not need to match
-  m = regexp(name,'^(?<pre>.*)_front_(?<mid>.*)(?<guid>_guid_[a-f0-9]+)(?<post>_.*)?$','names','once');
-  if isempty(m),
-    m = regexp(name,'^(?<pre>.*)_?front_(?<mid>.*)(?<guid>_cam_[a-f0-9]+)(?<post>_.*)?$','names','once');
-  end
-
-  if ~isempty(m),
-    if ~isempty(m.pre),
-      m.pre = [m.pre,'_'];
+  % guid and time do not need to match
+  namematch = name;
+  namematch = regexprep(namematch,'^front_','side_');
+  shortname = name;
+  namematch = regexprep(namematch,'((guid)|(cam))_[a-f0-9]+','$1\*');
+  shortname = regexprep(shortname,'((guid)|(cam))_[a-f0-9]+_','');
+  namematch = regexprep(namematch,'date_([\d_]+)_time_[\d_]+','date_$1_time_\*');
+  re = fullfile(edir,[namematch,ext]);
+  tmp = dir(re);
+  if ~isempty(tmp),
+    if numel(tmp) > 1,
+      warning('Multiple videos match %s, choosing first one: %s',re,tmp(1).name);
     end
-    if ~isempty([m.mid,m.post]),
-      m.mid = ['_',m.mid];
-    end
-    shortname = [m.pre,'front_',m.mid,m.post];
-    re = fullfile(edir,[m.pre,'_side_',m.mid,'_guid_*',m.post,ext]);
-    tmp = dir(re);
-    if ~isempty(tmp),
-      m2 = regexp({tmp.name},['^',regexptranslate('escape',m.pre),'_side_',...
-        regexptranslate('escape',m.mid),'(?<guid>_guid_[a-f0-9]+)',...
-        regexptranslate('escape',m.post),...
-        regexptranslate('escape',ext),'$'],'once');
-      ismatch = ~cellfun(@isempty,m2);
-      tmp = tmp(ismatch);
-    end
-
-    if ~isempty(tmp),
-      if numel(tmp) > 1,
-        warning('Multiple videos match %s, choosing first one: %s',re,tmp(1).name);
-      end
-      sidenameext = tmp(1).name;
-    else
-      warning('Could not find side video matching %s, skipping %s',re,frontnameext);
-      continue;
-    end
+    sidenameext = tmp(1).name;
   else
-    shortname = name;
-    sidenameext = regexprep(frontnameext,'_front_','_side_');
+    warning('Could not find side video matching %s, skipping %s',re,frontnameext);
+    continue;
   end
   fullsidename = fullfile(edir,sidenameext);
 
-
   % create JAABAdir
-  jdir = fullfile(edir,regexprep(shortname,'_front_','_'));
+  jdir = fullfile(edir,regexprep(shortname,'front_',''));
   if ~exist(jdir,'dir')
     mkdir(jdir);
   end
