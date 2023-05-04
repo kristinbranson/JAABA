@@ -28,13 +28,13 @@ for ndx = 1:numel(dd)
   [~,name,ext] = fileparts(frontnameext);
   fullfrontname = fullfile(edir,frontnameext);
   
-  % guid and time do not need to match
+  % guid does not need to match
   namematch = name;
   namematch = regexprep(namematch,'^front_','side_');
   shortname = name;
   namematch = regexprep(namematch,'((guid)|(cam))_[a-f0-9]+','$1\*');
   shortname = regexprep(shortname,'((guid)|(cam))_[a-f0-9]+_','');
-  namematch = regexprep(namematch,'date_([\d_]+)_time_[\d_]+','date_$1_time_\*');
+  %namematch = regexprep(namematch,'date_([\d_]+)_time_[\d_]+','date_$1_time_\*');
   re = fullfile(edir,[namematch,ext]);
   tmp = dir(re);
   if ~isempty(tmp),
