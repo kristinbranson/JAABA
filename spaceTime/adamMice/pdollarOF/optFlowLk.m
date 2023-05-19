@@ -73,8 +73,8 @@ else
 end;
 
 % smooth images (using the 'smooth' flag causes this to be slow)
-I1 = gaussSmooth(I1,sigma,'same');
-I2 = gaussSmooth(I2,sigma,'same');
+I1 = gaussSmooth(I1,sigma,'same',2);
+I2 = gaussSmooth(I2,sigma,'same',2);
 
 % Compute components of outer product of gradient of frame 1
 [Gx,Gy]=gradient(I1);
