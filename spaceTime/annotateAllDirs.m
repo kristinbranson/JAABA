@@ -91,10 +91,17 @@ else
 end
 assert(~isempty(ips),'Failed to identify interest points.');
 
+%read first frame of video to get height and width info for annfcn
+vidobj = VideoReader(fullfile(expdirs{1},"movie_sde.avi"));
+frame1 = read(vidobj,1);
+imheight = size(frame1,1);
+imwidth  = size(frame1,2);
+
 % Apply ips to expDirs
 for edir = expdirs, edir = edir{1}; %#ok<FXSET>
   try
-    tf = annfcn(edir,'ips',ips,'doforce',doforce); % 'fno',30
+    
+    tf = annfcn(edir,'ips',ips,'doforce',doforce,'imwidth',imwidth); % 'fno',30
     assert(tf);
   catch ME
     fprintf('Could not annotate %s (%s)\n',edir,getReport(ME));

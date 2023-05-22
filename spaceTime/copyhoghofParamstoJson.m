@@ -31,8 +31,10 @@ function copyhoghofParamstoJson(exp_file, params_file, json_dir_file,varargin)
     trx2 = [trx(2).x(1), trx(2).y(1)];
     trx3 = [trx(3).x(1), trx(3).y(1)];
     %front ips
-    trx4 = [trx(4).x(1), trx(4).y(1)];
-    trx5 = [trx(5).x(1), trx(5).y(1)];
+    imwidth = params_mapping.image_width;
+    disp(imwidth);
+    trx4 = [trx(4).x(1)-imwidth, trx(4).y(1)];
+    trx5 = [trx(5).x(1)-imwidth, trx(5).y(1)];
 
     HOGParams = struct('nbins',string(params_mapping.nbins), ...
                        'cell', struct('w',string(params_mapping.cell_height),...
