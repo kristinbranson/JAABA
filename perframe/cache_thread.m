@@ -10,11 +10,11 @@ if isempty(movie_filename),
   return;
 end
 
-Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
-Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-Mimage    = memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, ...
+try
+  Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+  Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+  Mimage    = memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, ...
     'Offset', 2*N*8);
-
 readframe=get_readframe_fcn(movie_filename);
 
 while true
@@ -37,4 +37,9 @@ while true
   end
 end
 
-return  %#ok
+catch ME
+  warning('Could not start thread for caching video frames, switching frames may be slow:\n%s',getReport(ME));
+  return;
+end
+
+return 

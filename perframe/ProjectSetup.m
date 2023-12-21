@@ -987,7 +987,11 @@ switch name
 end
 
 % try to convert it to a number if possible
-valuen = regexp(value,',','split');
+if ischar(value)
+  valuen = regexp(value,',','split');
+else
+  valuen = value;
+end
 valuen = str2double(valuen);
 if all(~isnan(valuen)),
   value = valuen; %#ok<NASGU>

@@ -97,7 +97,13 @@ for ndx = 1:nbehaviors
 end
 
 if any(E(:))
-  order = graphtopoorder(sparse(E));
+  if verLessThan('matlab', '9.13') ,
+      % Releases strictly before R2022b
+      order = graphtopoorder(sparse(E));
+  else
+      % Releases >= R2022b, in which graphtopoorder() has been removed
+      order = toposort(digraph(E)) ;
+  end
 else
   order = 1:nbehaviors;
 end
