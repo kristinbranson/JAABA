@@ -161,6 +161,10 @@ classdef Trx < handle
     skeleton_edges = {};
     trkInfo = {};
     kpts = {};
+    kpts_view1 = {};
+    kpts_view2 = {};
+    kpts_view3 = {};
+    kpts_view4 = {};
 
     
 %     %% larva spine

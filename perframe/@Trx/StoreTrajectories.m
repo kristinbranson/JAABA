@@ -215,7 +215,7 @@ while ~done
     kfield = sprintf('kpts_view%d',count);
     if isfield(traj(1),kfield)
       for ndx = 1:numel(flies)
-        obj.(kfield)(flies) = traj(ndx).(kfield);
+        obj.(kfield){flies} = traj(ndx).(kfield);
       end
     end
 

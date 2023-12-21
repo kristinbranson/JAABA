@@ -143,7 +143,7 @@ elseif handles.has_trx
     handles.use_theta = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.AlignUsingTrxTheta;
     sz = apt.trackParams.ROOT.ImageProcessing.MultiTarget.TargetCrop.Radius;
   else
-    handle.use_theta = apt.trackParams.ROOT.MultiAnimal.TargetCrop.AlignUsingTrxTheta;
+    handles.use_theta = apt.trackParams.ROOT.MultiAnimal.TargetCrop.AlignUsingTrxTheta;
     sz = apt.trackParams.ROOT.MultiAnimal.TargetCrop.ManualRadius;
   end
   handles.sz = [sz,sz];
@@ -155,11 +155,25 @@ elseif handles.has_crops
   ff = apt.movieFilesAllCropInfo{1}(1).roi;
   ht = ff(4)-ff(3)+1; wd = ff(2)-ff(1)+1;
   handles.sz = [ht,wd];
+
+  if isfield(apt,'skelHead') && ~isempty(apt.skelHead)
+    handles.head_tail = [apt.skelHead,apt.skelTail];
+  else
+    handles.head_tail = [];
+  end
+
 else
   handles.use_theta = true;
   ht = apt.movieInfoAll{1}.info.nr;
   wd = apt.movieInfoAll{1}.info.nc;
   handles.sz = [ht,wd];
+
+  if isfield(apt,'skelHead') && ~isempty(apt.skelHead)
+    handles.head_tail = [apt.skelHead,apt.skelTail];
+  else
+    handles.head_tail = [];
+  end
+
 end
 
 [featureList,xmlList] = getFeatureLexiconListsFromXML();

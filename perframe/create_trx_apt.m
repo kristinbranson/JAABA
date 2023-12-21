@@ -23,11 +23,12 @@ for view = 1:numel(trkfilename)
     warning('APT project already has trx. This might overwrite it');
   end
 
-  t = ones(1,numel(frms));
-  temp_pts = trk.getPTrkTgt(fly);
-  ff = trk.startframes(fly);
-  ef = trk.endframes(fly);
+  temp_pts = trk.getPTrkTgt(1);
+  aa = trk.isalive(1:size(temp_pts,3),1);
+  ff = find(aa,1,'first');
+  ef = find(aa,1,'last');
   temp_pts = temp_pts(:,:,ff:ef);
+  t = ones(1,ef-ff+1);
   switch aptInfo.apt_trx_type
     case 'crop'
       crop_loc = trk.trkInfo.crop_loc;
@@ -62,15 +63,15 @@ for view = 1:numel(trkfilename)
 
   if view == 1
     trx.pxpermm = 1;
-    trx.nframes = numel(frms);
-    trx.firstframe = min(frms);
-    trx.endframe = max(frms);
+    trx.nframes = ef-ff+1;
+    trx.firstframe = ff;
+    trx.endframe = ef;
     trx.id = 0;
     trx.trkfile = trkfilename;
     trx.from_apt = true;
     trx.aptInfo = aptInfo;
     trx.off = 1-trx.firstframe;
-    trx.dt = ones(1,numel(frms)-1);
+    trx.dt = ones(1,ef-ff);
     trx.x = x;
     trx.y = y;
     trx.x_mm = trx.x;
