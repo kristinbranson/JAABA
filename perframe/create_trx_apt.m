@@ -1,6 +1,6 @@
-function trx = create_trx_apt(trkfilename, aptInfo)
+function [trx,success,msg] = create_trx_apt(trkfilename, aptInfo)
 
-
+success = true; msg = '';
 if ischar(trkfilename)
   trkfilename = {trkfilename};
 end
@@ -14,6 +14,11 @@ end
 
 trx = struct();
 for view = 1:numel(trkfilename)
+  if ~exist(trkfilename{view},'file')
+    success = false;
+    msg = sprintf('Trkfile %s doesnt exist',trkfilename{view});
+    return;
+  end
   trk = TrkFile.load(trkfilename{view});
 %   frms = trk.pTrkFrm;
 %   dd = frms(2:end)-frms(1:end-1);

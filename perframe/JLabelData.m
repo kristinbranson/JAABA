@@ -1358,8 +1358,13 @@ classdef JLabelData < matlab.mixin.Copyable
       % have trx.
         trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
         trkFileName =  fullfile(expDirName,obj.GetFileName('trk'));
-        if ~exist(trxFileNameAbs,'file')
-          trx = create_trx_apt(trkFileName,obj.aptInfo);  %#ok<PROPLC>
+        if ~exist(trxFileNameAbs,'file')          
+          [trx,success1,msg1] = create_trx_apt(trkFileName,obj.aptInfo);  %#ok<PROPLC>
+          if ~success1
+            success = false;
+            msg = msg;
+            return;
+          end
           A = struct('trx',trx); %#ok<PROPLC>
           save(trxFileNameAbs,'-struct','A');
         end        
