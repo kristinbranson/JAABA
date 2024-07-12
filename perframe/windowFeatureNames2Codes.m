@@ -41,6 +41,7 @@ radius_codei = 4;
 offset_codei = 5;
 changeradius_codei = 6;
 num_harmonic_codei = 7;
+hist_edges_codei = [6,7];
 pff_namei = 1;
 stat_namei = 3;
 trans_namei = 5;
@@ -54,7 +55,7 @@ stats = cell(numel(featureNames),1);
 trans = cell(numel(featureNames),1);
 radius = nan(numel(featureNames),1);
 offset = nan(numel(featureNames),1);
-extra = nan(numel(featureNames),1);
+extra = cell(numel(featureNames),1);
 for i = 1:numel(featureNames),
   pffs{i} = featureNames{i}{pff_namei};
   stats{i} = featureNames{i}{stat_namei};
@@ -65,12 +66,15 @@ for i = 1:numel(featureNames),
     % ALT is responsible for the questionable choices made in this block
     % He added them on or around 2021-03-04.
     temp = featureNames{i}{extra_namei} ;
-    if ~isscalar(temp) ,
-      fprintf('In windowFeatureNames2Codes(), featureNames{%d}{%d} is non-scalar:\n', i, extra_namei) ;
-      disp(temp) ;
-      fprintf('This will cause an error that is (usually) silently ignored by Matlab if it happens during loading of an object without a loadobj() method.\n') ;
-    end
-    extra(i) = temp ;
+    extra{i} = temp;
+    % if ~isscalar(temp) ,
+    %   fprintf('In windowFeatureNames2Codes(), featureNames{%d}{%d} is non-scalar:\n', i, extra_namei) ;
+    %   disp(temp) ;
+    %   fprintf('This will cause an error that is (usually) silently ignored by Matlab if it happens during loading of an object without a loadobj() method.\n') ;
+    %   extra(i) = temp(1);
+    % else
+    %   extra(i) = temp ;
+    % end
   end
 end
 
@@ -96,13 +100,16 @@ end
 
 featureCodes(:,radius_codei) = radius;
 featureCodes(:,offset_codei) = offset;
-idxextra = find(~isnan(extra));
+idxextra = find(~cellfun(@isempty,extra));
+%idxextra = find(~isnan(extra));
 for i = idxextra',
   switch featureNames{i}{extra_namei-1},
     case 'change_window_radius',
-      featureCodes(i,changeradius_codei) = extra(i);
+      featureCodes(i,changeradius_codei) = extra{i};
     case 'num_harmonic'
-      featureCodes(i,num_harmonic_codei) = extra(i);
+      featureCodes(i,num_harmonic_codei) = extra{i};
+    case 'hist_edges'
+      featureCodes(i,hist_edges_codei) = extra{i};
     otherwise
       error('unknown extra parameter %s',featureNames{i}{extra_namei-1});
   end

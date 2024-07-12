@@ -462,7 +462,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % Details of st
     stFeatures = false;
-    stInfo = getSTParams();
+    stInfo = [];
+    %stInfo = getSTParams();
   end
 
  
