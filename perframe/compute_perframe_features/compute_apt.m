@@ -108,8 +108,8 @@ for t = 1:numel(x)
   T = [1,0,0
     0,1,0
     -trx_x(t),-trx_y(t),1];
-  R = [cos(theta(t)+pi/2),-sin(theta(t)+pi/2),0
-    sin(theta(t)+pi/2),cos(theta(t)+pi/2),0
+  R = [cos(theta(t)-pi/2),-sin(theta(t)-pi/2),0
+    sin(theta(t)-pi/2),cos(theta(t)-pi/2),0
     0,0,1];
   A = T*R;
   M = [x(t) y(t) 1]*A;
@@ -217,12 +217,12 @@ switch fn
     data = diff(y1-y2)./dt;
     data = data/pxpermm;
     units = parseunits('mm');
-  case 'sin'
+  case 'cos'
     len = sqrt((x1-x2).^2 + (y1-y2).^2);    
     data = (x1-x2)./len;
     data(len==0) = 0;
     units = parseunits('');
-  case 'cos'
+  case 'sin'
     len = sqrt((x1-x2).^2 + (y1-y2).^2);
     data = (y1-y2)./len;
     data(len==0) = 0;
