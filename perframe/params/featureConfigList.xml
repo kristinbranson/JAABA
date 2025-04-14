@@ -4,6 +4,7 @@
 <flies file="params/featureConfig.xml" animal="fly"/>
 <flies_wing file="params/featureConfigWings.xml" animal="wingedfly"/>
 <flies_disco file="params/featureConfigDisco.xml" animal="wingedfly"/>
+<flies_disco_leg file="params/featureConfigDisco_apt.xml" animal="wingedfly"/>
 <flies_rect file="params/featureConfig_rect.xml" animal="fly"/>
 <!--flies_FlyTracker file="params/featureConfigFlyTracker.xml" animal="wingedfly"/-->
 <eyrun_flies file="params/featureConfigEyrun.xml" animal="wingedfly"/>
