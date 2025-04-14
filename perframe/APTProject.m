@@ -227,7 +227,9 @@ if ~isgraphics(hObject)
   return;
 end
 handles = guidata(hObject);
-varargout{1} = handles.aptStruct;
+aptStructRaw = handles.aptStruct ;
+aptStruct = cleanUpAptStruct(aptStructRaw) ;
+varargout{1} = aptStruct;
 if isgraphics(handles.waitbar)
   delete(handles.waitbar);
 end
@@ -1135,7 +1137,7 @@ trkfiles = strsplit(trk_file_str,',');
 if numel(trkfiles)~=handles.aptStruct.n_view
   uiwait(errormsg('Number of trk files should be same as number of views'));
   handles.aptStruct.trkfilename = reset_trk_edit(handles);
-  guidata(hObject,handels);
+  guidata(hObject,handles);
   return;
 end
 handles.aptStruct.trkfilename = trkfiles;
