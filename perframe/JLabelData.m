@@ -462,7 +462,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % Details of st
     stFeatures = false;
-    stInfo = getSTParams();
+    stInfo = [];
+    %stInfo = getSTParams();
   end
 
  
@@ -7786,7 +7787,11 @@ classdef JLabelData < matlab.mixin.Copyable
            ~isequal(featureNames,self.windowdata(iBeh).featurenames)
           warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier ''%s'' shouldn''t be used; retrain a new classifier.',...
             self.labelnames{iBeh});
-          uiwait(warndlg(warnstr));
+          if self.isInteractive ,
+            uiwait(warndlg(warnstr));
+          else
+            warning(warnstr) ;  %#ok<SPWRN>
+          end
           self.loadwindowdata(iBeh) = false;
         end
       end

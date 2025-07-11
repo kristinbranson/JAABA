@@ -1,6 +1,9 @@
 function trx = addAPTTrk2Trx(trx,trkfile,varargin)
 
 [view,aptInfo,prev_width] = myparse(varargin,'view',1,'aptInfo',[],'prev_width',0);
+if ~exist(trkfile, 'file')
+  error('Trk file %s does not exist', trkfile) ;
+end
 trk = TrkFile.load(trkfile);
 
 for fly = 1:numel(trx)

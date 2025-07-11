@@ -16,7 +16,7 @@ end
 
 assert(all(t0s<=t1s));
 if isnames,
-  v = nan(1,nan);
+  v = nan(1,n);
 else
   v = false(1,n);
 end

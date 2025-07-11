@@ -24,6 +24,7 @@ radius_codei = 4;
 offset_codei = 5;
 changeradius_codei = 6;
 num_harmonic_codei = 7;
+hist_edges_codei = [6,7];
 pff_namei = 1;
 stat_namei = 3;
 trans_namei = 5;
@@ -43,7 +44,10 @@ base{extra_namei-1} = 'extra';
 for i = 1:nfeatures,
   featureCode = featureCodes(i,:);
   featureName = base;
-  if ~isnan(featureCode(changeradius_codei)),
+  % order matters here -- back hist edges into these two features
+  if all(~isnan(featureCode(hist_edges_codei))),
+    featureName{extra_namei} = featureCode(hist_edges_codei);
+  elseif ~isnan(featureCode(changeradius_codei)),
     featureName{extra_namei-1} = 'change_window_radius';
     featureName{extra_namei} = featureCode(changeradius_codei);
   elseif ~isnan(featureCode(num_harmonic_codei)),
