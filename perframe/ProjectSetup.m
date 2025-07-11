@@ -1075,7 +1075,10 @@ else
   end
   % Get the detail of APT
   lbl_file = fullfile(fpath,fname);
-  aptStruct = APTProject('lbl_file',lbl_file);
+  % aptStruct = APTProject('lbl_file',lbl_file);
+  temp_data = appData;
+  APTProject_App(temp_data,'lbl_file',lbl_file);
+  aptStruct = temp_data.aptStruct;
 end
 
 if isempty(aptStruct.featureLexicon)

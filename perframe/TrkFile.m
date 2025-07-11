@@ -26,6 +26,7 @@ classdef TrkFile < dynamicprops
                                  % this is NOT used for indexing, e.g.
                                  % getPTrkTgt(i) just gives pTrk(:,:,:,i)
 
+%     pTrkSingleView = TrkFile.unsetVal; % For multi-view stuff                           
     % CPR-specific
     pTrkFull = TrkFile.unsetVal; % [npttrked x 2 x nRep x nTrkFull], full tracking with replicates
     pTrkFullFT = TrkFile.unsetVal; % [nTrkFull x ncol] Frame-Target table labeling 4th dim of pTrkFull
@@ -50,7 +51,7 @@ classdef TrkFile < dynamicprops
   end
   properties (Dependent)
     ntracklets
-    ntlts
+    %ntlts  % Wasn't used anywhere
   end
   
   methods 
@@ -58,9 +59,9 @@ classdef TrkFile < dynamicprops
 %       % assumes at least one tracklet...
 %       v = size(obj.pTrk{1},1);
 %     end
-    function v = get.ntlts(obj)
-      v = obj.ntracklets;
-    end
+%     function v = get.ntlts(obj)
+%       v = obj.ntracklets;
+%     end
     function v = get.ntracklets(obj)
       if obj.isfull
         v = size(obj.pTrk,4);
@@ -193,6 +194,11 @@ classdef TrkFile < dynamicprops
       
       obj.isfull = false;
     end
+
+%     function add3dpts(obj)
+%       nfs = obj.endframes-obj.startframes+1;
+%       obj.pTrkSingleView = arrayfun(@(x)nan(obj.npts,2,x),nfs,'uni',0);
+%     end
     
     function initFromArraysFull(obj,ptrk,varargin)
       % 
@@ -240,7 +246,7 @@ classdef TrkFile < dynamicprops
       validateattributes(obj.pTrkTS,{'numeric'},{'size' [npttrk nfrm ntgt]},'','pTrkTS');
       
       if isequal(obj.pTrkTag,TrkFile.unsetVal) || ...
-          ( (ndims(obj.pTrkTag)==2) && all(size(obj.pTrkTag)==[npttrk nfrm]) && iscell(obj.pTrkTag))
+          ( all(size(obj.pTrkTag)==[npttrk nfrm ntgt]) && iscell(obj.pTrkTag))
         obj.pTrkTag = false(npttrk,nfrm,ntgt);
       end
       validateattributes(obj.pTrkTag,{'logical'},...
@@ -282,15 +288,82 @@ classdef TrkFile < dynamicprops
       obj.nframes = nfrm;
       
     end
+
+    function initFromSparse(obj,s)
+
+      flds = fieldnames(s);
+      sz = size(s.p);
+      npts = sz(1)/2;
+      frm0 = double(min(s.frm));
+      frm1 = double(max(s.frm));
+      T = frm1-frm0+1;
+      tgts = unique(double(s.tgt));
+      ntgts = numel(tgts);
+
+      pTrk = nan([sz(1),T,ntgts]);
+      isocc = isfield(s,'occ');
+      if isocc,
+        pTrkTag = false([npts,T,ntgts]);
+      end
+      for itgt = 1:numel(tgts),
+        tgt = tgts(itgt);
+        idxcurr = s.tgt == tgt;
+        pTrkcurr = nan([sz(1),T]);
+        pTrkcurr(:,s.frm(idxcurr)-frm0+1) = s.p(:,idxcurr);
+        pTrk(:,:,itgt) = pTrkcurr;
+        if isocc,
+          pTrkTagcurr = false([npts,T]);
+          pTrkTagcurr(:,s.frm(idxcurr)-frm0+1) = s.occ(:,idxcurr)>0;
+          pTrkTag(:,:,itgt) = pTrkTagcurr;
+        end
+      end
+      obj.pTrk = reshape(pTrk,[npts,2,T,ntgts]);
+      if isocc,
+        obj.pTrkTag = pTrkTag;
+      end
+      obj.pTrkFrm = reshape(frm0:frm1,[T,1]);
+      obj.pTrkiTgt = tgts;
+      extraflds = setdiff(flds,{'p','ts','occ','frm','tgt'});
+      if ~isempty(extraflds),
+        ss = sprintf(' %s',extraflds{:});
+        warning('Unknown extra fields ignored:%s',ss);
+      end
+      obj.startframes = frm0;
+      obj.endframes = frm1;
+
+      obj.isfull = true;
+      obj.initUnsetFull();
+      
+    end
     
-    function initFromTableFull(obj,s,varargin)
+    function initFromTableFull(obj,s,view,movi,outfile,varargin)
       %
       % Note: init* methods do not clear old state that is already set
       % 
       % this API is strange s and the pvs
 
       assert(isstruct(s));
-      
+      if ~isfield(s, 'pred_locs') ,
+        outfile  %#ok<NOPRT> 
+        s  %#ok<NOPRT> 
+        destination_path = fullfile(tempdir(), 'heisenbug_trk_file_missing_pred_locs.trk') ;
+        [did_copy_succeed, msg] = copyfile(outfile, destination_path) ;
+        if ~did_copy_succeed ,
+          warning('Unable to copy a suspect trk file to the temp dir: %s', msg) ;
+        end
+        error('s lacks pred_locs field') ;
+      end
+      if ~isfield(s, 'toTrack') ,
+        outfile  %#ok<NOPRT> 
+        s  %#ok<NOPRT> 
+        destination_path = fullfile(tempdir(), 'heisenbug_trk_file_missing_toTrack.trk') ;
+        [did_copy_succeed, msg] = copyfile(outfile, destination_path) ;
+        if ~did_copy_succeed ,
+          warning('Unable to copy a suspect trk file to the temp dir: %s', msg) ;
+        end
+        error('s lacks toTrack field') ;
+      end
+
       nArg = numel(varargin);
       for i=1:2:nArg
         prop = varargin{i};
@@ -302,27 +375,43 @@ classdef TrkFile < dynamicprops
         obj.(prop) = val;
       end
       
-      [movfiles,nviewstrack] = ...
-        TrkFile.convertJSONCellMatrix(s.to_track.movieFiles);
+%       [movfiles,nviewstrack] = ...
+%         TrkFile.convertJSONCellMatrix(s.movieFiles);
+      % movfiles = s.movieFiles;
 
-      n = size(s.pred_locs,1);
-      npts = size(s.pred_locs,2);
-      d = size(s.pred_locs,3);
+      pred_locs = s.pred_locs.locs;
+      ndim = ndims(pred_locs);
+      if ndim ==4
+        isma = true;
+      else
+        isma = false;
+      end
+
+      npts = size(pred_locs,ndim-1);
+      d = size(pred_locs,ndim);
+      if isma
+        nanimals = size(pred_locs,ndim-2);
+      else
+        nanimals = 1;
+      end
       assert(d == 2);
-
+      n = size(pred_locs,1)*nanimals;
       iTgt = nan(n,1);
       frm = nan(n,1);
       movidx = false(n,1);
       off = 0;
-      movi = find(strcmp(obj.movfile,movfiles));
-      assert(numel(movi)==1);
-      for i = 1:numel(s.to_track.toTrack),
+%       movi = find(strcmp(obj.movfile,movfiles));
+%       assert(numel(movi)==1);      
+      nexttgt = 1;
+      pTrk = nan(n,npts,d);
+      pTrkTS = ones(n,npts)*now;
+      pTrkTag = nan(n,npts);
+      ists = isfield(s,'pred_ts');
+      istag = isfield(s.pred_locs,'occ');
+
+      for i = 1:numel(s.toTrack)
         
-        x = s.to_track.toTrack{i};
-        if double(x{1}) ~= movi,
-          continue;
-        end
-        
+        x = s.toTrack{i};
         frm0 = x{3};
         if iscell(frm0),
           frm0 = frm0{1};
@@ -339,9 +428,42 @@ classdef TrkFile < dynamicprops
           frm1 = frm0;
         end
         nfrm = frm1-frm0+1;
-        frm(off+1:off+nfrm) = frm0:frm1;
-        iTgt(off+1:off+nfrm) = double(x{2});
-        movidx(off+1:off+nfrm) = true;
+
+        if double(x{1}) == movi,
+          if isma
+            % all predictions are new animals
+            for fndx = 1:nfrm
+              for andx = 1:nanimals
+                curndx = (off+fndx-1)*nanimals+andx;
+                frm(curndx) = frm0+fndx-1;
+                curp = permute(pred_locs(off+fndx,andx,:,:),[3,4,1,2]);
+                if ~all(isnan(curp))
+                  iTgt(curndx) = nexttgt;
+                  nexttgt = nexttgt+1;
+                  movidx(curndx) = true;
+                  pTrk(curndx,:,:) = curp;
+                  if ists
+                    pTrkTS(curndx,:) = permute(s.pred_locs.pred_ts(off+fndx,andx,:),[2,3,1]);
+                  end
+                  if istag
+                    pTrkTag(curndx,:) = permute(s.pred_locs.occ(off+fndx,andx,:),[2,3,1]);
+                  end
+                end
+              end
+            end
+          else
+            iTgt(off+1:off+nfrm) = double(x{2});
+            movidx(off+1:off+nfrm) = true;
+            frm(off+1:off+nfrm) = frm0:frm1;
+            pTrk(end+1:end+nfrm,:,:) = pred_locs(off+1:off+nfrm,:,:);
+            if ists
+              pTrkTag(end+1:end+nfrm,:) = s.pred_locs.pred_ts(off+1:off+nfrm,:);
+            end
+            if istag
+              pTrkTS(end+1:end+nfrm,:) = s.pred_locs.occ(off+1:off+nfrm,:);
+            end
+          end
+        end
         off = off + nfrm;
       end
       % pTrk is [npttrked x 2 x nfrm x ntgt]
@@ -350,33 +472,50 @@ classdef TrkFile < dynamicprops
       % pred_locs is n x npts x 2
       
       nidx = nnz(movidx);
-      nfrm = max(frm);
-      [obj.pTrkiTgt,~,tgtidx] = unique(iTgt);
-      ntgt = numel(obj.pTrkiTgt);
-      pTrk = s.pred_locs(movidx,:,:); %#ok<PROPLC>
-      obj.pTrk = nan([npts,2,nfrm,ntgt]);
-      ists = isfield(s,'pred_ts');
-      istag = isfield(s,'pred_tag');
-      if ists,
-        obj.pTrkTS = zeros(npttrk,nfrm,ntgt);
+      [obj.pTrkiTgt,~,tgtidx] = unique(iTgt(movidx));
+      frm = frm(movidx);
+      pTrk = pTrk(movidx,:,:);
+      pTrkTS = pTrkTS(movidx,:);
+      if istag
+        pTrkTag = pTrkTag(movidx,:);
       end
-      if istag,
-        obj.pTrkTag = false(npttrk,nfrm,ntgt);
+      nfrm = max(frm);
+      ntgt = numel(obj.pTrkiTgt);
+      
+      obj.pTrk = cell(1,ntgt);
+      obj.pTrkTS = cell(1,ntgt);
+      if istag
+        obj.pTrkTag = cell(1,ntgt);
       end
 
-      for i = 1:nidx,
-        obj.pTrk(:,:,frm(i),tgtidx(i)) = permute(pTrk(i,:,:),[2,3,1]); %#ok<PROPLC>
-        if ists,
-          obj.pTrkTS(:,frm(i),tgtidx(i)) = s.pred_ts(:,i);
+      startframes = zeros(1,ntgt);
+      endframes = zeros(1,ntgt);
+      for i = 1:ntgt
+        curfr = frm(tgtidx==i);
+        startframes(i) = min(curfr);
+        endframes(i) = max(curfr);
+        nfr = endframes(i) - startframes(i)+1;
+        obj.pTrk{i} = nan(npts,d,nfr);
+        obj.pTrkTS{i} = nan(npts,nfr);
+        if istag
+          obj.pTrkTag{i} = false(npts,nfr);
         end
-        if istag,
-          obj.pTrkTag(:,frm(i),tgtidx(i)) = s.pred_tag(:,i);
+      end
+      obj.startframes = startframes;
+      obj.endframes = endframes;
+
+      for i = 1:nidx
+        fndx = frm(i)-startframes(tgtidx(i))+1;
+        curt = tgtidx(i);
+        obj.pTrk{curt}(:,:,fndx) = permute(pTrk(i,:,:),[2,3,1]);
+        obj.pTrkTS{curt}(:,fndx) = permute(pTrkTS(i,:),[2,1]);
+        if istag
+          obj.pTrkTag{curt}(:,fndx) = permute(pTrkTag(i,:),[2,1])<0.5;
         end
       end
       
-      obj.isfull = true;
-      obj.initUnsetFull();      
-    end    
+      obj.isfull = false;
+    end  % function    
     
     function initFromTracklet(obj,s)
       flds = fieldnames(s);
@@ -396,7 +535,16 @@ classdef TrkFile < dynamicprops
       flds = obj.trkflds();
       for f=flds(:)',f=f{1}; %#ok<FXSET>
         v = obj.(f);
-        if ~iscell(v),
+%         if strcmp(f,'pTrkSingleView') && ~TrkFile.has3Dpts(obj)
+%           % mainly for pTrkSingleView because we don't want to set it
+%           % unless the trkfile has it. The logic is not foolproof or rather completely tested. So if it
+%           % breaks this should be updated. MK 20230515
+%           continue
+%         end
+        if strcmp(obj.(f),TrkFile.unsetVal)
+          continue;
+        end
+        if ~iscell(v)
           warning('%s is not a cell',f);
           continue;
         end
@@ -515,7 +663,10 @@ classdef TrkFile < dynamicprops
     function v = isValidLoadFullMatrix(s)
       v = isfield(s,'pTrk');
     end
-    
+    function v = isValidSparse(s)
+      v = all(isfield(s,{'p','frm','tgt'}));
+    end
+
     % v = isValidLoadTable(s)
     % whether the struct resulting from loading is a table trk file
     function v = isValidLoadTable(s)
@@ -533,6 +684,8 @@ classdef TrkFile < dynamicprops
         filetype = 'fullmatrix';
       elseif TrkFile.isValidLoadTable(s),
         filetype = 'table';
+      elseif TrkFile.isValidSparse(s),
+        filetype = 'sparse';
       else
         filetype = '';
       end
@@ -608,7 +761,7 @@ classdef TrkFile < dynamicprops
             pTrk.pred_locs = s.pred_locs;
             pTrk.to_track = s.to_track;
             pvs = struct2pvs(srecog);
-            trkfileObj.initFromTableFull(pTrk,'movfile',movfile,pvs{:});
+            trkfileObj.initFromTableFull(pTrk,'movfile',movfile,pvs{:});  % This seems wrong, but I'm not sure how to fix -- ALT, 2024-12-19
           end
           
           if issilent,
@@ -618,12 +771,16 @@ classdef TrkFile < dynamicprops
               trkfileObj.(f) = s.(f);
             end
           end
-      end
-    end
+        case 'sparse',
+          trkfileObj.initFromSparse(s);
+        otherwise ,
+          error('Internal error: filetype is not a known value') ;
+      end  % switch
+    end  % function
     
-    function trkfileObj = loadsilent(filename,varargin)
-      trkfileObj = TrkFile.load(filename,'issilent',true,varargin{:});
-    end
+%     function trkfileObj = loadsilent(filename,varargin)
+%       trkfileObj = TrkFile.load(filename,'issilent',true,varargin{:});
+%     end
     
     function s = modernizeStruct(s)
       if isfield(s,'pred_conf'),
@@ -650,7 +807,7 @@ classdef TrkFile < dynamicprops
         'pTrkFull' 'pTrkFullFT' 'pTrk3d'});
     end
         
-    function objMerged = merge(obj,varargin)
+    function objMerged = merge(obj,other_objs,varargin)
       % objMerged = merge(obj0,obj1,obj2,...)
       %
       % returns new TrkFile with merge contents. tracklet-style merge.
@@ -668,16 +825,29 @@ classdef TrkFile < dynamicprops
       % scalar TrkFileObjs as distinct args.
       
       assert(~obj.isfull,'Attempt to merge non-tracklets.');
+
+      [new_ids] = myparse(varargin,'new_ids',false);
       
       % step 1: get all unique tgts; get all their start/endframes      
-      allobjs = [{obj} varargin];
+      allobjs = [{obj}; other_objs];
       
       nobj = numel(allobjs);
-      itgtsAll = cellfun(@(x)x.pTrkiTgt,allobjs,'uni',0);
+      tgt_starts = zeros(1,nobj);
+      if new_ids
+        itgtsAll = cell(1,nobj);
+        cur_s = 0;
+        for ndx = 1:nobj
+          tgt_starts(ndx) = cur_s;
+          itgtsAll{ndx} = allobjs{ndx}.pTrkiTgt(:) + cur_s;
+          cur_s = cur_s + numel(allobjs{ndx}.pTrkiTgt);
+        end
+      else
+        itgtsAll = cellfun(@(x)x.pTrkiTgt(:),allobjs,'uni',0);
+      end
       %sfsAll = {allobjs.startframes};
       %efsAll = {allobjs.endframes};
       
-      itgtsun = unique(cat(2,itgtsAll{:}));
+      itgtsun = unique(cat(1,itgtsAll{:}));
       itgtmax = max(itgtsun);
       cls = class(obj.startframes);
       itgt2spep = [intmax('int64')*ones(1,itgtmax,'int64');...
@@ -685,7 +855,7 @@ classdef TrkFile < dynamicprops
       itgt2spep = eval(sprintf('%s(itgt2spep)',cls));
       for iobj=1:nobj
         o = allobjs{iobj};
-        itgtsI = o.pTrkiTgt;
+        itgtsI = o.pTrkiTgt+tgt_starts(iobj);
         sfsI = o.startframes;
         efsI = o.endframes;
         tfhasres = sfsI<=efsI;
@@ -701,7 +871,11 @@ classdef TrkFile < dynamicprops
       
       % 2. initialize new TrkFile with empty trkflds of right size
       % (nan-filled)
+
       objMerged = TrkFile(obj.npts,itgtsun,sfsNew,efsNew,obj.trkflds);
+%       if TrkFile.has3Dpts(obj)
+%         objMerged.add3dpts();
+%       end
      
       % 3. init logical "isset" flag [nrms] indiciating whether frames set
       nfsNew = efsNew-sfsNew+1;      
@@ -722,7 +896,7 @@ classdef TrkFile < dynamicprops
         trkfldso = o.trkflds();
         ntgt = numel(o.pTrkiTgt);
         for j=1:ntgt
-          itgt = o.pTrkiTgt(j);
+          itgt = o.pTrkiTgt(j)+tgt_starts(iobj);
           sp = o.startframes(j);
           ep = o.endframes(j);
           if sp<=ep
@@ -741,6 +915,16 @@ classdef TrkFile < dynamicprops
 
             % write trkflds
             for f=trkfldso(:)',f=f{1}; %#ok<FXSET>
+              if ~isprop(objMerged,f)
+                addprop(objMerged,f);
+                objMerged.(f) = cell(1,numel(objMerged.pTrkiTgt));
+              end
+%               if strcmp(f,'pTrkSingleView') && ~TrkFile.has3Dpts(o)
+%                 continue;
+%               end
+              if isequal(o.(f),TrkFile.unsetVal),
+                continue;
+              end
               if any(strcmp(f,flds_ptrk_dim))
                 objMerged.(f){jall}(:,:,idxall) = o.(f){j}; 
               else
@@ -797,23 +981,32 @@ classdef TrkFile < dynamicprops
     end
     
     function t = tableform(obj,varargin)
-      [ftonly,labelsColnames] = myparse(varargin,...
+      [ftonly,labelsColnames,aliveonly] = myparse(varargin,...
         'ftonly',false, ...
-        'labelsColNames',false ... % if true, use columns compatable with Labels.fromtable()
+        'labelsColNames',false, ... % if true, use columns compatable with Labels.fromtable()
+        'aliveonly',false ... % whether to check that all returned frames are tracked
         );
-      
+
+      if ftonly && aliveonly,
+        t = obj.getTrackedFrames();
+        return;
+      end
       assert(~obj.isfull);
       frm = arrayfun(@(x,y)(x:y)',obj.startframes,obj.endframes,'uni',0);
       iTgt = cellfun(@(x,y)repmat(x,numel(y),1),num2cell(obj.pTrkiTgt),frm,'uni',0);
       s = struct();
       s.frm = cat(1,frm{:});
       s.iTgt = cat(1,iTgt{:});
-      if ftonly
-        t = struct2table(s);
-        return;
-      end
       
       flds = obj.trkflds();
+      if aliveonly,
+        sf = obj.getStartFrame();
+        ef = obj.getEndFrame();
+        isalive = cell(1,obj.ntracklets);
+        for i = 1:obj.ntracklets,
+          isalive{i} = obj.isalive(sf:ef,i);
+        end
+      end
       for f=flds(:)',f=f{1}; %#ok<FXSET>
         v = obj.(f);
         nd = cellfun(@ndims,v);
@@ -822,8 +1015,12 @@ classdef TrkFile < dynamicprops
         v = cellfun(@(x)permute(x,[nd 1:nd-1]),v,'uni',0); % put 'frame' dim first
         % convert to 2d arrays (in particular for pTrk)
         for i=1:numel(v)
-          szv = size(v{i});
-          v{i} = reshape(v{i},szv(1),prod(szv(2:end)));
+          if aliveonly && isalive,
+            v{i} = v{i}(isalive{i},:);
+          else
+            szv = size(v{i});
+            v{i} = reshape(v{i},szv(1),prod(szv(2:end)));
+          end
         end
         %AL 202202: this line prob should work but leads to incorrect sizes
         %for empty arrs
@@ -841,36 +1038,54 @@ classdef TrkFile < dynamicprops
       end
     end
     
+    function ft = getTrackedFrames(obj)
+      sf = obj.getStartFrame();
+      ef = obj.getEndFrame();
+      ft = table(nan(0,1),nan(0,1),'VariableNames',{'frm' 'iTgt'});
+      for iTgt = 1:numel(sf),
+        v = obj.isalive(sf(iTgt):ef(iTgt),iTgt);
+        if ~any(v),
+          continue;
+        end
+        ftcurr = struct;
+        ftcurr.frm = find(v)+sf(iTgt)-1;
+        ftcurr.iTgt = zeros(size(ftcurr.frm))+iTgt;
+        ft = [ft;struct2table(ftcurr)]; %#ok<AGROW> 
+      end
+
+    end
+
     function v = isalive(obj,f,itgt)
       
-      
-      if obj.isfull,
-        % pTrk: [npttrked x 2 x nfrm x ntgt], like labeledpos
-        if nargin < 3 || isempty(itgt),
-          v = permute(any(any(~isnan(obj.pTrk(:,:,f,:)),1),2),[3,4,1,2]);
-        elseif isempty(f),
-          v = permute(any(any(~isnan(obj.pTrk(:,:,:,itgt)),1),2),[3,4,1,2]);
-        else
-          v = permute(any(any(~isnan(obj.pTrk(:,:,f,itgt)),1),2),[3,4,1,2]);
-        end
-        return;
-      end
-      
-      if nargin < 3 || isempty(itgt),
-        % all targets, v will be numel(f) x ntgts
-        v = f(:) >= obj.startframes & f(:) <= obj.endframes;
-      elseif isempty(f),
-        % all frames, v will be nframes x numel(itgt)
-        v = false(obj.nframes,numel(itgt));
-        for i = 1:numel(itgt),
-          v(i,obj.startframes(itgt(i)):obj.endframes(itgt(i))) = true;
-        end
-      elseif obj.ntracklets==0
-        v = false;
-      else
-        % v will be numel(f) x numel(itgt)
-        v = f(:) >= obj.startframes(itgt) & f(:) <= obj.endframes(itgt);
-      end
+      v = obj.getPTrkFT(f,itgt);
+%       if obj.isfull,
+%         % pTrk: [npttrked x 2 x nfrm x ntgt], like labeledpos
+%         if nargin < 3 || isempty(itgt),
+%           v = permute(any(any(~isnan(obj.pTrk(:,:,f,:)),1),2),[3,4,1,2]);
+%         elseif isempty(f),
+%           v = permute(any(any(~isnan(obj.pTrk(:,:,:,itgt)),1),2),[3,4,1,2]);
+%         else
+%           v = permute(any(any(~isnan(obj.pTrk(:,:,f,itgt)),1),2),[3,4,1,2]);
+%         end
+%         return;
+%       end
+%       
+%       if nargin < 3 || isempty(itgt),
+%         % all targets, v will be numel(f) x ntgts
+%         
+%         v = f(:) >= obj.startframes & f(:) <= obj.endframes;
+%       elseif isempty(f),
+%         % all frames, v will be nframes x numel(itgt)
+%         v = false(obj.nframes,numel(itgt));
+%         for i = 1:numel(itgt),
+%           v(i,obj.startframes(itgt(i)):obj.endframes(itgt(i))) = true;
+%         end
+%       elseif obj.ntracklets==0
+%         v = false;
+%       else
+%         % v will be numel(f) x numel(itgt)
+%         v = f(:) >= obj.startframes(itgt) & f(:) <= obj.endframes(itgt);
+%       end
       
     end
     
@@ -931,46 +1146,94 @@ classdef TrkFile < dynamicprops
       end
       n = max(cnt);
     end  
+
+    function sf = getStartFrame(obj,tgts)
+      if nargin < 2,
+        tgts = 1:obj.ntracklets;
+      end
+      if obj.isfull,
+        warning('This code has not been debugged');
+        sf = nan(size(tgts));
+        for i = 1:numel(tgts),
+          sfcurr = find(~isnan(obj.pTrk(1,1,:,tgts(i))),1);
+          if ~isempty(sfcurr),
+            sf(i) = sfcurr;
+          end
+        end
+      else
+        sf = reshape(obj.startframes(tgts),size(tgts));
+      end
+    end
     
+    function ef = getEndFrame(obj,tgts)
+      if nargin < 2,
+        tgts = 1:obj.ntracklets;
+      end
+      if obj.isfull,
+        warning('This code has not been debugged');
+        ef = nan(size(tgts));
+        for i = 1:numel(tgts),
+          efcurr = find(~isnan(obj.pTrk(1,1,:,tgts(i))),1,'last');
+          if ~isempty(efcurr),
+            ef(i) = efcurr;
+          end
+        end
+      else
+        ef = reshape(obj.endframes(tgts),size(tgts));
+      end
+    end
+    
+
     % TODO: consider API that excludes ~tfhaspred vals
-    function [tfhaspred,xy,tfocc] = getPTrkFrame(obj,f)
+    function [tfhaspred,xy,tfocc] = getPTrkFrame(obj,f,varargin)
       % get tracking for particular frame
       %
-      % f: scalar (absolute) frame index
+      % f: (absolute) frame index
       %
       % tfhaspred: [ntgt] logical vec, whether pred is present
-      % xy: [npt x 2 x ntgt]
-      % tfocc: [npt x ntgt]
+      % xy: [npt x 2 x nfr x ntgt]
+      % tfocc: [npt x nfr x ntgt]
+      % KB 20220728 modified to take in any number of frames
+      % optional arguments:
+      % 'collapse': Whether to assume that f is a scalar, and collapse the
+      % output to be [npt x 2 x ntgt], etc. Default: false
       
-      tfhaspred = obj.isalive(f).';
-      
-      if obj.isfull
-        xy = squeeze(obj.pTrk(:,:,f,:));
-        tfocc = squeeze(obj.pTrkTag(:,f,:));        
-      else
-        itgtsLive = find(tfhaspred);
-        npt = obj.npts;
-        ntgt = obj.ntracklets;
-        xy = nan(npt,2,ntgt);
-        tfocc = false(npt,ntgt);
-        pcell = obj.pTrk;
-        pcelltag = obj.pTrkTag;
-        offs = 1-obj.startframes;
+      % don't make isalive depend on 
+      %tfhaspred = obj.isalive(f).'; 
+      [tfhaspred,xy,tfocc] = obj.getPTrkFT(f,1:obj.ntracklets,varargin{:});
+% 
+%       nfrm = numel(f);
+% 
+%       if obj.isfull
+%         xy = obj.pTrk(:,:,f,:);
+%         tfocc = obj.pTrkTag(:,f,:);
+%       else
+%         %itgtsLive = find(tfhaspred);
+%         npt = obj.npts;
+%         ntgt = obj.ntracklets;
+%         xy = nan(npt,2,nfrm,ntgt);
+%         tfocc = false(npt,nfrm,ntgt);
+%         pcell = obj.pTrk;
+%         pcelltag = obj.pTrkTag;
+%         offs = 1-obj.startframes;
+% 
+%   %       % 20210706 in obscure cases, eg lObj.currFrame can become a
+%   %       % uint value. Now prohibited generally. The offsets are
+%   %       % intXX's which causes an error in the addition below
+%   %       offs = double(offs);
+%   %       f = double(f);
+% 
+%         for j=1:ntgt,
+%           ptgt = pcell{j};
+%           ptag = pcelltag{j};
+%           idx = f + offs(j);
+%           xy(:,:,j) = ptgt(:,:,idx);
+%           tfocc(:,j) = ptag(:,idx);
+%         end
+%       end
+%       
+%       tfhaspred = TrkFile.isAliveHelper(xy);
 
-  %       % 20210706 in obscure cases, eg lObj.currFrame can become a
-  %       % uint value. Now prohibited generally. The offsets are
-  %       % intXX's which causes an error in the addition below
-  %       offs = double(offs);
-  %       f = double(f);
-
-        for j=itgtsLive(:)'
-          ptgt = pcell{j};
-          ptag = pcelltag{j};
-          idx = f + offs(j);
-          xy(:,:,j) = ptgt(:,:,idx);
-          tfocc(:,j) = ptag(:,idx);
-        end
-      end
     end
     
     function permuteIds(obj,newids)
@@ -1009,30 +1272,113 @@ classdef TrkFile < dynamicprops
       
     end
     
-    function [tfhaspred,xy,tfocc] = getPTrkFT(obj,f,iTgt)
+    function [tfhaspred,xy,tfocc,aux] = getPTrkFT(obj,f,iTgt,varargin)
       % get tracking for particular frame, tgt
       %
-      % f: scalar (absolute) frame index
-      % iTgt: scalar tracklet idx
+      % f: (absolute) frame index
+      % iTgt: tracklet idx
+      % if both f and iTgt are non-scalar, then the we will return
+      % tracking info for the cross product of frame and target
       %
-      % tfhaspred: logical scalar, whether pred is present
-      % xy: [npt x 2]
-      % tfocc: [npt x 1]
+      % tfhaspred: [numel(fr) x numel(iTgt)] whether pred is present
+      % xy: [npt x 2 x numel(fr) x numel(iTgt)]
+      % tfocc: [npt x numel(fr) x numel(iTgt)]
+      % aux (opt): [npt x numel(fr) x numel(iTgt) x numaux] Auxiliary
+      %   stats, returned if 'auxflds' specified
+      %
+      % KB 20220728: modified to be able to give multiple frames and
+      % targets. 
+      % Optional arguments:
+      % 'collapse': Whether to assume that f is a scalar, and collapse the
+      % output to be [npt x 2 x ntgt], etc. Default: false
+
+      % don't make this depend on isalive, let isalive call this
+      %tfhaspred = obj.isalive(f,iTgt);
+
+      [collapse,auxflds] = myparse(varargin,...
+        'collapse',false,...
+        'auxflds',[] ... % (opt). cellstr, aux fields to return. no checks are done that these fields exist
+        );
+
+      nfrm = numel(f);
+      ntgt = numel(iTgt);
+      npt = obj.npts;
       
-      tfhaspred = obj.isalive(f,iTgt);
-      %tfhaspred = obj.frm2tlt(f,iTgt);
-      if tfhaspred
-        ptgt = obj.pTrk{iTgt};
-        ptag = obj.pTrkTag{iTgt};
-        offs = 1 - obj.startframes(iTgt);       
-        idx = f + offs;
-        xy = ptgt(:,:,idx);
-        tfocc = ptag(:,idx);
+      tfaux = ~isequal(auxflds,[]);
+      if tfaux
+        naux = numel(auxflds);
+        aux = nan(npt,nfrm,ntgt,naux);
       else
-        npt = obj.npts;
-        xy = nan(npt,2);
-        tfocc = false(npt,1);  
+        naux = 0;
+        aux = [];
       end
+
+      if obj.isfull
+        if ~isempty(obj.startframes),
+          ifrm = f - obj.startframes(1) + 1;
+        else
+          ifrm = f;
+        end
+        xy = obj.pTrk(:,:,ifrm,iTgt);
+        tfocc = obj.pTrkTag(:,ifrm,iTgt);
+        for iaux=1:naux
+          fld = auxflds{iaux};
+          aux(:,:,:,iaux) = obj.(fld)(:,ifrm,iTgt);
+        end
+      else
+        xy = nan(npt,2,nfrm,ntgt);
+        tfocc = false(npt,nfrm,ntgt); 
+        pcell = obj.pTrk;
+        pcelltag = obj.pTrkTag;
+        for iaux=naux:-1:1
+          %pcellaux only created if naux>=1
+          pcellaux{iaux} = obj.(auxflds{iaux});
+        end
+        offs = 1-obj.startframes;
+        sf = obj.startframes(iTgt);
+        ef = obj.endframes(iTgt);
+
+  %       % 20210706 in obscure cases, eg lObj.currFrame can become a
+  %       % uint value. Now prohibited generally. The offsets are
+  %       % intXX's which causes an error in the addition below
+  %       offs = double(offs);
+  %       f = double(f);
+
+        for i=1:ntgt,
+          isinterval = f >= sf(i) & f <= ef(i);
+          if ~any(isinterval), continue; end
+
+          j = iTgt(i);
+          ptgt = pcell{j};
+          ptag = pcelltag{j};
+
+          idx = f(isinterval) + offs(j);
+          xy(:,:,isinterval,i) = ptgt(:,:,idx);
+          tfocc(:,isinterval,i) = ptag(:,idx);
+          for iaux=1:naux
+            paux = pcellaux{iaux}{j};
+            if isempty(paux),
+              % merging trk files for which some have this property and
+              % some do not
+              continue;
+            end
+            aux(:,isinterval,i,iaux) = paux(:,idx);
+          end
+        end
+      end
+
+      tfhaspred = TrkFile.isAliveHelper(xy);
+
+      if collapse,
+        assert(numel(f) == 1);
+        tfhaspred = permute(tfhaspred,[2,1]);
+        xy = permute(xy,[1,2,4,3]);
+        tfocc = permute(tfocc,[1,3,2]);
+        if tfaux
+          aux = permute(aux,[1,3,4,2]);
+        end
+      end
+
     end
     
     function p = getPTrkFullOrdered(obj)
@@ -1068,67 +1414,125 @@ classdef TrkFile < dynamicprops
       end
     end
     
-    function [xy,occ] = getPTrkTgt(obj,iTlt)
+%     function [xy,occ] = getPTrkTgtPadded(obj,iTlt,nfrmtot)
+%       % Wrapper for getPTrkTgt which returns "full" timeseries of length
+%       % nfrmtot
+% 
+%       [xy0,occ0,fr0] = obj.getPTrkTgt(iTlt);
+%       if isnan(nfrmtot)
+%         xy = xy0;
+%         occ = occ0;
+%         return;
+%       end
+% 
+%       ntlt = numel(iTlt);
+%       xy = nan(obj.npts,2,nfrmtot,ntlt);
+%       occ = false(obj.npts,nfrmtot,ntlt);
+%       if isempty(fr0)
+%         % none
+%       else        
+%         xy(:,:,fr0,:) = xy0;
+%         occ(:,fr0,:) = occ0;
+%       end
+%     end 
+  
+  function [tfhasdata,xy,occ,sf,ef,aux] = getPTrkTgt2(obj,iTlt,varargin)
+    % Convenience wrapper
+    [xy,occ,fr,aux] = obj.getPTrkTgt(iTlt,varargin{:});
+    tfhasdata = ~isempty(xy); % note, xy could be all nans etc && TrkFile.isAliveHelper(xy);
+    sf = fr(1);
+    ef = fr(end);
+  end
+
+  function [xy,occ,fr,aux] = getPTrkTgt(obj,iTlt,varargin)
       % get tracking for particular target
       %
       % iTlt: tracklet index
       %
-      % xy: [npt x 2 x nfrm] where nfrm=size(obj.frm2tlt,1)
-      % occ: [npt x nfrm]
+      % xy: [npt x 2 x numfrm x numel(iTlt)]. numfrm = ef-sf+1
+      % occ: [npt x numfrm x numel(iTlt)]
+      % fr: [numfrm] frames, labels 3rd dim of xy
+      % aux: [npt x numfrm x numel(iTlt) x numaux] Auxiliary
+      %   stats, meaningful if 'auxflds' specified
       
-      if iTlt > obj.ntracklets
-        warningNoTrace('Tracklet %d exceeds available data.',iTlt);
-        xy = nan(obj.npts,2,0);
-        occ = nan(obj.npts,0);
-        return;
+      auxflds = myparse(varargin,...
+        'auxflds',[] ... % cellstr; addnl stats to return
+        );
+      
+      tfhasdata = false;
+
+      if any(iTlt > obj.ntracklets)
+        warningNoTrace('Tracklet index exceeds available data.');
+      elseif obj.isfull && ~isempty(obj.pTrk)
+        tfhasdata = true;
+        if ~isempty(obj.startframes),
+          sf = obj.startframes(1);
+        else
+          sf = 1;
+        end
+        ef = size(obj.pTrk,3) + sf - 1;
+      elseif ~obj.isfull && obj.hasdata()
+        tfhasdata = true;
+        % .startframes can contain 0s when tracklet has no data
+        sf = max(min(obj.startframes),1);       
+        ef = max(obj.endframes);
       end
-      
-      if obj.isfull
-        xy = obj.pTrk(:,:,:,iTlt);
-        occ = obj.pTrkTag(:,:,iTlt);
+
+      if ~tfhasdata
+        % as if nframes=0
+        ntlt = numel(iTlt);
+        xy = nan(obj.npts,2,0,ntlt);
+        occ = false(obj.npts,0,ntlt);
+        fr = nan;
+%         sf = nan;
+%         ef = nan;
+
+        tfAux = ~isequal(auxflds,[]);
+        if tfAux
+          naux = numel(auxflds);
+          aux = nan(obj.npts,0,ntlt,naux);
+        else
+          aux = [];
+        end
       else
-        ptrkI = obj.pTrk{iTlt};
-        npts = size(ptrkI,1);
-        nfrm = obj.nframes;
-        %nfrm = size(obj.frm2tlt,1);
-        xy = nan(npts,2,nfrm);
-        occ = false(npts,nfrm);
-        f0 = obj.startframes(iTlt);
-        f1 = obj.endframes(iTlt);
-        idx = f0:f1;
-        xy(:,:,idx) = ptrkI;
-        occ(:,idx) = obj.pTrkTag{iTlt};
+        fr = sf:ef;
+        [~,xy,occ,aux] = obj.getPTrkFT(fr,iTlt,'auxflds',auxflds);
+        % first output arg (tfhaspred) of getPTrkFT is not used here. Note 
+        % tfhasdata as returned by current function differs semantically 
+        % from tfhaspred
+        %
+        % sf, ef already set
       end
     end
     
-    function xyaux = getPAuxTgt(obj,iTlt,ptrkfld,varargin)
-      % get aux tracking timeseries (eg confidences) for particular tgt
-      %
-      % iTlt: tracklet index
-      % ptrkfld: field, eg 'pTrkConf'
-      %
-      % xyaux: [npt x nfrm] auxiliary tracking
-      
-      missingok = myparse(varargin,...
-        'missingok',false ...
-        );
-      
-      npts = size(obj.pTrk{iTlt},1);
-      nfrm = obj.nframes;
-      %nfrm = size(obj.frm2tlt,1);
-      xyaux = nan(npts,nfrm);
-      
-      if isprop(obj,ptrkfld)      
-        pauxI = obj.(ptrkfld){iTlt};
-        f0 = obj.startframes(iTlt);
-        f1 = obj.endframes(iTlt);
-        xyaux(:,f0:f1) = pauxI;
-      elseif missingok
-        % none; xyaux all nans
-      else
-        error('Unknown field ''%s''.',ptrkfld);
-      end
-    end
+%     function xyaux = getPAuxTgt(obj,iTlt,ptrkfld,varargin)
+%       % get aux tracking timeseries (eg confidences) for particular tgt
+%       %
+%       % iTlt: tracklet index
+%       % ptrkfld: field, eg 'pTrkConf'
+%       %
+%       % xyaux: [npt x nfrm] auxiliary tracking
+%       
+%       missingok = myparse(varargin,...
+%         'missingok',false ...
+%         );
+%       
+%       npts = size(obj.pTrk{iTlt},1);
+%       nfrm = obj.nframes;
+%       %nfrm = size(obj.frm2tlt,1);
+%       xyaux = nan(npts,nfrm);
+%       
+%       if isprop(obj,ptrkfld)      
+%         pauxI = obj.(ptrkfld){iTlt};
+%         f0 = obj.startframes(iTlt);
+%         f1 = obj.endframes(iTlt);
+%         xyaux(:,f0:f1) = pauxI;
+%       elseif missingok
+%         % none; xyaux all nans
+%       else
+%         error('Unknown field ''%s''.',ptrkfld);
+%       end
+%     end
     
     function trackletViz(obj,ax,varargin)
       plotargs = myparse(varargin,...
@@ -1146,7 +1550,13 @@ classdef TrkFile < dynamicprops
       grid on;
     end
   end
+
   methods (Static)
+    function v = isAliveHelper(xy)
+      nd = ndims(xy);      
+      v = permute(any(any(~isnan(xy),1),2),[3:nd,1,2]);
+    end
+
     function t = mergetablesMultiview(varargin)
       % t = mergetables(t1,t2,t3,...)
       %
@@ -1178,7 +1588,7 @@ classdef TrkFile < dynamicprops
         % pTrk now has col order [x1v1 x2v1 .. xkv1 y1v1 .. ykv1 x1v2 ...]
         % fix this up to standard [ <all x> <all y> ]
         n = height(t0);
-        npt = size(t0.pTrk,2)/2;
+        npt = size(t0.pTrk,2)/2/ntbl;
         ptrk = reshape(t0.pTrk,n,npt,2,ntbl); 
         ptrk = permute(ptrk,[1 2 4 3]);
         ptrk = reshape(ptrk,n,[]);
@@ -1187,7 +1597,12 @@ classdef TrkFile < dynamicprops
       
       t = t0;
     end
+%     function res = has3Dpts(trk)
+%       res = ~(ischar(trk.pTrkSingleView) && strcmp(trk.pTrkSingleView,TrkFile.unsetVal));
+%     end
+
   end
+
   
   methods % table/full utils
     
@@ -1609,15 +2024,18 @@ classdef TrkFile < dynamicprops
         end
       end
     end
-  end
+  end  % methods
   
   methods (Static)
     
-    function [nFramesTracked,didload] = getNFramesTrackedPartFile(tfile)
-      
-      nFramesTracked = 0;
+    function [nFramesTracked,didload] = getNFramesTrackedTextFile(tfile)      
       didload = false;
       s = readtxtfile(tfile);
+      nFramesTracked = TrkFile.getNFramesTrackedString(s);
+    end
+
+    function nFramesTracked = getNFramesTrackedString(s)      
+      nFramesTracked = 0;
       PAT = '(?<numfrmstrked>[0-9]+)';
       toks = regexp(s,PAT,'names','once');
       if isempty(toks),
@@ -1626,7 +2044,7 @@ classdef TrkFile < dynamicprops
       nFramesTracked = str2double(toks{1}.numfrmstrked);
     end
 
-    function [nFramesTracked,didload] = getNFramesTrackedMatFile(tfile)
+    function [nFramesTracked, didload] = getNFramesTrackedMatFile(tfile, varargin)
       
       nFramesTracked = 0;
       didload = false;
@@ -1636,42 +2054,47 @@ classdef TrkFile < dynamicprops
         m = matfile(tfile);
         fns = fieldnames(m);
 
-        if any(strcmp('startframes',fns))
+        if ismember('startframes',fns)
           if isempty(m.endframes)
             nFramesTracked = 0;
           else
-            nFramesTracked = max(m.endframes - m.startframes) + 1;
+            nFramesTracked = apt.totalFrameCountFromIntervals(m.startframes, m.endframes) ;
           end
           didload = true;
-        elseif ismember('pTrkFrm',fns)
-          nFramesTracked = numel(m.pTrkFrm);
-          didload = true;
-        elseif ismember('pTrk',fns),
-          nd = ndims(m.pTrk);
-          if nd == 3,
-            nFramesTracked = nnz(~isnan(m.pTrk(1,1,:)));
-          else
-            nFramesTracked = nnz(~isnan(m.pTrk(1,1,:,:)));
-          end
-          didload = true;
-        elseif ismember('pred_locs',fns),
-          nFramesTracked = nnz(~isnan(m.pred_locs(:,1)));
-          didload = true;
-        elseif ismember('locs',fns)
-          % gt mat-file
-          % AL: not sure want nnz(~isnan(...)) here; what if a tracker
-          % predicted occluded or something, could that mess stuff up?
-          nFramesTracked = size(m.locs,1);
-          didload = true;
+        % Making sure all of these are correct would be work, and not clear
+        % if they're even needed these days.  So leave them commented and see if there
+        % are any issues.  -- ALT, 2025-05-12
+        % elseif ismember('pTrkFrm',fns)
+        %   nFramesTracked = numel(m.pTrkFrm);
+        %   didload = true;
+        % elseif ismember('pTrk',fns),
+        %   nd = ndims(m.pTrk);
+        %   if nd == 3,
+        %     nFramesTracked = nnz(~isnan(m.pTrk(1,1,:)));
+        %   else
+        %     nFramesTracked = nnz(~isnan(m.pTrk(1,1,:,:)));
+        %   end
+        %   didload = true;
+        % elseif ismember('pred_locs',fns),
+        %   nFramesTracked = nnz(~isnan(m.pred_locs(:,1)));
+        %   didload = true;
+        % elseif ismember('locs',fns)
+        %   % gt mat-file
+        %   % AL: not sure want nnz(~isnan(...)) here; what if a tracker
+        %   % predicted occluded or something, could that mess stuff up?
+        %   nFramesTracked = size(m.locs,1);
+        %   didload = true;
         else
           didload = false;
           nFramesTracked = 0;
-          fprintf('try %d, variables in %s:\n',tryi,tfile);
-          disp(m);
+          if tryi > ntries/2,
+            fprintf('try %d, variables in %s:\n',tryi,tfile);
+            disp(m);
+          end
           pause(5);
         end
         if didload,
-          break;
+          break
         end
       end
 
@@ -1687,7 +2110,7 @@ classdef TrkFile < dynamicprops
         [nFramesTracked,didload] = TrkFile.getNFramesTrackedMatFile(tfile);
       catch
         try
-          [nFramesTracked,didload] = TrkFile.getNFramesTrackedPartFile(tfile);
+          [nFramesTracked,didload] = TrkFile.getNFramesTrackedTextFile(tfile);
         catch ME,
           warning('Could not read n. frames tracked from %s:\n%s',tfile,getReport(ME));
           didload = false;
