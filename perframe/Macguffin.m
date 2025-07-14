@@ -183,7 +183,7 @@ classdef Macguffin < handle
       fieldNames = setdiff(fieldNames,{'fromAPT','aptInfo'});
       for iField=1:length(fieldNames)
         fieldName=fieldNames{iField};
-        if ismember(fieldName,{'featureLexiconName' 'extra' 'featureLexicon'})
+        if ismember(fieldName,{'featureLexiconName' 'extra' 'featureLexicon' 'sublexiconPFNames'})
           % already copied over
           continue
         elseif isprop(self,fieldName)

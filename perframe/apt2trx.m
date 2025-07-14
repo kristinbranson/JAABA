@@ -4,11 +4,11 @@ if isempty(bodylandmarks),
   bodylandmarks = 1:(apttrk.npts);
 end
 
-nflies = apttrk.ntlts;
+nflies = apttrk.ntracklets;
 trx = [];
 for fly = 1:nflies,
-  ff = apttrk.startframes(fly);
-  ef = apttrk.endframes(fly);
+  ff = 1;
+  ef = apttrk.endframes(fly)-apttrk.startframes(fly)+1;
   xy = apttrk.getPTrkTgt(fly);
   trxcurr = struct;
   trxcurr.x = mean(xy(bodylandmarks,1,ff:ef),1);
@@ -23,8 +23,8 @@ for fly = 1:nflies,
   trxcurr.theta_mm = trxcurr.theta;
   trxcurr.x_mm = trxcurr.x;
   trxcurr.y_mm = trxcurr.y;
-  trxcurr.firstframe = ff;
-  trxcurr.endframe = ef;
+  trxcurr.firstframe = apttrk.startframes(fly);
+  trxcurr.endframe = apttrk.endframes(fly);
   trxcurr.nframes = ef-ff+1;
   trxcurr.off = 1-ff;
   trxcurr.kpts = reshape(xy(:,:,ff:ef),[size(xy,1)*size(xy,2),ef-ff+1]);
