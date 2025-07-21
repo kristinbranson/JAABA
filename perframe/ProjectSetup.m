@@ -712,6 +712,11 @@ try
 if ismember('Target Type',sellist)
     handles.basicParamsStruct.featureLexiconName = origparams.x.featureLexiconName;
     handles.basicParamsStruct.featureLexicon = origparams.x.featureLexicon;
+    handles.basicParamsStruct.fromAPT = origparams.x.fromAPT;
+    handles.basicParamsStruct.aptInfo = origparams.x.aptInfo;
+    if origparams.x.fromAPT
+      set(handles.radiobutton_apt,'Value',1);
+    end
 end
 
 if ismember('Behavior Name and File Names',sellist)
