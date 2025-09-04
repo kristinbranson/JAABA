@@ -164,7 +164,7 @@ classdef Macguffin < handle
     
     % ---------------------------------------------------------------------
     function initFromBasicDataStruct(self,basicDataStruct,varargin)
-      [apt] = myparse(varargin,'APT',[]);              
+      [apt,sublex_from_basic] = myparse(varargin,'APT',[],'sublex_from_basic',true);              
 
       % Init from the featureLexiconName to start
       if ~isfield(basicDataStruct,'stFeatures')
@@ -181,13 +181,16 @@ classdef Macguffin < handle
       fieldNames=fieldnames(basicDataStruct);
       % remove apt features, since those should have been set in init
       fieldNames = setdiff(fieldNames,{'fromAPT','aptInfo'});
+      ignore_from_basic = {'featureLexiconName' 'extra' 'featureLexicon'};
+      if ~sublex_from_basic
+        ignore_from_basic{end+1} = 'sublexiconPFNames';
+        %  already copied over
+        % Keeping aside sublexiconPFNames so that they get copied over
+        % from basicDataStruct MK 20250725
+      end
       for iField=1:length(fieldNames)
         fieldName=fieldNames{iField};
-        if ismember(fieldName,{'featureLexiconName' 'extra' 'featureLexicon'}) %  'sublexiconPFNames'. 
-          %  already copied over
-          % Keeping aside sublexiconPFNames so that they get copied over
-          % from basicDataStruct MK 20250725
-          
+        if ismember(fieldName,ignore_from_basic)          
           continue
         elseif isprop(self,fieldName)
           self.(fieldName)=basicDataStruct.(fieldName);
@@ -660,6 +663,8 @@ classdef Macguffin < handle
         self.initFromBasicDataStruct(varargin{1},'APT',varargin{2});
       elseif length(varargin)==2 && ischar(varargin{1})
         self.initFromFeatureLexiconName(varargin{1},'APT',varargin{2});
+      elseif length(varargin)==3 && isstruct(varargin{1})
+        self.initFromBasicDataStruct(varargin{1},'APT',varargin{2},'sublex_from_basic',varargin{3})
       elseif length(varargin)==4 || length(varargin)==6
         projectParams=varargin{1};
         classifierParams=varargin{2};

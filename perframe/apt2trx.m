@@ -7,12 +7,12 @@ end
 nflies = apttrk.ntracklets;
 trx = [];
 for fly = 1:nflies,
-  ff = 1;
-  ef = apttrk.endframes(fly)-apttrk.startframes(fly)+1;
-  xy = apttrk.getPTrkTgt(fly);
+  [xy,occ,fr] = apttrk.getPTrkTgt(fly);
+  ff = apttrk.startframes(fly)-fr(1)+1;
+  ef = apttrk.endframes(fly)-fr(1)+1;
   trxcurr = struct;
-  trxcurr.x = mean(xy(bodylandmarks,1,ff:ef),1);
-  trxcurr.y = mean(xy(bodylandmarks,2,ff:ef),1);
+  trxcurr.x = mean(xy(bodylandmarks,1,ff:ef),1,'omitnan');
+  trxcurr.y = mean(xy(bodylandmarks,2,ff:ef),1,'omitnan');
   dx = xy(bodylandmarks(1),1,ff:ef)-xy(bodylandmarks(2),1,ff:ef);
   dy = xy(bodylandmarks(1),2,ff:ef)-xy(bodylandmarks(2),2,ff:ef);
   trxcurr.theta = atan2( dy,dx );

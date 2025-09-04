@@ -171,6 +171,7 @@ updateEditsListboxesAndPopupmenus(handles);
 
 % Make the figure visible
 set(hObject,'Visible','on');
+uiwait(hObject);
 
 return
 

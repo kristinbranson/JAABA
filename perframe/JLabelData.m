@@ -7320,7 +7320,7 @@ classdef JLabelData < matlab.mixin.Copyable
         macguffin = loadAnonymous(fileNameAbs);
         if isstruct(macguffin)
           if isfield(macguffin,'fromAPT') && macguffin.fromAPT
-            macguffin = Macguffin(macguffin,macguffin.aptInfo);
+            macguffin = Macguffin(macguffin,macguffin.aptInfo,true);
 
             % keep a copy of info as they will get removed when Macguffin
             % is called.
