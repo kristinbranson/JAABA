@@ -5,8 +5,20 @@ function [classifierinfo,allScores] = JAABADetect(expdir,varargin)
 %
 % expdir (String or cell array of strings) -- is the experiment directory 
 % or a list of experiment directories. 
-% jabfiles (Cell array of strings) -- locations of the jab files for the 
-% behaviors that you want to detect.
+%
+% Optional inputs:
+% blockSize: not used, obsolete
+% jabfiles (Cell array of strings): Locations of the jab files for the 
+% behaviors that you want to detect. Either jabfiles or jablistfile must be
+% specified
+% jablistfile (string): Path to file containing list of paths of jab files for the
+% behavior you want to detect. 
+% forcecompute (bool): Whether to perform classification if there is a
+% scores file indicating classification has already been done. Default:
+% false.
+% debug (bool): Don't save the predictions. Default: false.
+% fastcomputepffs (bool): When computing missing per-frame feature files,
+% only compute those that are used by the classifier. Default: false. 
 % 
 % Example usage:
 % JAABADetect('testExp','jabfiles',{'ChaseClassifier.jab'});
@@ -15,12 +27,13 @@ if ~isdeployed() ,
   SetUpJAABAPath;
 end
 
-[blockSize,jabfiles,jablistfile,forcecompute,DEBUG] = ...
+[blockSize,jabfiles,jablistfile,forcecompute,DEBUG,fastcomputepffs] = ...
   myparse(varargin,'blockSize',10000,...
   'jabfiles',{},...
   'jablistfile',0,...
   'forcecompute',false,...
-  'debug',false);
+  'debug',false,...
+  'fastcomputepffs',false);
 
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
@@ -59,6 +72,7 @@ scoresasinputs = cell(1,nbehaviors);
 jabts = zeros(1,nbehaviors);
 behavior = cell(1,nbehaviors);
 classifierinfo = [];
+allpffs = {};
 for ndx = 1:nbehaviors
   Q = loadAnonymous(jabfiles{ndx});
   if isstruct(Q)
@@ -73,6 +87,13 @@ for ndx = 1:nbehaviors
   scoresasinputs{ndx} = Q.scoreFeatures;
   jabts(ndx) = Q.classifierStuff.timeStamp;
   behavior{ndx} = Q.behaviors.names{1};
+  if fastcomputepffs,
+
+    params = Q.classifierStuff.params;
+    pffs = cellfun(@(x) x{1}, Q.classifierStuff.featureNames([params.dim]),'uni',0);
+    allpffs = unique([allpffs,pffs]);
+  end
+
   classifierinfocurr = struct('jabfile',jabfiles{ndx},...
     'behavior',behavior{ndx},...
     'scorefilename',scorefilenames{ndx},...
@@ -115,7 +136,7 @@ allScores = cell(nbehaviors,numel(expdir));
 for ndx = order(:)'
   
   fprintf('Opening project %s...\n',jabfiles{ndx});
-  data.openJabFileNoExps(jabfiles{ndx},false);
+  data.openJabFileNoExps(jabfiles{ndx},false,'sublexiconPFNames',allpffs);
   for expi = 1:numel(expdir)
     if ~forcecompute
       sfn = fullfile(expdir{expi},scorefilenames{ndx});
@@ -130,6 +151,7 @@ for ndx = order(:)'
         end
       end
     end
+
     try 
     [success,msg] = data.AddExpDir(expdir{expi});
     if ~success,

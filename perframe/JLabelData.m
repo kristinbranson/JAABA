@@ -7495,7 +7495,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function openJabFileNoExps(self, ...
         fileNameAbs, ...
-        groundTruthingMode)
+        groundTruthingMode,...
+        varargin)
       
       self.gtMode = groundTruthingMode;
       
@@ -7514,6 +7515,15 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       macguffin.modernize(true);
+
+      % override 
+      for i = 1:2:numel(varargin)-1,
+        if isprop(macguffin,varargin{i}),
+          macguffin.(varargin{i}) = varargin{i+1};
+        else
+          warning('%s is not a property of Macguffin, ignoring',varargin{i});
+        end
+      end
       
       % Set the JLD to match the Macguffin
       self.setMacguffin(macguffin,false);
@@ -7826,6 +7836,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function setMacguffin(obj,everythingParams,loadexps)
+     
       % This initializes the JLabelData object based on the contents of
       % everythingParams
   
