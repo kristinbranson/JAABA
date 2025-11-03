@@ -40,12 +40,18 @@ if iscell(filename),
   
   readframes = cell(size(filename));
   nframes = inf;
-  fid = nan(size(filename));
+  fid = [];
   headerinfo = cell(size(filename));
   for i = 1:numel(filename),
-    [readframes{i},nframescurr,fid(i),headerinfo{i}] = get_readframe_fcn(filename{i},varargin{:});
+    [readframes{i},nframescurr,fidcurr,headerinfo{i}] = get_readframe_fcn(filename{i},varargin{:});
+    if i == 1,
+      fid = fidcurr;
+    else
+      fid(i) = fidcurr;
+    end
     nframes = min(nframes,nframescurr);
   end
+  fid = reshape(fid,size(filename));
   
   readframe = @(f) multi_read_frame(f,readframes);
   return;

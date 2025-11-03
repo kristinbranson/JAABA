@@ -124,6 +124,9 @@ obj.nfnscached(n) = 0;
 % Add apt stuff if it is missing
 if fromAPT && ~any(strcmp(fieldnames(traj),'kpts'))
   trkfilename = fullfile(obj.expdirs{n},obj.trkfilestr);
+  if ~all(cellfun(@(x) exist(x,'file'),trkfilename))
+    error(['APT trk file(s) do not exist:',sprintf('%s ',trkfilename{:})]);
+  end
   for view = 1:numel(trkfilename)
     traj = addAPTTrk2Trx(traj,trkfilename{view},'aptInfo',aptInfo,'view',view);
   end
