@@ -136,7 +136,11 @@ allScores = cell(nbehaviors,numel(expdir));
 for ndx = order(:)'
   
   fprintf('Opening project %s...\n',jabfiles{ndx});
-  data.openJabFileNoExps(jabfiles{ndx},false,'sublexiconPFNames',allpffs);
+  if fastcomputepffs && ~isempty(allpffs)
+    data.openJabFileNoExps(jabfiles{ndx},false,'sublexiconPFNames',allpffs);
+  else
+    data.openJabFileNoExps(jabfiles{ndx},false);
+  end
   for expi = 1:numel(expdir)
     if ~forcecompute
       sfn = fullfile(expdir{expi},scorefilenames{ndx});
