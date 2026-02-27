@@ -56,7 +56,7 @@ for view = 1:numel(trkfilename)
         theta = t*0;
       else
         t_pt = squeeze(temp_pts(aptInfo.apt_trx_orient,:,:));
-        theta = atan2(t_pt(1,:)-x,t_pt(2,:)-y);
+        theta = atan2(t_pt(2,:)-y,t_pt(1,:)-x);
       end
 
   end
