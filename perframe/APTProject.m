@@ -262,7 +262,7 @@ if is_multi
   set(handles.edit_social,'Enable','on')
 else
   set(handles.trx_pop,'String',{''})
-  set(handles.trx_pop,'Value',0)
+  set(handles.trx_pop,'Value',1)
   set(handles.trx_checkbox,'Value',true);
   if handles.has_crops
     set(handles.rb_crop,'Value',true);
