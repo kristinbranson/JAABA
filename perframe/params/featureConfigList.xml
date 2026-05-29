@@ -8,6 +8,7 @@
 <flies_rect file="params/featureConfig_rect.xml" animal="fly"/>
 <!--flies_FlyTracker file="params/featureConfigFlyTracker.xml" animal="wingedfly"/-->
 <eyrun_flies file="params/featureConfigEyrun.xml" animal="wingedfly"/>
+<eyrun_flies2 file="params/featureConfigEyrun2.xml" animal="wingedfly"/>
 <mice file="params/featureConfig_mice.xml" animal="fly"/>
 <eric_flies file="params/featureConfigEric.xml" animal="fly"/>
 <larvae file="params/featureConfigLarvae.xml" animal="larva"/>
