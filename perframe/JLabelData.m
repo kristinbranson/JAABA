@@ -3925,6 +3925,84 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
+    function [missingts,labelIdxVals,labelIdxImp,labelIdxT0,flies_curr] = ...
+        GetMissingWindowDataTs(obj,expi,iCls)
+      % [missingts,labelIdxVals,labelIdxImp,labelIdxT0,flies_curr] =
+      %   GetMissingWindowDataTs(obj,expi,iCls)
+      % For each target labeled in experiment expi, find the frames labeled
+      % for classifier iCls that do not yet have window data.
+      %
+      % flies_curr: nTargets x nFliesPerTarget, the labeled targets
+      % missingts: 1 x nTargets cell of vectors, frames needing window data
+      % labelIdxVals/labelIdxImp: 1 x nTargets cell of vectors, labelidx
+      %   .vals/.imp for this classifier
+      % labelIdxT0: 1 x nTargets cell of scalars, labelidx T0 for the target
+      %
+      % Targets are returned untrimmed: element flyi corresponds to
+      % flies_curr(flyi,:) whether or not it is missing any frames.
+      %
+      % SideEffect: refreshes labelidx_new/labelidx_imp on windowdata rows
+      % already cached for expi, whose labels may have changed since those
+      % rows were computed.
+
+      obj.CheckExp(expi);
+
+      flies_curr = obj.labels(expi).flies; % labeled flies for this exp (ANY behavior)
+      Nfliescurr = size(flies_curr,1);
+
+      labelIdxVals = cell(1,Nfliescurr); % vectors, labelidx.vals for this exp/fly/classifier
+      labelIdxImp = cell(1,Nfliescurr); % vectors, labelidx.imp for this exp/fly/classifier
+      labelIdxT0 = cell(1,Nfliescurr); % scalars, labelidx T0 offsets for this exp/fly
+      missingts = cell(1,Nfliescurr); % vectors, labeled frames for this classiifer which are not in this classifier's windowdata
+      for flyi = 1:Nfliescurr
+        flies = flies_curr(flyi,:);  % BJA: is this ever 2-D ?
+        obj.CheckFlies(flies);
+
+        [labelIdx,labelIdxT0{flyi}] = obj.GetLabelIdx(expi,flies);
+        assert(isequal(size(labelIdx.vals,1),size(labelIdx.imp,1),obj.nclassifiers));
+        labelIdxVals{flyi} = labelIdx.vals(iCls,:);
+        labelIdxImp{flyi} = labelIdx.imp(iCls,:);
+        % MK: the caller creates the dummy object only for targets that are
+        % missing frames. The object creating tends to be slow.
+
+        % Find all labeled frames for this exp/classifier/fly
+        if obj.nclassifiers==1
+          % Legacy codepath: build up ts from labels_curr. This should
+          % end up the same as labelidxVals{flyi}; assert this to
+          % verify.
+          ts = zeros(1,0);
+          labels_curr = obj.GetLabels(expi,flies);
+          for j = 1:numel(labels_curr.t0s),
+            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
+          end
+          assert(isequal(sort(ts+double(labelIdx.off)),sort(find(labelIdxVals{flyi}))));
+        else
+          % Just use labelIdxVals{flyi} and trust that it is the right
+          % thing.
+          ts = find(labelIdxVals{flyi})-labelIdx.off;
+        end
+
+        % Determine which frames are missing windowdata. Both branches
+        % return sorted unique frames: setdiff already does, and the
+        % PreLoadWindowData chunk seed breaks ties with argmin, so an
+        % unsorted ts here would put rows in a different order than the
+        % same labels reached through the setdiff branch.
+        if isempty(obj.windowdata(iCls).exp)
+          missingts{flyi} = unique(ts);
+        else
+          idxcurr = obj.FlyNdx(expi,flies,iCls);
+          tscurr = obj.windowdata(iCls).t(idxcurr); % object{flyi}.windowdata_t_flyndx
+          t0_labelidx = labelIdxT0{flyi};
+          obj.windowdata(iCls).labelidx_new(idxcurr) = labelIdxVals{flyi}(tscurr-double(t0_labelidx)+1);
+          obj.windowdata(iCls).labelidx_imp(idxcurr) = labelIdxImp{flyi}(tscurr-double(t0_labelidx)+1);
+          missingts{flyi} = setdiff(ts,tscurr);
+        end
+
+      end
+    end
+
+
+    % ---------------------------------------------------------------------
     function [success,msg] = PreLoadPeriLabelWindowData(obj)
       % [success,msg] = PreLoadPeriLabelWindowData(obj)
       % This function precomputes any missing window data for all labeled
@@ -3936,66 +4014,49 @@ classdef JLabelData < matlab.mixin.Copyable
       
       %MERGESTUPDATED
       
+      % Work out exactly how many rows each classifier will gain, so that
+      % windowdata can be allocated once. Appending instead reallocates and
+      % copies the whole matrix once per labeled target.
+      preload = cell(obj.nexps,obj.nclassifiers);
+      nadd = zeros(1,obj.nclassifiers);
+      nfliescols = 1;
+      for expi = 1:obj.nexps
+        for iCls = 1:obj.nclassifiers
+          p = struct();
+          [p.missingts,p.labelIdxVals,p.labelIdxImp,p.labelIdxT0,p.flies_curr] = ...
+            obj.GetMissingWindowDataTs(expi,iCls);
+          preload{expi,iCls} = p;
+          nadd(iCls) = nadd(iCls) + sum(cellfun(@numel,p.missingts));
+          if ~isempty(p.flies_curr),
+            nfliescols = size(p.flies_curr,2);
+          end
+        end
+      end
+
+      nrows = zeros(1,obj.nclassifiers); % rows of windowdata written so far
+      for iCls = 1:obj.nclassifiers
+        nrows(iCls) = size(obj.windowdata(iCls).X,1);
+        obj.windowdata(iCls) = WindowData.windowdataAllocRows(...
+          obj.windowdata(iCls),nrows(iCls)+nadd(iCls),nfliescols);
+      end
+      
       for expi = 1:obj.nexps
         for iCls = 1:obj.nclassifiers
           
           obj.SetStatus('Computing windowdata for %s: %s',...
             obj.expnames{expi},obj.labelnames{iCls});
-          obj.CheckExp(expi);
-          
-          flies_curr = obj.labels(expi).flies; % labeled flies for this exp (ANY behavior)
+
+          % state for parfor-windowdata computation, gathered above
+          p = preload{expi,iCls};
+          preload{expi,iCls} = []; % release the label timelines as we go
+          missingts = p.missingts;
+          labelIdxVals = p.labelIdxVals;
+          labelIdxImp = p.labelIdxImp;
+          labelIdxT0 = p.labelIdxT0;
+          flies_curr = p.flies_curr;
           Nfliescurr = size(flies_curr,1);
-          
-          % load up state for parfor-windowdata computation
-          labelIdxVals = cell(1,Nfliescurr); % vectors, labelidx.vals for this exp/fly/classifier
-          labelIdxImp = cell(1,Nfliescurr); % vectors, labelidx.imp for this exp/fly/classifier
-          labelIdxT0 = cell(1,Nfliescurr); % scalars, labelidx T0 offsets for this exp/fly
-          missingts = cell(1,Nfliescurr); % vectors, labeled frames for this classiifer which are not in this classifier's windowdata
           object = cell(1,Nfliescurr); % structs, dummy object for this exp/fly/classifier
-          for flyi = 1:Nfliescurr
-            flies = flies_curr(flyi,:);  % BJA: is this ever 2-D ?
-            obj.CheckFlies(flies);
-            
-            [labelIdx,labelIdxT0{flyi}] = obj.GetLabelIdx(expi,flies);
-            assert(isequal(size(labelIdx.vals,1),size(labelIdx.imp,1),obj.nclassifiers));
-            labelIdxVals{flyi} = labelIdx.vals(iCls,:);
-            labelIdxImp{flyi} = labelIdx.imp(iCls,:);
-%             object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
-%           MK: moved this below so that we compute the object only if
-%           there are some ts that are missing. The object creating tends
-%           to be slow.
 
-            % Find all labeled frames for this exp/classifier/fly
-            if obj.nclassifiers==1
-              % Legacy codepath: build up ts from labels_curr. This should
-              % end up the same as labelidxVals{flyi}; assert this to
-              % verify.
-              ts = zeros(1,0);
-              labels_curr = obj.GetLabels(expi,flies);
-              for j = 1:numel(labels_curr.t0s),
-                ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
-              end
-              assert(isequal(sort(ts+double(labelIdx.off)),sort(find(labelIdxVals{flyi}))));
-            else
-              % Just use labelIdxVals{flyi} and trust that it is the right
-              % thing.
-              ts = find(labelIdxVals{flyi})-labelIdx.off;
-            end
-              
-            % Determine which frames are missing windowdata
-            if isempty(obj.windowdata(iCls).exp)
-              missingts{flyi} = ts;
-            else
-              idxcurr = obj.FlyNdx(expi,flies,iCls);
-              tscurr = obj.windowdata(iCls).t(idxcurr); % object{flyi}.windowdata_t_flyndx
-              t0_labelidx = labelIdxT0{flyi};
-              obj.windowdata(iCls).labelidx_new(idxcurr) = labelIdxVals{flyi}(tscurr-double(t0_labelidx)+1);
-              obj.windowdata(iCls).labelidx_imp(idxcurr) = labelIdxImp{flyi}(tscurr-double(t0_labelidx)+1);
-              missingts{flyi} = setdiff(ts,tscurr);
-            end
-
-          end
-          
           % Trim unnecessary flies.
           toremove = cellfun(@(x) isempty(x),missingts);
           flies_curr = flies_curr(~toremove);
@@ -4037,10 +4098,15 @@ classdef JLabelData < matlab.mixin.Copyable
           if Nfliescurr ==1
             usecacheperframe = obj.IsCurFly(expi,flies_curr);
           end
-          cacheperframedata = obj.perframedata;
-          
-          [~,pfidx] = ismember(curperframefns,allperframefns);
-          tmp_cacheperframedata = cacheperframedata(pfidx);
+          if usecacheperframe,
+            cacheperframedata = obj.perframedata;
+            [~,pfidx] = ismember(curperframefns,allperframefns);
+            tmp_cacheperframedata = cacheperframedata(pfidx);
+          else
+            % obj.perframedata is only populated for the current target,
+            % so there is nothing to slice when running without one.
+            tmp_cacheperframedata = cell(1,Ncpff);
+          end
           
           stInfo = obj.stInfo;
           parfor perframei = 1:Ncpff % TODO: Switch back to parfor
@@ -4094,21 +4160,25 @@ classdef JLabelData < matlab.mixin.Copyable
             %ALTODO: How are we assured that the columns of [tmp.X]
             %correspond to the columns of windowdata.X? In fact
             %curperframefns may have mutated during this method...
-            obj.windowdata(iCls).X = [obj.windowdata(iCls).X; [tmp.X]];
-            obj.windowdata(iCls).exp = [obj.windowdata(iCls).exp; repmat(expi,nframes,1)];
-            obj.windowdata(iCls).flies = [obj.windowdata(iCls).flies; repmat(flies,nframes,1)];
-            obj.windowdata(iCls).t = [obj.windowdata(iCls).t; tmp(1).t];
-            obj.windowdata(iCls).labelidx_cur = [obj.windowdata(iCls).labelidx_cur; zeros(nframes,1)];
-            obj.windowdata(iCls).labelidx_new = [obj.windowdata(iCls).labelidx_new; tmp(1).labelidx_new];
-            obj.windowdata(iCls).labelidx_imp = [obj.windowdata(iCls).labelidx_imp; tmp(1).labelidx_imp];
-            obj.windowdata(iCls).labelidx_old = [obj.windowdata(iCls).labelidx_old; zeros(nframes,1)];
-            obj.windowdata(iCls).scores_validated = [obj.windowdata(iCls).scores_validated; zeros(nframes,1)];
+            i0 = nrows(iCls)+1;
+            i1 = nrows(iCls)+nframes;
+            assert(i1 <= size(obj.windowdata(iCls).X,1),...
+              'windowdata was preallocated for %d rows but needs at least %d.',...
+              size(obj.windowdata(iCls).X,1),i1);
+            obj.windowdata(iCls).X(i0:i1,:) = [tmp.X];
+            obj.windowdata(iCls).exp(i0:i1,1) = expi;
+            obj.windowdata(iCls).flies(i0:i1,:) = repmat(flies,nframes,1);
+            obj.windowdata(iCls).t(i0:i1,1) = tmp(1).t;
+            obj.windowdata(iCls).labelidx_cur(i0:i1,1) = 0;
+            obj.windowdata(iCls).labelidx_new(i0:i1,1) = tmp(1).labelidx_new;
+            obj.windowdata(iCls).labelidx_imp(i0:i1,1) = tmp(1).labelidx_imp;
+            obj.windowdata(iCls).labelidx_old(i0:i1,1) = 0;
+            obj.windowdata(iCls).scores_validated(i0:i1,1) = 0;
             if ~isempty(obj.windowdata(iCls).binVals),
-              tmpbins = findThresholdBins([tmp.X], obj.windowdata(iCls).binVals);
-            else
-              tmpbins = [];
+              obj.windowdata(iCls).bins(:,i0:i1) = ...
+                findThresholdBins([tmp.X], obj.windowdata(iCls).binVals);
             end
-            obj.windowdata(iCls).bins = [obj.windowdata(iCls).bins tmpbins];
+            nrows(iCls) = i1;
 %             obj.windowdata(iCls).predicted = [obj.windowdata(iCls).predicted; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores = [obj.windowdata(iCls).scores; zeros(nframes,1)];
 %             obj.windowdata(iCls).scores_old = [obj.windowdata(iCls).scores_old; zeros(nframes,1)];
@@ -4122,6 +4192,12 @@ classdef JLabelData < matlab.mixin.Copyable
 %         obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
 %           @(x)x.labelidx_new==0);        
       end % expi
+      
+      for iCls = 1:obj.nclassifiers
+        assert(nrows(iCls)==size(obj.windowdata(iCls).X,1),...
+          'windowdata has %d rows that were preallocated but never written.',...
+          size(obj.windowdata(iCls).X,1)-nrows(iCls));
+      end
       
       % MK: Moved this out of exp loop as per AL's suggestion
       obj.windowdata = WindowData.windowdataTrim(obj.windowdata,...
@@ -5203,7 +5279,34 @@ classdef JLabelData < matlab.mixin.Copyable
   
   methods % (more public)
 
-    
+
+    % ---------------------------------------------------------------------
+    function [Xlbl,binslbl] = GetLabeledWindowData(obj,iCls,islabeled)
+      % [Xlbl,binslbl] = GetLabeledWindowData(obj,iCls,islabeled)
+      % Window data and bins for the rows selected by islabeled.
+      %
+      % When islabeled selects every row the originals are returned
+      % unindexed. That is the usual case: windowdata is trimmed to labeled
+      % frames, and JAABA marks every bout important. MATLAB logical
+      % indexing materializes a new array even when the mask selects
+      % everything, and X is the largest array in the program, so taking
+      % that copy costs as much again as windowdata itself. Callers only
+      % read the result, so copy-on-write keeps the unindexed alias free.
+
+      if all(islabeled),
+        Xlbl = obj.windowdata(iCls).X;
+        binslbl = obj.windowdata(iCls).bins;
+      else
+        Xlbl = obj.windowdata(iCls).X(islabeled,:);
+        if isempty(obj.windowdata(iCls).bins),
+          binslbl = obj.windowdata(iCls).bins;
+        else
+          binslbl = obj.windowdata(iCls).bins(:,islabeled);
+        end
+      end
+    end
+
+
     % ---------------------------------------------------------------------
     function Train(obj)
     % Train(obj)
@@ -5277,10 +5380,11 @@ classdef JLabelData < matlab.mixin.Copyable
               end
               
               obj.classifier_old{iCls} = obj.classifier{iCls};
-              if checkThresholds(obj.windowdata(iCls).X(islabeled,:),...
+              Xlbl = obj.GetLabeledWindowData(iCls,islabeled);
+              if checkThresholds(Xlbl,...
                   obj.classifier_params{iCls},obj.windowdata(iCls).binVals),
                 [obj.windowdata(iCls).binVals] = findThresholds(...
-                  obj.windowdata(iCls).X(islabeled,:),...
+                  Xlbl,...
                   obj.classifier_params{iCls},'deterministic',obj.deterministic);
                 obj.windowdata(iCls).bins = findThresholdBins(obj.windowdata(iCls).X,...
                   obj.windowdata(iCls).binVals);
@@ -5293,9 +5397,9 @@ classdef JLabelData < matlab.mixin.Copyable
               
               % Do feature selection.
              if obj.selFeatures(iCls).use && obj.selFeatures(iCls).do,
-               bins = obj.windowdata(iCls).bins(:,islabeled);
+               [Xlbl,bins] = obj.GetLabeledWindowData(iCls,islabeled);
                 obj.selFeatures(iCls) =...
-                  SelFeatures.select(obj.selFeatures(iCls),obj.windowdata(iCls).X(islabeled,:), ...
+                  SelFeatures.select(obj.selFeatures(iCls),Xlbl, ...
                                   labels12,obj,...
                                   obj.windowdata(iCls).binVals,...
                                   bins, ...
@@ -5322,8 +5426,7 @@ classdef JLabelData < matlab.mixin.Copyable
                      obj.classifier_params{iCls},pstr);
                    obj.classifier{iCls} = SelFeatures.convertClassifier(curcls,obj.selFeatures(iCls));
                  else
-                   curD = obj.windowdata(iCls).X(islabeled,:);
-                  bins = obj.windowdata(iCls).bins(:,islabeled);
+                   [curD,bins] = obj.GetLabeledWindowData(iCls,islabeled);
                   [obj.classifier{iCls},outscores,trainstats] =...
                     boostingWrapper(curD, ...
                                     labels12,obj,...

@@ -309,20 +309,18 @@ set(handles.pushbutton_update,'enable','on');
 
 % -------------------------------------------------------------------------
 function initTable(hObject)
-% Use java objects to tweak the table. Found this online at 
-% http://www.mathworks.com/matlabcentral/newsreader/view_thread/298335
+% Set up the target table.  This previously used undocumented Java/findjobj
+% hooks to disable column sorting and add a double-click-to-switch handler.  The
+% Java Swing internals of uitable were removed in newer MATLAB (findjobj returns
+% nothing); a native uitable is not user-sortable so nothing replaces
+% setSortable, and double-click is restored via the native DoubleClickedFcn.
 
 handles = guidata(hObject);
-jscrollpane = findjobj(handles.table);
-jtable = jscrollpane.getViewport.getView;
-jtable.setSortable(false);	
 
 colWidth = repmat({70},1,13);
 colWidth{1} = 300;
 set(handles.table,'ColumnWidth',colWidth);
-
-uitablepeer  = findjobj(hObject,'-nomenu','class','uitablepeer');
-set(uitablepeer,'MouseClickedCallback',@MouseClickHandler);
+set(handles.table,'DoubleClickedFcn',@tableDoubleClick);
 
 % rowHeaderViewport=jscrollpane.getComponent(4);
 % rowHeader=rowHeaderViewport.getComponent(0);
@@ -352,11 +350,11 @@ varargout{1} = handles.output;
 function tableSelect(hObject,eventData)
 
 handles = guidata(hObject);
-jscrollpane = findjobj(handles.table);
-jtable = jscrollpane.getViewport.getView;
 
 if(size(eventData.Indices,1)==1)
-  ndx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
+  % Table sorting is disabled, so the selected (visual) row index is the data
+  % row index directly (previously mapped via the Java table's getActualRowAt).
+  ndx = eventData.Indices(1,1);
 
   start_target = PageRow2GlobalTarget(handles,handles.page_number,1);
   handles.curExp = handles.cachedDataExpi(start_target + ndx - 1);
@@ -461,18 +459,13 @@ end
 
 
 
-% From http://www.mathworks.com/matlabcentral/newsreader/view_thread/270514
-
-function MouseClickHandler(handle,cbData)
-  % handle ~ java object UITablePeer
-  % cbData ~ callback data for the MouseClickedCallback event
-
-  if get(cbData,'ClickCount') == 2
-      curfig = findall(0,'type','figure','name','SwitchTarget');
-      if numel(curfig)~=1,
-        return;
-      end
-        
-      pushSwitchfly_Callback(curfig,[],guidata(curfig));
-  end
+function tableDoubleClick(hObject,~)
+% Double-click a row to switch to that target.  Native DoubleClickedFcn
+% replacement for the old Java MouseClickedCallback double-click handler: the
+% preceding click's CellSelectionCallback (tableSelect) has already set
+% handles.curExp / handles.curFly for the clicked row, so we just switch.
+handles = guidata(hObject);
+if isfield(handles,'curExp') && ~isempty(handles.curExp)
+  pushSwitchfly_Callback(hObject,[],handles);
+end
 

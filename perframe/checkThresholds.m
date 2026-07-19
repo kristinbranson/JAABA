@@ -19,11 +19,31 @@ selValues = prcValues(selpts);
 binVals = permute(binVals,[3 2 1]);
 curbvals = binVals(:,:,selpts);
 
-kk1 = bsxfun(@lt,data,curbvals);
-kk2 = bsxfun(@le,data,curbvals);
+% The comparisons are summed over examples straight away, so they are
+% accumulated in blocks of dimensions. Comparing every dimension at once
+% would materialize an nex x numDim x numel(selpts) array, which is larger
+% than the training data itself.
 
-tt1 = sum(kk1,1)/nex*100;
-tt2 = sum(kk2,1)/nex*100;
+% OLD code 
+% kk1 = bsxfun(@lt,data,curbvals);
+% kk2 = bsxfun(@le,data,curbvals);
+%
+% tt1 = sum(kk1,1)/nex*100;
+% tt2 = sum(kk2,1)/nex*100;
+
+tt1 = zeros(1,numDim,numel(selpts));
+tt2 = zeros(1,numDim,numel(selpts));
+blocksize = max(1,floor(1e8/max(nex*numel(selpts),1)));
+for j0 = 1:blocksize:numDim,
+  j1 = min(j0+blocksize-1,numDim);
+  curdata = data(:,j0:j1);
+  curb = curbvals(1,j0:j1,:);
+  tt1(1,j0:j1,:) = sum(bsxfun(@lt,curdata,curb),1);
+  tt2(1,j0:j1,:) = sum(bsxfun(@le,curdata,curb),1);
+end
+
+tt1 = tt1/nex*100;
+tt2 = tt2/nex*100;
 tt1 = squeeze(tt1);
 tt2 = squeeze(tt2);
 mm = abs(tt1-tt2);

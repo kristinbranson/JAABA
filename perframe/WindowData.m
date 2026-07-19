@@ -87,7 +87,52 @@ classdef WindowData
         wd(iCls).postprocessed  = [];
       end
     end
-    
+
+    function wd = windowdataAllocRows(wd,nrowstotal,nfliescols)
+      % Grow the row-aligned fields of wd to nrowstotal rows, keeping
+      % whatever is already there. New rows are zeroed, and exp==0 is what
+      % marks a row as not yet written: FlyNdx matches on exp==expi with
+      % expi>=1, so a padding row can never be mistaken for cached window
+      % data.
+
+      assert(isscalar(wd));
+      n0 = size(wd.X,1);
+      if nrowstotal <= n0, return; end
+      nftr = numel(wd.featurenames);
+      if size(wd.flies,2) > 0,
+        nfliescols = size(wd.flies,2);
+      end
+
+      % X is allocated explicitly rather than grown into: an empty
+      % windowdata carries a double 0-by-nftr X (see
+      % windowdataSetFeaturenames), and growing that in place would leave
+      % the whole matrix double, at twice the size window data is meant to
+      % occupy.
+      X = zeros(nrowstotal,nftr,'single');
+      X(1:n0,:) = wd.X;
+      wd.X = X;
+
+      wd.exp(nrowstotal,1) = 0;
+      wd.flies(nrowstotal,nfliescols) = 0;
+      wd.t(nrowstotal,1) = 0;
+      wd.labelidx_cur(nrowstotal,1) = 0;
+      wd.labelidx_new(nrowstotal,1) = 0;
+      wd.labelidx_imp(nrowstotal,1) = 0;
+      wd.labelidx_old(nrowstotal,1) = 0;
+      wd.scores_validated(nrowstotal,1) = 0;
+      % bins is allocated explicitly for the same reason as X: the
+      % constructor leaves it as a double [], so growing it in place would
+      % produce a double matrix instead of the uint8 one findThresholdBins
+      % returns, at eight times the size.
+      if ~isempty(wd.binVals),
+        bins = zeros(nftr,nrowstotal,'uint8');
+        if size(wd.bins,1) == nftr,
+          bins(:,1:size(wd.bins,2)) = wd.bins;
+        end
+        wd.bins = bins;
+      end
+    end
+
     function wd = windowdataTrim(wd,predFcn)
       assert(isa(predFcn,'function_handle'));
       
