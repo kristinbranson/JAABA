@@ -28,11 +28,17 @@ for view = 1:numel(trkfilename)
     warning('APT project already has trx. This might overwrite it');
   end
 
-  temp_pts = trk.getPTrkTgt(1);
-  aa = trk.isalive(1:size(temp_pts,3),1);
-  ff = find(aa,1,'first');
-  ef = find(aa,1,'last');
-  temp_pts = temp_pts(:,:,ff:ef);
+  [temp_pts,~,fr] = trk.getPTrkTgt(1);
+  % fr holds the absolute frame numbers for each slice of temp_pts, and is a
+  % contiguous run. isalive must be queried at those absolute frames, not at
+  % 1:numframes, otherwise a trk whose tracking does not start at frame 1
+  % yields an all-false result (and downstream an empty ff/ef).
+  aa = trk.isalive(fr,1);
+  ffRel = find(aa,1,'first');
+  efRel = find(aa,1,'last');
+  temp_pts = temp_pts(:,:,ffRel:efRel);
+  ff = fr(ffRel);  % absolute first tracked frame
+  ef = fr(efRel);  % absolute last tracked frame
   t = ones(1,ef-ff+1);
   switch aptInfo.apt_trx_type
     case 'crop'
